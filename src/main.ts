@@ -1,5 +1,6 @@
 import {Plugin, Modal, Notice, TFile} from 'obsidian';
 import CardifySettings from "./interface/ICardifySettings";
+import {copyTextToClipboard} from "./utils/clipboardUtils";
 
 const DEFAULT_SETTINGS: CardifySettings = {
 	canvasCardDelimiter: '---',
@@ -207,6 +208,8 @@ export default class Cardify extends Plugin {
         // @ts-ignore
         this.registerEvent(this.app.workspace.on("canvas:node-menu", (menu: any, node: any) => {
             this.addBadgeCommand(menu, node);
+            this.addSplitCardCommand(menu, node);
+            this.addCopyCardContentCommand(menu, node);
         }));
 
         // @ts-ignore
@@ -237,6 +240,74 @@ export default class Cardify extends Plugin {
                 this.ensureStylesExist();
             })
         );
+    }
+
+    addSplitCardCommand(menu: any, node: any) {
+        if (node.text) {
+            menu.addItem((item: any) => {
+                item
+                    .setTitle("按分隔符拆分卡片")
+                    .setIcon("split")
+                    .onClick(() => {
+                        this.splitCard(node);
+                    });
+            });
+        }
+    }
+
+    addCopyCardContentCommand(menu: any, node: any) {
+        if (node.text) {
+            menu.addItem((item: any) => {
+                item
+                    .setTitle("复制卡片内容")
+                    .setIcon("copy")
+                    .onClick(() => {
+                        copyTextToClipboard(node.text);
+                    });
+            });
+        }
+    }
+
+    splitCard(node: any) {
+        const canvas = node.canvas;
+        const nodeData = node.getData();
+        const text = nodeData.text;
+        const delimiter = this.settings.canvasCardDelimiter;
+
+        if (!text || !text.includes(delimiter)) {
+            new Notice("卡片中未找到分隔符。");
+            return;
+        }
+
+        const parts = text.split(delimiter).map((p:string) => p.trim()).filter((p:string) => p);
+        if (parts.length <= 1) {
+            new Notice("没有可拆分的内容。");
+            return;
+        }
+
+        const canvasData = canvas.getData();
+        const originalNodeIndex = canvasData.nodes.findIndex((n: any) => n.id === node.id);
+
+        if (originalNodeIndex === -1) return;
+
+        // Update original node
+        canvasData.nodes[originalNodeIndex].text = parts[0];
+
+        const newNodes = [];
+        for (let i = 1; i < parts.length; i++) {
+            const newNode = {
+                ...nodeData,
+                id: `${Math.random().toString(36).substr(2, 9)}`,
+                x: nodeData.x,
+                y: nodeData.y + (nodeData.height + 20) * i,
+                text: parts[i],
+            };
+            newNodes.push(newNode);
+        }
+
+        canvasData.nodes.push(...newNodes);
+        canvas.setData(canvasData);
+        canvas.requestSave();
     }
     
     addBadgeCommand(menu: any, node: any) {
