@@ -1,6 +1,7 @@
 import {Plugin, Modal, Notice, TFile} from 'obsidian';
 import CardifySettings from "./interface/ICardifySettings";
 import {copyTextToClipboard} from "./utils/clipboardUtils";
+import CardifySettingTab from "./class/CardifySettingTabClass";
 
 const DEFAULT_SETTINGS: CardifySettings = {
 	canvasCardDelimiter: '---',
@@ -188,6 +189,9 @@ export default class Cardify extends Plugin {
         console.log("Loading Canvas Card Actions plugin with persistence");
 
         await this.loadSettings();
+        
+        // 注册设置页面
+        this.addSettingTab(new CardifySettingTab(this.app, this));
         
         // 注入样式
         this.injectStyles();
