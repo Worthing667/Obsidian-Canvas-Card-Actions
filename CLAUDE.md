@@ -14,16 +14,31 @@
 
 ## 代码架构
 
+项目采用分层架构设计：
+
 ### 主要插件文件
 - `src/main.ts` - 包含核心插件逻辑，包括：
-    - Canvas 节点右键菜单的事件注册
-    - 根据分隔符创建新节点的卡片分割算法
-    - 单个和多个卡片内容复制功能
-    - 卡片徽章的添加/编辑/移除功能
+    - 依赖注入容器的初始化
+    - 各类服务的组织与管理
+    - 事件注册与命令绑定
     - 设置管理与持久化
 
-### 工具函数
-- `src/utils/clipboardUtils.ts` - 包含剪贴板操作相关的工具函数
+### 分层架构
+- **`src/adapters/`** - 适配器层，封装与外部系统的交互
+  - `CanvasAdapter.ts` - Canvas 操作适配器
+  - `ClipboardAdapter.ts` - 剪贴板操作适配器
+  - `StorageAdapter.ts` - 数据存储适配器
+- **`src/domain/`** - 领域层，包含业务模型和策略
+  - `models/` - 数据模型（Card, Badge, CanvasData）
+  - `strategies/` - 排序策略（PositionSort, BadgeSort）
+- **`src/services/`** - 服务层，处理业务逻辑
+  - `CardService.ts` - 卡片管理服务
+  - `BadgeService.ts` - 徽章管理服务
+  - `ContentService.ts` - 内容处理服务
+- **`src/presentation/`** - 表现层，UI组件和命令处理
+  - `commands/` - 命令处理器（拆分、复制、徽章操作）
+  - `modals/` - 模态框组件
+  - `styles/` - 样式管理器
 
 ### 设置
 - `src/interface/ICardifySettings.ts` - 定义插件设置的 TypeScript 接口
@@ -35,17 +50,18 @@
 - `manifest.json` - Obsidian 插件清单文件
 
 ### 关键实现细节
-1. 插件监听 'canvas:node-menu' 和 'canvas:selection-menu' 事件以新增右键菜单项
-2. 被触发时，它会根据情况提供以下功能：
+1. 插件采用依赖注入模式，通过 `CommandRegistry` 服务统一管理所有命令
+2. 监听 'canvas:node-menu' 和 'canvas:selection-menu' 事件以新增右键菜单项
+3. 被触发时，根据情况提供以下功能：
    - 使用用户定义的分隔符来分割 Canvas 文本节点的内容
    - 复制单个卡片的文本内容到剪贴板
    - 复制多个卡片的内容到剪贴板（按空间位置排序）
    - 按徽章顺序复制多个卡片的内容到剪贴板（格式：[徽章] 内容）
    - 为卡片添加/编辑/移除数字徽章
-3. 新卡片会以固定的尺寸创建，并垂直排列在原始卡片的右侧
-4. 徽章信息通过 Canvas API 持久化存储在 .canvas 文件中
-5. 徽章显示通过 CSS 伪元素实现，支持数字、文字和 emoji 类型
-6. 设置会使用 Obsidian 内置的数据加载/保存机制进行持久化
+4. 新卡片会以固定的尺寸创建，并垂直排列在原始卡片的右侧
+5. 徽章信息通过 Canvas API 持久化存储在 .canvas 文件中
+6. 徽章显示通过 CSS 伪元素实现，支持数字、文字和 emoji 类型
+7. 设置会使用 Obsidian 内置的数据加载/保存机制进行持久化
 
 ## 文档管理
 
