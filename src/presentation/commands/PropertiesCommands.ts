@@ -2,12 +2,14 @@ import { Notice } from "obsidian";
 import { CardPropertiesModal } from "../modals/CardPropertiesModal";
 import { SingleCardPropertiesModal } from "../modals/SingleCardPropertiesModal";
 import { CardService } from "../../services/CardService";
+import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
 
 export class OpenCardPropertiesCommand {
   constructor(
     private app: any,
     private cardService: CardService,
-    private selection: any[]
+    private selection: any[],
+    private clipboardAdapter: ClipboardAdapter
   ) {}
 
   async execute(): Promise<void> {
@@ -31,7 +33,7 @@ export class OpenCardPropertiesCommand {
       // 根据卡片数量选择不同的查看器
       if (textCards.length === 1) {
         // 单卡片使用专门的编辑器
-        const modal = new SingleCardPropertiesModal(this.app, textCards[0], this.cardService);
+        const modal = new SingleCardPropertiesModal(this.app, textCards[0], this.cardService, this.clipboardAdapter);
         modal.open();
       } else {
         // 多卡片使用批量管理器

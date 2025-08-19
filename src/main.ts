@@ -160,7 +160,8 @@ export default class Cardify extends Plugin {
             const propertiesCommand = new OpenCardPropertiesCommand(
                 this.app,
                 this.cardService,
-                [node] // 将单个节点包装为数组
+                [node], // 将单个节点包装为数组
+                this.clipboardAdapter
             );
             
             this.commandRegistry.registerCommand("open-single-card-properties", propertiesCommand);
@@ -171,15 +172,6 @@ export default class Cardify extends Plugin {
                 "edit"
             );
 
-            // 可选：同时添加复制尺寸功能
-            const copyDimensionsCommand = new CopyCardDimensionsCommand([node]);
-            this.commandRegistry.registerCommand("copy-single-card-dimensions", copyDimensionsCommand);
-            this.commandRegistry.addCommandToMenu(
-                menu,
-                "copy-single-card-dimensions",
-                "复制卡片尺寸",
-                "copy"
-            );
         }
     }
 
@@ -236,7 +228,8 @@ export default class Cardify extends Plugin {
         const propertiesCommand = new OpenCardPropertiesCommand(
             this.app,
             this.cardService,
-            selectionArray
+            selectionArray,
+            this.clipboardAdapter
         );
         this.commandRegistry.registerCommand("open-card-properties", propertiesCommand);
         this.commandRegistry.addCommandToMenu(
@@ -246,68 +239,11 @@ export default class Cardify extends Plugin {
             "settings"
         );
         
-        // ===== 新增：复制卡片尺寸信息 =====
-        const copyDimensionsCommand = new CopyCardDimensionsCommand(selectionArray);
-        this.commandRegistry.registerCommand("copy-dimensions", copyDimensionsCommand);
-        this.commandRegistry.addCommandToMenu(
-            menu,
-            "copy-dimensions", 
-            "复制卡片尺寸",
-            "copy"
-        );
-        
         // 获取文本卡片以进行尺寸操作
         const textCards = selectionArray.filter(
             (node: any) => node.getData && node.getData().type === "text"
         );
         
-        // 现有的尺寸统一功能
-        if (textCards.length >= 2) {
-            menu.addSeparator();
-            
-            // 快速统一尺寸选项
-            menu.addItem((item: any) => {
-                item
-                    .setTitle("统一为最小尺寸")
-                    .setIcon("compress")
-                    .onClick(async () => {
-                        try {
-                            await this.cardService.unifyCardSizes(textCards, "min");
-                        } catch (e: any) {
-                            new Notice(e.message);
-                        }
-                    });
-            });
-            
-            menu.addItem((item: any) => {
-                item
-                    .setTitle("统一为最大尺寸")
-                    .setIcon("expand")
-                    .onClick(async () => {
-                        try {
-                            await this.cardService.unifyCardSizes(textCards, "max");
-                        } catch (e: any) {
-                            new Notice(e.message);
-                        }
-                    });
-            });
-            
-            // 撤销操作
-            if ((this.cardService as any).lastSizeOperation) {
-                menu.addItem((item: any) => {
-                    item
-                        .setTitle("撤销尺寸调整")
-                        .setIcon("undo")
-                        .onClick(async () => {
-                            try {
-                                await this.cardService.undoLastSizeOperation();
-                            } catch (e: any) {
-                                new Notice(e.message);
-                            }
-                        });
-                });
-            }
-        }
         
         console.log("Selection menu commands added successfully");
     }
@@ -404,7 +340,8 @@ export default class Cardify extends Plugin {
                             const command = new OpenCardPropertiesCommand(
                                 this.app,
                                 this.cardService,
-                                selectionArray
+                                selectionArray,
+                                this.clipboardAdapter
                             );
                             command.execute();
                         }

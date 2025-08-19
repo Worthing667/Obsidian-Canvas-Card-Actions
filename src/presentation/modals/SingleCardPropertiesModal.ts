@@ -1,15 +1,18 @@
 import { Modal, Notice } from "obsidian";
 import { CardService } from "../../services/CardService";
+import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
 
 export class SingleCardPropertiesModal extends Modal {
   private card: any;
   private cardService: CardService;
+  private clipboardAdapter: ClipboardAdapter;
   private cardData: any;
 
-  constructor(app: any, card: any, cardService: CardService) {
+  constructor(app: any, card: any, cardService: CardService, clipboardAdapter: ClipboardAdapter) {
     super(app);
     this.card = card;
     this.cardService = cardService;
+    this.clipboardAdapter = clipboardAdapter;
     this.cardData = card.getData();
   }
 
@@ -18,41 +21,57 @@ export class SingleCardPropertiesModal extends Modal {
     contentEl.empty();
     
     // 简洁的标题
-    contentEl.createEl("h2", { text: "编辑卡片尺寸" });
+    contentEl.createEl("h2", { text: "卡片属性" });
     
-    // 当前尺寸信息 - 简洁显示
-    const currentInfoDiv = contentEl.createDiv({ cls: "current-card-info" });
-    currentInfoDiv.innerHTML = `
-      <div class="card-summary">
-        <div class="size-display">
-          <span class="size-label">当前尺寸：</span>
-          <span class="size-value" id="current-size">${this.cardData.width} × ${this.cardData.height} px</span>
-        </div>
-        <div class="position-display">
-          <span class="pos-label">位置：</span>
-          <span class="pos-value">X: ${this.cardData.x}, Y: ${this.cardData.y}</span>
-        </div>
+    // 当前信息显示
+    this.createInfoSection(contentEl);
+    
+    contentEl.createEl("hr");
+
+    // 尺寸编辑区域
+    this.createDimensionEditor(contentEl);
+    
+    contentEl.createEl("hr");
+    
+    // 复制功能区域
+    this.createCopySection(contentEl);
+    
+    this.addStyles();
+  }
+
+  private createInfoSection(container: HTMLElement): void {
+    const infoDiv = container.createDiv({ cls: "card-info-section" });
+    
+    const basicInfo = infoDiv.createDiv({ cls: "basic-info" });
+    basicInfo.innerHTML = `
+      <div class="info-row">
+        <span class="info-label">尺寸：</span>
+        <span class="info-value" id="current-size">${this.cardData.width} × ${this.cardData.height} px</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">位置：</span>
+        <span class="info-value">X: ${this.cardData.x}, Y: ${this.cardData.y}</span>
       </div>
     `;
 
-    // 内容预览（如果有文本）
+    if (this.cardData.badge) {
+      const badgeInfo = basicInfo.createDiv({ cls: "info-row" });
+      badgeInfo.innerHTML = `
+        <span class="info-label">徽章：</span>
+        <span class="info-value badge-display">${this.cardData.badge}</span>
+      `;
+    }
+
     if (this.cardData.text) {
-      const previewDiv = contentEl.createDiv({ cls: "content-preview" });
-      const previewText = this.cardData.text.length > 100 
-        ? this.cardData.text.substring(0, 100) + "..." 
+      const previewDiv = infoDiv.createDiv({ cls: "content-preview" });
+      const previewText = this.cardData.text.length > 150 
+        ? this.cardData.text.substring(0, 150) + "..." 
         : this.cardData.text;
       previewDiv.innerHTML = `
         <div class="preview-label">内容预览：</div>
         <div class="preview-text">${previewText}</div>
       `;
     }
-
-    contentEl.createEl("hr");
-
-    // 尺寸编辑区域
-    this.createDimensionEditor(contentEl);
-    
-    this.addStyles();
   }
 
   private createDimensionEditor(container: HTMLElement): void {
@@ -184,55 +203,132 @@ export class SingleCardPropertiesModal extends Modal {
     return !isNaN(value) && value >= 50 && value <= 2000;
   }
 
+  private createCopySection(container: HTMLElement): void {
+    const copyDiv = container.createDiv({ cls: "copy-section" });
+    copyDiv.createEl("h3", { text: "复制选项" });
+    
+    const copyButtons = copyDiv.createDiv({ cls: "copy-buttons" });
+    
+    // 复制尺寸信息
+    const copySizeBtn = copyButtons.createEl("button", {
+      text: "复制尺寸信息",
+      cls: "copy-btn"
+    });
+    
+    copySizeBtn.addEventListener("click", async () => {
+      const sizeInfo = `卡片尺寸: ${this.cardData.width} × ${this.cardData.height} px`;
+      try {
+        await navigator.clipboard.writeText(sizeInfo);
+        new Notice("尺寸信息已复制到剪贴板");
+      } catch (error) {
+        console.error("复制失败:", error);
+        new Notice("复制失败，请重试");
+      }
+    });
+
+    // 复制位置信息
+    const copyPosBtn = copyButtons.createEl("button", {
+      text: "复制位置信息", 
+      cls: "copy-btn"
+    });
+    
+    copyPosBtn.addEventListener("click", async () => {
+      const posInfo = `卡片位置: X: ${this.cardData.x}, Y: ${this.cardData.y}`;
+      try {
+        await navigator.clipboard.writeText(posInfo);
+        new Notice("位置信息已复制到剪贴板");
+      } catch (error) {
+        console.error("复制失败:", error);
+        new Notice("复制失败，请重试");
+      }
+    });
+
+    // 复制完整属性
+    const copyAllBtn = copyButtons.createEl("button", {
+      text: "复制完整属性",
+      cls: "copy-btn mod-cta"
+    });
+    
+    copyAllBtn.addEventListener("click", async () => {
+      let fullInfo = `卡片属性:
+尺寸: ${this.cardData.width} × ${this.cardData.height} px
+位置: X: ${this.cardData.x}, Y: ${this.cardData.y}`;
+
+      if (this.cardData.badge) {
+        fullInfo += `\n徽章: ${this.cardData.badge}`;
+      }
+
+      if (this.cardData.text) {
+        fullInfo += `\n内容: ${this.cardData.text.substring(0, 100)}${this.cardData.text.length > 100 ? "..." : ""}`;
+      }
+
+      try {
+        await navigator.clipboard.writeText(fullInfo);
+        new Notice("完整属性信息已复制到剪贴板");
+      } catch (error) {
+        console.error("复制失败:", error);
+        new Notice("复制失败，请重试");
+      }
+    });
+  }
+
   private addStyles(): void {
     const style = document.createElement("style");
     style.textContent = `
-      .current-card-info {
+      .card-info-section {
         background-color: var(--background-secondary);
         padding: 15px;
         border-radius: 5px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
       
-      .card-summary {
+      .basic-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .info-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
       
-      .size-display, .position-display {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      
-      .size-label, .pos-label {
+      .info-label {
         color: var(--text-muted);
         font-size: 0.9em;
+        min-width: 60px;
       }
       
-      .size-value {
-        font-weight: bold;
+      .info-value {
+        font-weight: 500;
+        text-align: right;
+      }
+      
+      .badge-display {
         color: var(--text-accent);
-        font-size: 1.1em;
+        background-color: var(--background-modifier-accent);
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.85em;
       }
       
       .content-preview {
-        margin-bottom: 15px;
-        padding: 10px;
-        background-color: var(--background-secondary);
-        border-radius: 3px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid var(--background-modifier-border);
       }
       
       .preview-label {
         font-size: 0.9em;
         color: var(--text-muted);
-        margin-bottom: 5px;
+        margin-bottom: 8px;
       }
       
       .preview-text {
         font-size: 0.95em;
         line-height: 1.4;
+        color: var(--text-normal);
       }
       
       .dimension-editor {
@@ -283,6 +379,45 @@ export class SingleCardPropertiesModal extends Modal {
       .mod-small {
         padding: 4px 12px;
         font-size: 0.9em;
+      }
+      
+      .copy-section {
+        padding: 15px 0;
+      }
+      
+      .copy-section h3 {
+        margin-bottom: 15px;
+        font-size: 1.1em;
+      }
+      
+      .copy-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .copy-btn {
+        padding: 8px 16px;
+        text-align: left;
+        border: 1px solid var(--background-modifier-border);
+        border-radius: 4px;
+        background-color: var(--background-primary);
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .copy-btn:hover {
+        background-color: var(--background-secondary);
+      }
+      
+      .copy-btn.mod-cta {
+        background-color: var(--interactive-accent);
+        color: var(--text-on-accent);
+        border-color: var(--interactive-accent);
+      }
+      
+      .copy-btn.mod-cta:hover {
+        background-color: var(--interactive-accent-hover);
       }
     `;
     document.head.appendChild(style);

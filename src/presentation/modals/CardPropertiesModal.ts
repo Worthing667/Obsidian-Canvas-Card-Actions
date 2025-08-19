@@ -76,6 +76,11 @@ export class CardPropertiesModal extends Modal {
       this.createBatchActions(actionsDiv);
     }
     
+    // 复制功能区域
+    contentEl.createEl("hr");
+    const copyDiv = contentEl.createDiv({ cls: "card-properties-copy" });
+    this.createCopySection(copyDiv);
+    
     // 添加自定义样式
     this.addStyles();
   }
@@ -121,7 +126,6 @@ export class CardPropertiesModal extends Modal {
       <span class="card-size">尺寸 (W×H)</span>
       <span class="card-position">位置 (X, Y)</span>
       <span class="card-badge">徽章</span>
-      <span class="card-actions">操作</span>
     `;
     
     // 创建卡片项
@@ -153,10 +157,6 @@ export class CardPropertiesModal extends Modal {
       } else {
         badgeEl.setText("-");
       }
-      
-      // 操作按钮 - 使用占位符替代原有的应用尺寸按钮
-      const actionsEl = item.createSpan({ cls: "card-actions" });
-      actionsEl.setText("-");
     });
   }
 
@@ -219,6 +219,57 @@ export class CardPropertiesModal extends Modal {
         await this.unifyToCustomSize(width, height);
       } else {
         new Notice("请输入有效的宽度和高度");
+      }
+    });
+  }
+
+  private createCopySection(container: HTMLElement): void {
+    const copyDiv = container.createDiv({ cls: "copy-section" });
+    copyDiv.createEl("h3", { text: "批量复制" });
+    
+    const copyButtons = copyDiv.createDiv({ cls: "copy-buttons" });
+    
+    // 复制所有卡片的尺寸信息
+    const copyAllSizesBtn = copyButtons.createEl("button", {
+      text: "复制所有卡片尺寸",
+      cls: "copy-btn"
+    });
+    
+    copyAllSizesBtn.addEventListener("click", async () => {
+      const sizeList = this.cardInfos.map((card, index) => 
+        `${index + 1}. ${card.width} × ${card.height} px`
+      ).join('\n');
+      
+      const sizeInfo = `批量卡片尺寸 (${this.cardInfos.length}张):\n${sizeList}`;
+      try {
+        await navigator.clipboard.writeText(sizeInfo);
+        new Notice("所有卡片尺寸已复制到剪贴板");
+      } catch (error) {
+        console.error("复制失败:", error);
+        new Notice("复制失败，请重试");
+      }
+    });
+
+    // 复制统计信息
+    const copyStatsBtn = copyButtons.createEl("button", {
+      text: "复制统计信息",
+      cls: "copy-btn mod-cta"
+    });
+    
+    copyStatsBtn.addEventListener("click", async () => {
+      const stats = this.calculateStatistics();
+      const statsInfo = `卡片统计信息:
+数量: ${stats.count}张
+尺寸范围: 宽 ${stats.minWidth}-${stats.maxWidth}px, 高 ${stats.minHeight}-${stats.maxHeight}px  
+平均尺寸: ${stats.avgWidth} × ${stats.avgHeight}px
+位置范围: X: ${stats.minX}-${stats.maxX}, Y: ${stats.minY}-${stats.maxY}`;
+
+      try {
+        await navigator.clipboard.writeText(statsInfo);
+        new Notice("统计信息已复制到剪贴板");
+      } catch (error) {
+        console.error("复制失败:", error);
+        new Notice("复制失败，请重试");
       }
     });
   }
@@ -310,7 +361,7 @@ export class CardPropertiesModal extends Modal {
       
       .card-item {
         display: grid;
-        grid-template-columns: 30px 2fr 120px 120px 80px 100px;
+        grid-template-columns: 30px 2fr 120px 120px 80px;
         gap: 10px;
         padding: 8px 12px;
         border-bottom: 1px solid var(--background-modifier-border);
@@ -359,6 +410,45 @@ export class CardPropertiesModal extends Modal {
       .mod-small {
         padding: 2px 8px;
         font-size: 12px;
+      }
+      
+      .copy-section {
+        padding: 15px 0;
+      }
+      
+      .copy-section h3 {
+        margin-bottom: 15px;
+        font-size: 1.1em;
+      }
+      
+      .copy-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .copy-btn {
+        padding: 8px 16px;
+        text-align: left;
+        border: 1px solid var(--background-modifier-border);
+        border-radius: 4px;
+        background-color: var(--background-primary);
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .copy-btn:hover {
+        background-color: var(--background-secondary);
+      }
+      
+      .copy-btn.mod-cta {
+        background-color: var(--interactive-accent);
+        color: var(--text-on-accent);
+        border-color: var(--interactive-accent);
+      }
+      
+      .copy-btn.mod-cta:hover {
+        background-color: var(--interactive-accent-hover);
       }
     `;
     
