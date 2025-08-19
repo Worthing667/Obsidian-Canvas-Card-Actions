@@ -1,4 +1,4 @@
-import { Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import CardifySettings from "./interface/ICardifySettings";
 import CardifySettingTab from "./class/CardifySettingTabClass";
 
@@ -15,6 +15,7 @@ import {
     SplitCardCommand,
     OpenBadgeModalCommand 
 } from './presentation/commands';
+import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 
 const DEFAULT_SETTINGS: CardifySettings = {
     canvasCardDelimiter: '---',
@@ -42,6 +43,9 @@ export default class Cardify extends Plugin {
         this.setupUI();
         this.registerEventHandlers();
         this.initializeBadges();
+        
+        // 添加快捷键注册
+        this.registerHotkeys();
     }
 
     private async initializeServices(): Promise<void> {
@@ -196,6 +200,86 @@ export default class Cardify extends Plugin {
         this.commandRegistry.registerCommand("copy-by-badge", copyByBadgeCommand);
         this.commandRegistry.addCommandToMenu(menu, "copy-by-badge", "按徽章顺序复制内容", "sort-asc");
         
+        // 添加分隔线
+        menu.addSeparator();
+        
+        // ===== 新增：卡片属性查看器 =====
+        const propertiesCommand = new OpenCardPropertiesCommand(
+            this.app,
+            this.cardService,
+            selectionArray
+        );
+        this.commandRegistry.registerCommand("open-card-properties", propertiesCommand);
+        this.commandRegistry.addCommandToMenu(
+            menu, 
+            "open-card-properties", 
+            "查看卡片属性...", 
+            "info"
+        );
+        
+        // ===== 新增：复制卡片尺寸信息 =====
+        const copyDimensionsCommand = new CopyCardDimensionsCommand(selectionArray);
+        this.commandRegistry.registerCommand("copy-dimensions", copyDimensionsCommand);
+        this.commandRegistry.addCommandToMenu(
+            menu,
+            "copy-dimensions", 
+            "复制卡片尺寸",
+            "copy"
+        );
+        
+        // 获取文本卡片以进行尺寸操作
+        const textCards = selectionArray.filter(
+            (node: any) => node.getData && node.getData().type === "text"
+        );
+        
+        // 现有的尺寸统一功能
+        if (textCards.length >= 2) {
+            menu.addSeparator();
+            
+            // 快速统一尺寸选项
+            menu.addItem((item: any) => {
+                item
+                    .setTitle("统一为最小尺寸")
+                    .setIcon("compress")
+                    .onClick(async () => {
+                        try {
+                            await this.cardService.unifyCardSizes(textCards, "min");
+                        } catch (e: any) {
+                            new Notice(e.message);
+                        }
+                    });
+            });
+            
+            menu.addItem((item: any) => {
+                item
+                    .setTitle("统一为最大尺寸")
+                    .setIcon("expand")
+                    .onClick(async () => {
+                        try {
+                            await this.cardService.unifyCardSizes(textCards, "max");
+                        } catch (e: any) {
+                            new Notice(e.message);
+                        }
+                    });
+            });
+            
+            // 撤销操作
+            if ((this.cardService as any).lastSizeOperation) {
+                menu.addItem((item: any) => {
+                    item
+                        .setTitle("撤销尺寸调整")
+                        .setIcon("undo")
+                        .onClick(async () => {
+                            try {
+                                await this.cardService.undoLastSizeOperation();
+                            } catch (e: any) {
+                                new Notice(e.message);
+                            }
+                        });
+                });
+            }
+        }
+        
         console.log("Selection menu commands added successfully");
     }
 
@@ -266,5 +350,64 @@ export default class Cardify extends Plugin {
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
         console.log("Canvas Card Actions plugin unloaded");
+    }
+
+    // ============================================
+    // 快捷键注册（可选）
+    // ============================================
+
+    private registerHotkeys() {
+        // 查看卡片属性的快捷键
+        this.addCommand({
+            id: 'open-card-properties',
+            name: '查看选中卡片的属性',
+            checkCallback: (checking: boolean) => {
+                // @ts-ignore
+                const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);
+                // @ts-ignore
+                if (activeView && activeView.getViewType() === 'canvas') {
+                    // @ts-ignore
+                    const canvas = activeView.canvas;
+                    if (canvas && canvas.selection && canvas.selection.size > 0) {
+                        if (!checking) {
+                            this.setupCanvasServices(canvas);
+                            const selectionArray = Array.from(canvas.selection);
+                            const command = new OpenCardPropertiesCommand(
+                                this.app,
+                                this.cardService,
+                                selectionArray
+                            );
+                            command.execute();
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+
+        // 复制卡片尺寸的快捷键
+        this.addCommand({
+            id: 'copy-card-dimensions',
+            name: '复制选中卡片的尺寸',
+            checkCallback: (checking: boolean) => {
+                // @ts-ignore
+                const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);
+                // @ts-ignore
+                if (activeView && activeView.getViewType() === 'canvas') {
+                    // @ts-ignore
+                    const canvas = activeView.canvas;
+                    if (canvas && canvas.selection && canvas.selection.size > 0) {
+                        if (!checking) {
+                            const selectionArray = Array.from(canvas.selection);
+                            const command = new CopyCardDimensionsCommand(selectionArray);
+                            command.execute();
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
     }
 }
