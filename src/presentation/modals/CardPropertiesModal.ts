@@ -70,7 +70,7 @@ export class CardPropertiesModal extends Modal {
     this.createCardList(listDiv);
     
     // 批量操作区域
-    if (this.cardInfos.length > 1) {
+    if (this.cardInfos.length >= 1) {
       contentEl.createEl("hr");
       const actionsDiv = contentEl.createDiv({ cls: "card-properties-actions" });
       this.createBatchActions(actionsDiv);
@@ -154,20 +154,167 @@ export class CardPropertiesModal extends Modal {
         badgeEl.setText("-");
       }
       
-      // 操作按钮
+      // 操作按钮 - 使用占位符替代原有的应用尺寸按钮
       const actionsEl = item.createSpan({ cls: "card-actions" });
-      const applyBtn = actionsEl.createEl("button", { 
-        text: "应用此尺寸",
-        cls: "mod-small"
-      });
-      
-      applyBtn.addEventListener("click", async () => {
-        await this.applyCardSize(info.width, info.height, index);
-      });
+      actionsEl.setText("-");
     });
   }
 
   private createBatchActions(container: HTMLElement): void {
+    if (this.cardInfos.length === 1) {
+      // 单卡片编辑模式
+      this.createSingleCardEditor(container);
+    } else {
+      // 多卡片批量操作模式  
+      this.createMultiCardBatchActions(container);
+    }
+  }
+
+  private createSingleCardEditor(container: HTMLElement): void {
+    const actionsTitle = container.createEl("h3", { text: "编辑卡片尺寸" });
+    
+    const currentCard = this.cardInfos[0];
+    
+    // 当前尺寸显示
+    const currentSizeDiv = container.createDiv({ cls: "current-size-display" });
+    currentSizeDiv.innerHTML = `
+      <div class="size-info">
+        <span class="size-label">当前尺寸：</span>
+        <span class="size-value">${currentCard.width} × ${currentCard.height} px</span>
+      </div>
+    `;
+    
+    // 删除常用尺寸部分，直接进入自定义尺寸编辑
+    
+    // 自定义尺寸编辑 - 支持单独修改宽度或高度
+    const customSizeDiv = container.createDiv({ cls: "custom-size-editor" });
+    customSizeDiv.createEl("h4", { text: "自定义尺寸" });
+    
+    // 宽度编辑区域
+    const widthSection = customSizeDiv.createDiv({ cls: "dimension-section" });
+    widthSection.createEl("label", { text: "宽度 (px):" });
+    
+    const widthInputGroup = widthSection.createDiv({ cls: "input-group" });
+    const widthInput = widthInputGroup.createEl("input", {
+      type: "number",
+      placeholder: `当前: ${currentCard.width}`,
+      attr: { min: "50", max: "2000", step: "10" }
+    });
+    widthInput.style.width = "120px";
+    
+    const applyWidthBtn = widthInputGroup.createEl("button", {
+      text: "应用宽度",
+      cls: "mod-small"
+    });
+    
+    const resetWidthBtn = widthInputGroup.createEl("button", {
+      text: "重置",
+      cls: "mod-small"
+    });
+    
+    // 高度编辑区域
+    const heightSection = customSizeDiv.createDiv({ cls: "dimension-section" });
+    heightSection.createEl("label", { text: "高度 (px):" });
+    
+    const heightInputGroup = heightSection.createDiv({ cls: "input-group" });
+    const heightInput = heightInputGroup.createEl("input", {
+      type: "number",
+      placeholder: `当前: ${currentCard.height}`,
+      attr: { min: "50", max: "2000", step: "10" }
+    });
+    heightInput.style.width = "120px";
+    
+    const applyHeightBtn = heightInputGroup.createEl("button", {
+      text: "应用高度",
+      cls: "mod-small"
+    });
+    
+    const resetHeightBtn = heightInputGroup.createEl("button", {
+      text: "重置", 
+      cls: "mod-small"
+    });
+    
+    // 同时应用两个尺寸
+    const bothDimensionsSection = customSizeDiv.createDiv({ cls: "both-dimensions-section" });
+    const applyBothBtn = bothDimensionsSection.createEl("button", {
+      text: "同时应用宽度和高度",
+      cls: "mod-cta"
+    });
+    
+    // 事件处理器
+    applyWidthBtn.addEventListener("click", async () => {
+      const width = parseInt(widthInput.value);
+      if (this.validateDimension(width)) {
+        await this.applySingleDimension("width", width);
+      } else {
+        new Notice("宽度值无效，请输入50-2000之间的数值");
+      }
+    });
+    
+    applyHeightBtn.addEventListener("click", async () => {
+      const height = parseInt(heightInput.value);
+      if (this.validateDimension(height)) {
+        await this.applySingleDimension("height", height);
+      } else {
+        new Notice("高度值无效，请输入50-2000之间的数值");
+      }
+    });
+    
+    applyBothBtn.addEventListener("click", async () => {
+      const width = widthInput.value ? parseInt(widthInput.value) : currentCard.width;
+      const height = heightInput.value ? parseInt(heightInput.value) : currentCard.height;
+      
+      if (this.validateDimension(width) && this.validateDimension(height)) {
+        await this.applySingleCardSize(width, height);
+      } else {
+        new Notice("尺寸值无效，请检查输入");
+      }
+    });
+    
+    resetWidthBtn.addEventListener("click", () => {
+      widthInput.value = "";
+      widthInput.placeholder = `当前: ${currentCard.width}`;
+    });
+    
+    resetHeightBtn.addEventListener("click", () => {
+      heightInput.value = "";
+      heightInput.placeholder = `当前: ${currentCard.height}`;
+    });
+    
+    // 键盘支持
+    widthInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        applyWidthBtn.click();
+      }
+    });
+    
+    heightInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        applyHeightBtn.click();
+      }
+    });
+    
+    // 实时验证输入
+    widthInput.addEventListener("input", () => {
+      const width = parseInt(widthInput.value);
+      applyWidthBtn.disabled = !this.validateDimension(width);
+      
+      // 如果两个字段都有值，启用同时应用按钮
+      const height = heightInput.value ? parseInt(heightInput.value) : currentCard.height;
+      applyBothBtn.disabled = !(this.validateDimension(width) && this.validateDimension(height));
+    });
+    
+    heightInput.addEventListener("input", () => {
+      const height = parseInt(heightInput.value);
+      applyHeightBtn.disabled = !this.validateDimension(height);
+      
+      // 如果两个字段都有值，启用同时应用按钮
+      const width = widthInput.value ? parseInt(widthInput.value) : currentCard.width;
+      applyBothBtn.disabled = !(this.validateDimension(width) && this.validateDimension(height));
+    });
+  }
+
+  private createMultiCardBatchActions(container: HTMLElement): void {
     const actionsTitle = container.createEl("h3", { text: "批量操作" });
     
     const buttonGroup = container.createDiv({ cls: "button-group" });
@@ -291,6 +438,91 @@ export class CardPropertiesModal extends Modal {
     }
   }
 
+  // 新增方法：应用单个维度的尺寸
+  private async applySingleDimension(dimension: string, value: number): Promise<void> {
+    try {
+      const currentCard = this.cardInfos[0];
+      const targetCard = this.cards[0];
+      
+      let newWidth: number, newHeight: number;
+      
+      if (dimension === "width") {
+        newWidth = value;
+        newHeight = currentCard.height; // 保持原有高度
+      } else {
+        newWidth = currentCard.width; // 保持原有宽度
+        newHeight = value;
+      }
+      
+      await this.cardService.unifyCardSizes([targetCard], { width: newWidth, height: newHeight });
+      
+      new Notice(`卡片${dimension === "width" ? "宽度" : "高度"}已更新为 ${value}px`);
+      
+      // 更新当前显示的信息
+      this.updateCurrentCardInfo(newWidth, newHeight);
+      
+    } catch (error) {
+      console.error("更新卡片尺寸失败:", error);
+      new Notice("更新尺寸失败: " + error.message);
+    }
+  }
+
+  // 更新当前卡片信息显示
+  private updateCurrentCardInfo(newWidth: number, newHeight: number): void {
+    this.cardInfos[0].width = newWidth;
+    this.cardInfos[0].height = newHeight;
+    
+    // 更新当前尺寸显示
+    const sizeValueEl = this.contentEl.querySelector(".size-value");
+    if (sizeValueEl) {
+      sizeValueEl.textContent = `${newWidth} × ${newHeight} px`;
+    }
+    
+    // 更新输入框的占位符
+    const widthInput = this.contentEl.querySelector('input[placeholder^="当前:"]') as HTMLInputElement;
+    const heightInputs = this.contentEl.querySelectorAll('input[placeholder^="当前:"]');
+    const heightInput = heightInputs.length > 1 ? heightInputs[1] as HTMLInputElement : null;
+    
+    if (widthInput) {
+      widthInput.placeholder = `当前: ${newWidth}`;
+    }
+    if (heightInput) {
+      heightInput.placeholder = `当前: ${newHeight}`;
+    }
+  }
+
+  // 修改原有方法：支持部分尺寸应用
+  private async applySingleCardSize(width: number, height: number): Promise<void> {
+    try {
+      if (!this.validateDimension(width) || !this.validateDimension(height)) {
+        new Notice("尺寸值无效，请输入50-2000之间的数值");
+        return;
+      }
+      
+      const targetCard = this.cards[0];
+      await this.cardService.unifyCardSizes([targetCard], { width, height });
+      
+      new Notice(`卡片尺寸已更新为 ${width}×${height}px`);
+      this.close();
+      
+    } catch (error) {
+      console.error("更新卡片尺寸失败:", error);
+      new Notice("更新尺寸失败: " + error.message);
+    }
+  }
+
+  // 新增方法：单个维度验证
+  private validateDimension(value: number): boolean {
+    return !isNaN(value) && value >= 50 && value <= 2000;
+  }
+
+  // 原有的尺寸验证方法保留，用于兼容多卡片场景
+  private validateSize(width: number, height: number): boolean {
+    return width >= 50 && width <= 2000 && 
+           height >= 50 && height <= 2000 && 
+           !isNaN(width) && !isNaN(height);
+  }
+
   private addStyles(): void {
     const style = document.createElement("style");
     style.textContent = `
@@ -378,6 +610,48 @@ export class CardPropertiesModal extends Modal {
       .mod-small {
         padding: 2px 8px;
         font-size: 12px;
+      }
+      
+      /* 新增的单卡片编辑样式 */
+      .current-size-display {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: var(--background-secondary);
+        border-radius: 5px;
+      }
+      
+      .size-info {
+        display: flex;
+        justify-content: space-between;
+      }
+      
+      .size-label {
+        color: var(--text-muted);
+      }
+      
+      .size-value {
+        font-weight: bold;
+        color: var(--text-accent);
+      }
+      
+      .dimension-section {
+        margin-bottom: 15px;
+      }
+      
+      .dimension-section label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      
+      .both-dimensions-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--background-modifier-border);
+      }
+      
+      .custom-size-editor {
+        margin-top: 20px;
       }
     `;
     

@@ -152,6 +152,35 @@ export default class Cardify extends Plugin {
             this.commandRegistry.registerCommand('copy-single-card', copyCommand);
             this.commandRegistry.addCommandToMenu(menu, 'copy-single-card', '复制卡片内容', 'copy');
         }
+
+        // 添加属性查看功能 - 适用于所有文本节点
+        if (node.getData && node.getData().type === "text") {
+            menu.addSeparator();
+            
+            const propertiesCommand = new OpenCardPropertiesCommand(
+                this.app,
+                this.cardService,
+                [node] // 将单个节点包装为数组
+            );
+            
+            this.commandRegistry.registerCommand("open-single-card-properties", propertiesCommand);
+            this.commandRegistry.addCommandToMenu(
+                menu, 
+                "open-single-card-properties", 
+                "查看卡片属性...", 
+                "info"
+            );
+
+            // 可选：同时添加复制尺寸功能
+            const copyDimensionsCommand = new CopyCardDimensionsCommand([node]);
+            this.commandRegistry.registerCommand("copy-single-card-dimensions", copyDimensionsCommand);
+            this.commandRegistry.addCommandToMenu(
+                menu,
+                "copy-single-card-dimensions",
+                "复制卡片尺寸",
+                "copy"
+            );
+        }
     }
 
     private addSelectionMenuCommands(menu: any, selection: any): void {
