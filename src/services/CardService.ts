@@ -9,6 +9,8 @@ export interface ICardService {
     generateUniqueId(): string;
     calculateNewCardPosition(baseCard: CardData, index: number, cardSpacing?: number): Position;
     createCardFromSortedContent(content: string, position: Position): Promise<CanvasNodeData>;
+    unifyCardWidth(nodes: any[], targetWidth: number): Promise<void>;
+    unifyCardHeight(nodes: any[], targetHeight: number): Promise<void>;
 }
 
 export class CardService implements ICardService {
@@ -299,5 +301,131 @@ export class CardService implements ICardService {
             { name: "标准卡片", width: 400, height: 300 },
             { name: "大卡片", width: 500, height: 400 }
         ];
+    }
+
+    /**
+     * 只统一卡片宽度 - 新增功能
+     */
+    async unifyCardWidth(nodes: any[], targetWidth: number): Promise<void> {
+        const textNodes = nodes.filter(node => node.getData().type === "text");
+        
+        if (textNodes.length === 0) {
+            throw new Error("没有找到可调整的文本卡片");
+        }
+
+        // 验证宽度合理性
+        if (targetWidth < 50 || targetWidth > 2000) {
+            throw new Error("宽度超出合理范围(50-2000像素)");
+        }
+
+        try {
+            // 保存原始状态用于撤销
+            const originalStates = textNodes.map(node => {
+                const data = node.getData();
+                return { 
+                    id: data.id, 
+                    width: data.width, 
+                    height: data.height 
+                };
+            });
+
+            // 批量更新 - 只修改宽度，保持高度不变
+            const canvasData = this.canvasAdapter.getData();
+            
+            // 在内存中批量修改所有节点的宽度
+            textNodes.forEach(node => {
+                const nodeData = canvasData.nodes.find(n => n.id === node.id);
+                if (nodeData) {
+                    nodeData.width = targetWidth;
+                }
+            });
+
+            // 一次性提交所有更改
+            await this.canvasAdapter.setData(canvasData);
+            await this.canvasAdapter.requestSave();
+
+            // 存储撤销信息
+            this.lastSizeOperation = {
+                type: 'unifyWidth',
+                originalStates,
+                timestamp: Date.now()
+            };
+
+            new Notice(`已统一 ${textNodes.length} 个卡片宽度为 ${targetWidth}px，高度保持不变`);
+
+        } catch (error) {
+            console.error("统一宽度操作失败:", error);
+            
+            if (error.message.includes("Canvas")) {
+                throw new Error("Canvas操作失败，请刷新页面后重试");
+            } else if (error.message.includes("save")) {
+                throw new Error("保存失败，请检查文件权限");
+            } else {
+                throw new Error(`操作失败：${error.message}`);
+            }
+        }
+    }
+
+    /**
+     * 只统一卡片高度 - 新增功能
+     */
+    async unifyCardHeight(nodes: any[], targetHeight: number): Promise<void> {
+        const textNodes = nodes.filter(node => node.getData().type === "text");
+        
+        if (textNodes.length === 0) {
+            throw new Error("没有找到可调整的文本卡片");
+        }
+
+        // 验证高度合理性
+        if (targetHeight < 50 || targetHeight > 2000) {
+            throw new Error("高度超出合理范围(50-2000像素)");
+        }
+
+        try {
+            // 保存原始状态用于撤销
+            const originalStates = textNodes.map(node => {
+                const data = node.getData();
+                return { 
+                    id: data.id, 
+                    width: data.width, 
+                    height: data.height 
+                };
+            });
+
+            // 批量更新 - 只修改高度，保持宽度不变
+            const canvasData = this.canvasAdapter.getData();
+            
+            // 在内存中批量修改所有节点的高度
+            textNodes.forEach(node => {
+                const nodeData = canvasData.nodes.find(n => n.id === node.id);
+                if (nodeData) {
+                    nodeData.height = targetHeight;
+                }
+            });
+
+            // 一次性提交所有更改
+            await this.canvasAdapter.setData(canvasData);
+            await this.canvasAdapter.requestSave();
+
+            // 存储撤销信息
+            this.lastSizeOperation = {
+                type: 'unifyHeight',
+                originalStates,
+                timestamp: Date.now()
+            };
+
+            new Notice(`已统一 ${textNodes.length} 个卡片高度为 ${targetHeight}px，宽度保持不变`);
+
+        } catch (error) {
+            console.error("统一高度操作失败:", error);
+            
+            if (error.message.includes("Canvas")) {
+                throw new Error("Canvas操作失败，请刷新页面后重试");
+            } else if (error.message.includes("save")) {
+                throw new Error("保存失败，请检查文件权限");
+            } else {
+                throw new Error(`操作失败：${error.message}`);
+            }
+        }
     }
 }
