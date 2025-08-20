@@ -28,7 +28,7 @@ export class CardPropertiesModal extends Modal {
     this.cardInfos = this.cards.map(card => {
       const data = card.getData();
       const textPreview = data.text ? 
-        (data.text.length > 50 ? data.text.substring(0, 50) + "..." : data.text) : "";
+        (data.text.length > 40 ? data.text.substring(0, 40) + "..." : data.text) : "";
       
       return {
         id: data.id,
@@ -59,27 +59,18 @@ export class CardPropertiesModal extends Modal {
     contentEl.createEl("h2", { text: "管理卡片属性" });
     
     // 统计信息
-    const statsDiv = contentEl.createDiv({ cls: "card-properties-stats" });
-    this.createStatisticsSection(statsDiv);
+    this.createStatisticsSection(contentEl);
     
-    // 分隔线
-    contentEl.createEl("hr");
-    
-    // 卡片列表
-    const listDiv = contentEl.createDiv({ cls: "card-properties-list" });
-    this.createCardList(listDiv);
+    // 卡片列表 - 删除了"预览"标题
+    this.createCardList(contentEl);
     
     // 批量操作区域 - 只有在多卡片时才显示
     if (this.cardInfos.length > 1) {
-      contentEl.createEl("hr");
-      const actionsDiv = contentEl.createDiv({ cls: "card-properties-actions" });
-      this.createBatchActions(actionsDiv);
+      this.createBatchActions(contentEl);
     }
     
     // 复制功能区域
-    contentEl.createEl("hr");
-    const copyDiv = contentEl.createDiv({ cls: "card-properties-copy" });
-    this.createCopySection(copyDiv);
+    this.createCopySection(contentEl);
     
     // 添加自定义样式
     this.addStyles();
@@ -88,151 +79,198 @@ export class CardPropertiesModal extends Modal {
   private createStatisticsSection(container: HTMLElement): void {
     const stats = this.calculateStatistics();
     
-    const statsContent = container.createDiv({ cls: "stats-content" });
-    statsContent.innerHTML = `
-      <div class="stat-item">
-        <span class="stat-label">选中卡片数量：</span>
-        <span class="stat-value">${stats.count}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">尺寸范围：</span>
-        <span class="stat-value">
-          宽 ${stats.minWidth} - ${stats.maxWidth} px, 
-          高 ${stats.minHeight} - ${stats.maxHeight} px
-        </span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">平均尺寸：</span>
-        <span class="stat-value">${stats.avgWidth} × ${stats.avgHeight} px</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">位置范围：</span>
-        <span class="stat-value">
-          X: ${stats.minX} - ${stats.maxX}, 
-          Y: ${stats.minY} - ${stats.maxY}
-        </span>
-      </div>
+    // 创建统计信息区域
+    const statsSection = container.createDiv({ cls: "stats-section" });
+    const statsGrid = statsSection.createDiv({ cls: "stats-grid" });
+    
+    // 选中卡片数量
+    const countItem = statsGrid.createDiv({ cls: "stat-item" });
+    countItem.innerHTML = `
+      <div class="stat-label">选中卡片</div>
+      <div class="stat-value highlight">${stats.count}</div>
+      <div class="stat-detail">张卡片</div>
+    `;
+    
+    // 尺寸范围
+    const sizeItem = statsGrid.createDiv({ cls: "stat-item" });
+    sizeItem.innerHTML = `
+      <div class="stat-label">尺寸范围</div>
+      <div class="stat-value">${stats.avgWidth}×${stats.avgHeight}</div>
+      <div class="stat-detail">宽 ${stats.minWidth}-${stats.maxWidth}px<br>高 ${stats.minHeight}-${stats.maxHeight}px</div>
+    `;
+    
+    // 位置范围
+    const positionItem = statsGrid.createDiv({ cls: "stat-item" });
+    positionItem.innerHTML = `
+      <div class="stat-label">位置范围</div>
+      <div class="stat-value">X: ${stats.minX}-${stats.maxX}</div>
+      <div class="stat-detail">Y: ${stats.minY}-${stats.maxY}</div>
     `;
   }
 
   private createCardList(container: HTMLElement): void {
-    const listContainer = container.createDiv({ cls: "cards-list-container" });
+    // 删除了"预览"标题，直接创建表格
+    
+    // 创建表格容器
+    const tableContainer = container.createDiv({ cls: "table-container" });
+    
+    // 创建表格
+    const table = tableContainer.createEl("table");
     
     // 创建表头
-    const header = listContainer.createDiv({ cls: "card-item card-header" });
-    header.innerHTML = `
-      <span class="card-index">#</span>
-      <span class="card-preview">预览</span>
-      <span class="card-size">尺寸 (W×H)</span>
-      <span class="card-position">位置 (X, Y)</span>
-      <span class="card-badge">徽章</span>
-    `;
+    const thead = table.createEl("thead");
+    const headerRow = thead.createEl("tr");
+    
+    headerRow.createEl("th", { text: "#", cls: "col-index" });
+    headerRow.createEl("th", { text: "预览", cls: "col-preview" });
+    headerRow.createEl("th", { text: "尺寸", cls: "col-size" });
+    headerRow.createEl("th", { text: "位置", cls: "col-position" });
+    headerRow.createEl("th", { text: "徽章", cls: "col-badge" });
+    
+    // 创建表体
+    const tbody = table.createEl("tbody");
     
     // 创建卡片项
     this.cardInfos.forEach((info, index) => {
-      const item = listContainer.createDiv({ cls: "card-item" });
+      const row = tbody.createEl("tr");
       
       // 索引
-      const indexEl = item.createSpan({ cls: "card-index" });
-      indexEl.setText(`${index + 1}`);
+      row.createEl("td", { text: (index + 1).toString(), cls: "col-index" });
       
       // 文本预览
-      const previewEl = item.createSpan({ cls: "card-preview" });
-      previewEl.setText(info.text || "[空卡片]");
-      previewEl.setAttribute("title", info.text || "空卡片");
+      const previewCell = row.createEl("td", { cls: "col-preview" });
+      const previewSpan = previewCell.createEl("span", { 
+        cls: "preview-text",
+        text: info.text || "[空]"
+      });
+      previewSpan.setAttribute("title", info.text || "空卡片");
       
       // 尺寸
-      const sizeEl = item.createSpan({ cls: "card-size" });
-      sizeEl.setText(`${info.width} × ${info.height}`);
+      row.createEl("td", { text: `${info.width}×${info.height}`, cls: "col-size" });
       
       // 位置
-      const posEl = item.createSpan({ cls: "card-position" });
-      posEl.setText(`${info.x}, ${info.y}`);
+      row.createEl("td", { text: `${info.x},${info.y}`, cls: "col-position" });
       
       // 徽章
-      const badgeEl = item.createSpan({ cls: "card-badge" });
+      const badgeCell = row.createEl("td", { cls: "col-badge" });
       if (info.hasBadge) {
-        badgeEl.setText(info.badgeContent || "");
-        badgeEl.addClass("has-badge");
+        const badgeSpan = badgeCell.createEl("span", { 
+          cls: "layer-badge",
+          text: info.badgeContent || ""
+        });
       } else {
-        badgeEl.setText("-");
+        badgeCell.createEl("span", { text: "-" });
       }
     });
   }
 
   private createBatchActions(container: HTMLElement): void {
-    const actionsTitle = container.createEl("h3", { text: "批量操作" });
+    // 创建操作区域容器 - 改为双栏布局
+    const operationsContainer = container.createDiv({ cls: "operations-container" });
     
-    const buttonGroup = container.createDiv({ cls: "button-group" });
+    // 批量操作组 - 左栏
+    const operationGroup = operationsContainer.createDiv({ cls: "operation-group" });
+    const operationTitle = operationGroup.createEl("h3", { cls: "operation-title", text: "批量操作" });
     
-    // 统一为最小尺寸
-    const minSizeBtn = buttonGroup.createEl("button", { text: "统一为最小尺寸" });
+    // 创建按钮组容器
+    const buttonGroup = operationGroup.createDiv({ cls: "button-group" });
+    
+    // 统一为最小尺寸按钮
+    const minSizeBtn = buttonGroup.createEl("button", { 
+      text: "统一为最小尺寸", 
+      cls: "btn-option active" 
+    });
     minSizeBtn.addEventListener("click", async () => {
+      this.updateButtonStates(minSizeBtn, buttonGroup);
       await this.unifyToSize("min");
     });
     
-    // 统一为最大尺寸
-    const maxSizeBtn = buttonGroup.createEl("button", { text: "统一为最大尺寸" });
+    // 统一为最大尺寸按钮
+    const maxSizeBtn = buttonGroup.createEl("button", { 
+      text: "统一为最大尺寸", 
+      cls: "btn-option" 
+    });
     maxSizeBtn.addEventListener("click", async () => {
+      this.updateButtonStates(maxSizeBtn, buttonGroup);
       await this.unifyToSize("max");
     });
     
-    // 统一为平均尺寸
-    const avgSizeBtn = buttonGroup.createEl("button", { text: "统一为平均尺寸" });
+    // 统一为平均尺寸按钮
+    const avgSizeBtn = buttonGroup.createEl("button", { 
+      text: "统一为平均尺寸", 
+      cls: "btn-option" 
+    });
     avgSizeBtn.addEventListener("click", async () => {
+      this.updateButtonStates(avgSizeBtn, buttonGroup);
       const stats = this.calculateStatistics();
       await this.unifyToCustomSize(stats.avgWidth, stats.avgHeight);
     });
     
-    // 自定义尺寸输入
-    const customSizeDiv = container.createDiv({ cls: "custom-size-input" });
-    customSizeDiv.createEl("h4", { text: "自定义尺寸" });
+    // 自定义尺寸操作组 - 右栏
+    const customSizeGroup = operationsContainer.createDiv({ cls: "operation-group" });
+    const customSizeTitle = customSizeGroup.createEl("h3", { cls: "operation-title", text: "自定义尺寸" });
     
-    const inputGroup = customSizeDiv.createDiv({ cls: "input-group" });
+    // 创建紧凑的自定义输入区域
+    const sizeInputs = customSizeGroup.createDiv({ cls: "size-inputs-compact" });
     
-    const widthInput = inputGroup.createEl("input", {
+    // 宽度输入组
+    const widthGroup = sizeInputs.createDiv({ cls: "input-compact" });
+    widthGroup.createEl("label", { text: "宽", cls: "input-label-compact" });
+    const widthInput = widthGroup.createEl("input", {
       type: "number",
-      placeholder: "宽度",
+      value: "450",
       attr: { min: "50", max: "2000" }
-    });
-    widthInput.style.width = "80px";
+    }) as HTMLInputElement;
     
-    inputGroup.createSpan({ text: " × " });
-    
-    const heightInput = inputGroup.createEl("input", {
-      type: "number",
-      placeholder: "高度",
+    // 高度输入组
+    const heightGroup = sizeInputs.createDiv({ cls: "input-compact" });
+    heightGroup.createEl("label", { text: "高", cls: "input-label-compact" });
+    const heightInput = heightGroup.createEl("input", {
+      type: "number", 
+      value: "288",
       attr: { min: "50", max: "2000" }
-    });
-    heightInput.style.width = "80px";
+    }) as HTMLInputElement;
     
-    const applyCustomBtn = inputGroup.createEl("button", { 
-      text: "应用",
-      cls: "mod-cta"
+    // 添加事件监听器，根据按钮选择自动填充自定义尺寸
+    minSizeBtn.addEventListener("click", () => {
+      const stats = this.calculateStatistics();
+      widthInput.value = stats.minWidth.toString();
+      heightInput.value = stats.minHeight.toString();
     });
     
-    applyCustomBtn.addEventListener("click", async () => {
-      const width = parseInt(widthInput.value);
-      const height = parseInt(heightInput.value);
-      
-      if (width && height) {
-        await this.unifyToCustomSize(width, height);
-      } else {
-        new Notice("请输入有效的宽度和高度");
-      }
+    maxSizeBtn.addEventListener("click", () => {
+      const stats = this.calculateStatistics();
+      widthInput.value = stats.maxWidth.toString();
+      heightInput.value = stats.maxHeight.toString();
     });
+    
+    avgSizeBtn.addEventListener("click", () => {
+      const stats = this.calculateStatistics();
+      widthInput.value = stats.avgWidth.toString();
+      heightInput.value = stats.avgHeight.toString();
+    });
+  }
+  
+  // 辅助方法：更新按钮状态
+  private updateButtonStates(activeButton: HTMLElement, container: HTMLElement): void {
+    // 移除同组其他按钮的active类
+    const buttons = container.querySelectorAll('.btn-option');
+    buttons.forEach(button => {
+      button.classList.remove('active');
+    });
+    
+    // 为点击的按钮添加active类
+    activeButton.classList.add('active');
   }
 
   private createCopySection(container: HTMLElement): void {
-    const copyDiv = container.createDiv({ cls: "copy-section" });
-    copyDiv.createEl("h3", { text: "批量复制" });
-    
-    const copyButtons = copyDiv.createDiv({ cls: "copy-buttons" });
+    // 创建底部操作
+    const actionFooter = container.createDiv({ cls: "action-footer" });
     
     // 复制所有卡片的尺寸信息
-    const copyAllSizesBtn = copyButtons.createEl("button", {
+    const copyAllSizesBtn = actionFooter.createEl("button", {
       text: "复制所有卡片尺寸",
-      cls: "copy-btn"
+      cls: "btn btn-secondary"
     });
     
     copyAllSizesBtn.addEventListener("click", async () => {
@@ -251,15 +289,15 @@ export class CardPropertiesModal extends Modal {
     });
 
     // 复制统计信息
-    const copyStatsBtn = copyButtons.createEl("button", {
+    const copyStatsBtn = actionFooter.createEl("button", {
       text: "复制统计信息",
-      cls: "copy-btn mod-cta"
+      cls: "btn btn-info"
     });
     
     copyStatsBtn.addEventListener("click", async () => {
       const stats = this.calculateStatistics();
       const statsInfo = `卡片统计信息:
-数量: ${stats.count}张
+数量: ${stats.count}张  
 尺寸范围: 宽 ${stats.minWidth}-${stats.maxWidth}px, 高 ${stats.minHeight}-${stats.maxHeight}px  
 平均尺寸: ${stats.avgWidth} × ${stats.avgHeight}px
 位置范围: X: ${stats.minX}-${stats.maxX}, Y: ${stats.minY}-${stats.maxY}`;
@@ -270,6 +308,26 @@ export class CardPropertiesModal extends Modal {
       } catch (error) {
         console.error("复制失败:", error);
         new Notice("复制失败，请重试");
+      }
+    });
+
+    // 应用更改按钮
+    const applyBtn = actionFooter.createEl("button", {
+      text: "应用更改",
+      cls: "btn btn-primary"
+    });
+    
+    applyBtn.addEventListener("click", async () => {
+      const customInputs = container.querySelectorAll('.input-compact input[type="number"]') as NodeListOf<HTMLInputElement>;
+      if (customInputs.length >= 2) {
+        const width = parseInt(customInputs[0].value);
+        const height = parseInt(customInputs[1].value);
+        
+        if (width && height && this.validateSize(width, height)) {
+          await this.unifyToCustomSize(width, height);
+        } else {
+          new Notice("请输入有效的宽度和高度");
+        }
       }
     });
   }
@@ -316,7 +374,6 @@ export class CardPropertiesModal extends Modal {
     }
   }
 
-  // 原有的尺寸验证方法保留，用于兼容多卡片场景
   private validateSize(width: number, height: number): boolean {
     return width >= 50 && width <= 2000 && 
            height >= 50 && height <= 2000 && 
@@ -326,129 +383,260 @@ export class CardPropertiesModal extends Modal {
   private addStyles(): void {
     const style = document.createElement("style");
     style.textContent = `
-      .card-properties-stats {
-        margin-bottom: 20px;
-        padding: 15px;
-        background-color: var(--background-secondary);
-        border-radius: 5px;
+      /* 统计信息优化 */
+      .stats-section {
+        background: var(--background-secondary-alt);
+        border-radius: 6px;
+        padding: 20px;
+        margin-bottom: 24px;
+        border: 1px solid var(--background-modifier-border);
       }
-      
-      .stats-content {
+
+      .stats-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
       }
-      
+
       .stat-item {
-        display: flex;
-        justify-content: space-between;
+        text-align: center;
       }
-      
+
       .stat-label {
         color: var(--text-muted);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
-      
+
       .stat-value {
-        font-weight: bold;
+        font-weight: 600;
+        color: var(--text-normal);
+        margin-bottom: 4px;
       }
-      
-      .cards-list-container {
-        max-height: 300px;
-        overflow-y: auto;
+
+      .stat-value.highlight {
+        color: #ff9756;
+      }
+
+      .stat-detail {
+        color: var(--text-faint);
+      }
+
+      /* 表格样式优化 - 使用用户默认字号 */
+      .table-container {
+        background: var(--background-secondary-alt);
+        border-radius: 6px;
+        overflow: hidden;
         border: 1px solid var(--background-modifier-border);
-        border-radius: 5px;
+        margin-bottom: 24px;
       }
-      
-      .card-item {
-        display: grid;
-        grid-template-columns: 30px 2fr 120px 120px 80px;
-        gap: 10px;
-        padding: 8px 12px;
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      thead {
+        background: var(--background-secondary);
+      }
+
+      th {
+        text-align: left;
+        padding: 10px 8px;
+        font-weight: 500;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         border-bottom: 1px solid var(--background-modifier-border);
-        align-items: center;
       }
-      
-      .card-item:last-child {
-        border-bottom: none;
-      }
-      
-      .card-header {
-        font-weight: bold;
-        background-color: var(--background-secondary);
-        position: sticky;
-        top: 0;
-      }
-      
-      .card-preview {
+
+      td {
+        padding: 10px 8px;
+        color: var(--text-muted);
+        border-bottom: 1px solid rgba(var(--mono-rgb-100), 0.05);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      
-      .card-badge.has-badge {
-        color: var(--text-accent);
-        font-weight: bold;
+
+      /* 列宽优化 */
+      .col-index { width: 8%; }
+      .col-preview { width: 40%; }
+      .col-size { width: 18%; }
+      .col-position { width: 20%; }
+      .col-badge { width: 14%; }
+
+      tbody tr {
+        transition: background 0.2s;
       }
-      
-      .button-group {
-        display: flex;
-        gap: 10px;
-        margin: 15px 0;
+
+      tbody tr:hover {
+        background: var(--background-modifier-hover);
       }
-      
-      .custom-size-input {
-        margin-top: 20px;
+
+      .preview-text {
+        color: var(--text-faint);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
       }
-      
-      .input-group {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 10px;
+
+      .layer-badge {
+        display: inline-block;
+        background: var(--background-modifier-accent);
+        color: #ff9756;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: 500;
       }
-      
-      .mod-small {
-        padding: 2px 8px;
-        font-size: 12px;
+
+      /* 操作区域优化 - 双栏布局 */
+      .operations-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
       }
-      
-      .copy-section {
-        padding: 15px 0;
+
+      .operation-group {
+        background: var(--background-secondary-alt);
+        border-radius: 6px;
+        padding: 18px;
+        border: 1px solid var(--background-modifier-border);
       }
-      
-      .copy-section h3 {
+
+      .operation-title {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         margin-bottom: 15px;
-        font-size: 1.1em;
+        font-weight: 500;
       }
-      
-      .copy-buttons {
+
+      .button-group {
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
-      
-      .copy-btn {
-        padding: 8px 16px;
-        text-align: left;
+
+      .btn-option {
+        padding: 10px 12px;
+        background: var(--background-primary);
         border: 1px solid var(--background-modifier-border);
+        color: var(--text-muted);
         border-radius: 4px;
-        background-color: var(--background-primary);
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: all 0.2s;
+        text-align: center;
       }
-      
-      .copy-btn:hover {
-        background-color: var(--background-secondary);
+
+      .btn-option:hover {
+        background: var(--background-modifier-hover);
+        border-color: var(--background-modifier-border-hover);
+        color: var(--text-normal);
       }
-      
-      .copy-btn.mod-cta {
-        background-color: var(--interactive-accent);
+
+      .btn-option.active {
+        background: #7c6adb;
+        border-color: #7c6adb;
         color: var(--text-on-accent);
-        border-color: var(--interactive-accent);
       }
-      
-      .copy-btn.mod-cta:hover {
-        background-color: var(--interactive-accent-hover);
+
+      /* 紧凑的自定义尺寸输入 */
+      .size-inputs-compact {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+
+      .input-compact {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .input-label-compact {
+        color: var(--text-muted);
+        min-width: 24px;
+      }
+
+      .input-compact input {
+        width: 80px;
+        background: var(--background-primary);
+        border: 1px solid var(--background-modifier-border);
+        color: var(--text-normal);
+        padding: 8px 10px;
+        border-radius: 4px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .input-compact input:focus {
+        border-color: #7c6adb;
+      }
+
+      /* 底部操作按钮优化 */
+      .action-footer {
+        display: flex;
+        gap: 10px;
+        padding-top: 20px;
+        border-top: 1px solid var(--background-modifier-border);
+      }
+
+      .btn {
+        flex: 1;
+        padding: 12px 16px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: #7c6adb;
+        color: var(--text-on-accent);
+      }
+
+      .btn-primary:hover {
+        background: #6b59d3;
+      }
+
+      .btn-secondary {
+        background: var(--background-secondary);
+        color: var(--text-muted);
+      }
+
+      .btn-secondary:hover {
+        background: var(--background-modifier-hover);
+        color: var(--text-normal);
+      }
+
+      .btn-info {
+        background: #4a5568;
+        color: var(--text-on-accent);
+      }
+
+      .btn-info:hover {
+        background: #3a4452;
+      }
+
+      /* 响应式调整 */
+      @media (max-width: 640px) {
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .operations-container {
+          grid-template-columns: 1fr;
+        }
+        
+        .button-group {
+          flex-direction: column;
+        }
       }
     `;
     

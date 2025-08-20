@@ -84,18 +84,18 @@ export default class Cardify extends Plugin {
     }
 
     registerCanvasMenus() {
+        // 单个节点右键菜单
         // @ts-ignore
         this.registerEvent(this.app.workspace.on("canvas:node-menu", (menu: any, node: any) => {
             this.setupCanvasServices(node.canvas);
             this.addNodeMenuCommands(menu, node);
         }));
 
+        // 多选节点右键菜单
         // @ts-ignore
         this.registerEvent(this.app.workspace.on("canvas:selection-menu", (menu: any, canvas: any) => {
             console.log("Canvas selection menu event triggered");
             
-            // CRITICAL FIX: The parameter is a canvas, not a selection
-            // Access the selection from canvas.selection
             const selection = canvas.selection;
             
             if (!selection || selection.size === 0) {
@@ -107,10 +107,10 @@ export default class Cardify extends Plugin {
             console.log("Selection array:", selectionArray);
             console.log("Number of selected nodes:", selectionArray.length);
             
-            // Setup services using the canvas
+            // 使用canvas设置服务
             this.setupCanvasServices(canvas);
             
-            // Pass the selection to the command handler
+            // 传递选择集合到命令处理器
             this.addSelectionMenuCommands(menu, selection);
         }));
     }
@@ -153,7 +153,7 @@ export default class Cardify extends Plugin {
             this.commandRegistry.addCommandToMenu(menu, 'copy-single-card', '复制卡片内容', 'copy');
         }
 
-        // 添加属性查看功能 - 适用于所有文本节点
+        // 卡片属性管理命令 - 统一命名
         if (node.getData && node.getData().type === "text") {
             menu.addSeparator();
             
@@ -168,10 +168,9 @@ export default class Cardify extends Plugin {
             this.commandRegistry.addCommandToMenu(
                 menu, 
                 "open-single-card-properties", 
-                "管理卡片属性", 
+                "管理卡片属性", // 统一命名
                 "settings"
             );
-
         }
     }
 
@@ -186,22 +185,22 @@ export default class Cardify extends Plugin {
             return;
         }
         
-        // Convert the selection Set to an array
+        // 将选择集合转换为数组
         const selectionArray = Array.from(selection);
         console.log("Adding selection menu commands for", selectionArray.length, "items");
         
-        // Verify we have actual nodes
+        // 验证我们有实际的节点
         if (selectionArray.length === 0) {
             console.log("No nodes to add commands for");
             return;
         }
         
-        // Log the first node to verify its structure
+        // 记录第一个节点以验证其结构
         console.log("First selected node:", selectionArray[0]);
         console.log("First node type:", (selectionArray[0] as any)?.type);
         console.log("First node has text:", !!(selectionArray[0] as any)?.text);
         
-        // Add copy by position command
+        // 添加按位置复制命令
         const copyByPositionCommand = new CopyByPositionCommand(
             this.contentService,
             selectionArray,
@@ -213,7 +212,7 @@ export default class Cardify extends Plugin {
         this.commandRegistry.registerCommand("copy-by-position", copyByPositionCommand);
         this.commandRegistry.addCommandToMenu(menu, "copy-by-position", "按位置复制内容", "map-pin");
         
-        // Add copy by badge command
+        // 添加按徽章复制命令
         const copyByBadgeCommand = new CopyByBadgeOrderCommand(this.contentService, selectionArray);
         
         console.log("Copy by badge command canExecute:", copyByBadgeCommand.canExecute());
@@ -224,7 +223,7 @@ export default class Cardify extends Plugin {
         // 添加分隔线
         menu.addSeparator();
         
-        // ===== 新增：卡片属性查看器 =====
+        // 批量卡片属性管理命令 - 统一命名
         const propertiesCommand = new OpenCardPropertiesCommand(
             this.app,
             this.cardService,
@@ -235,7 +234,7 @@ export default class Cardify extends Plugin {
         this.commandRegistry.addCommandToMenu(
             menu, 
             "open-card-properties", 
-            "管理卡片属性", 
+            "管理卡片属性", // 统一命名
             "settings"
         );
         
@@ -243,7 +242,6 @@ export default class Cardify extends Plugin {
         const textCards = selectionArray.filter(
             (node: any) => node.getData && node.getData().type === "text"
         );
-        
         
         console.log("Selection menu commands added successfully");
     }
@@ -322,10 +320,10 @@ export default class Cardify extends Plugin {
     // ============================================
 
     private registerHotkeys() {
-        // 查看卡片属性的快捷键
+        // 管理卡片属性的快捷键 - 统一命名
         this.addCommand({
             id: 'open-card-properties',
-            name: '管理卡片属性',
+            name: '管理卡片属性', // 统一命名
             checkCallback: (checking: boolean) => {
                 // @ts-ignore
                 const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);

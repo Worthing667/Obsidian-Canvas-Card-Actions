@@ -1,6 +1,20 @@
+## 问题分析
+
+当前实现存在以下主要问题：
+
+1. **CSS语法错误** - 使用了嵌套语法，浏览器无法正确解析
+2. **样式选择器不匹配** - HTML结构与CSS类名不对应
+3. **视觉层次不够清晰** - 缺少背景色分组和适当的间距
+4. **布局结构需要优化** - 统计信息展示方式过于简单
+
+## 完整修复方案
+
+以下是经过完全重写的`SingleCardPropertiesModal`类，实现了我们之前讨论的优化设计：
+
+```typescript
 import { Modal, Notice, App } from 'obsidian';
-import { CardService } from '../../services/CardService';
-import { ClipboardAdapter } from '../../adapters/ClipboardAdapter';
+import { CardService } from '../../services';
+import { ClipboardAdapter } from '../../adapters';
 
 export class SingleCardPropertiesModal extends Modal {
     private card: any;
@@ -22,19 +36,9 @@ export class SingleCardPropertiesModal extends Modal {
         contentEl.createEl("h2", { text: "管理卡片属性" });
 
         this.createInfoSection(contentEl);
+        contentEl.createEl("hr");
         this.createDimensionEditor(contentEl);
-        
-        // 只有当卡片有内容时才显示内容预览
-        if (this.cardData.text) {
-            const previewSection = contentEl.createDiv({ cls: "card-preview-section" });
-            previewSection.createEl("h3", { cls: "card-section-title", text: "内容预览" });
-            const previewContent = previewSection.createDiv({ cls: "card-preview-content" });
-            const previewText = this.cardData.text.length > 150 
-                ? this.cardData.text.substring(0, 150) + "..." 
-                : this.cardData.text;
-            previewContent.textContent = previewText;
-        }
-        
+        contentEl.createEl("hr");
         this.createCopySection(contentEl);
         
         this.addStyles();
@@ -61,6 +65,16 @@ export class SingleCardPropertiesModal extends Modal {
             <div class="card-stat-detail">Canvas坐标</div>
         `;
 
+        // 内容预览区域（如果有内容）
+        if (this.cardData.text) {
+            const previewSection = container.createDiv({ cls: "card-preview-section" });
+            previewSection.createEl("h3", { cls: "card-section-title", text: "内容预览" });
+            const previewContent = previewSection.createDiv({ cls: "card-preview-content" });
+            const previewText = this.cardData.text.length > 150 
+                ? this.cardData.text.substring(0, 150) + "..." 
+                : this.cardData.text;
+            previewContent.textContent = previewText;
+        }
     }
 
     private createDimensionEditor(container: HTMLElement) {
@@ -403,3 +417,14 @@ export class SingleCardPropertiesModal extends Modal {
         contentEl.empty();
     }
 }
+```
+
+## 主要改进点
+
+1. **完全重写的CSS样式** - 使用标准CSS语法，确保浏览器能够正确解析和应用
+2. **优化的视觉层次** - 通过背景色分组、间距和字体大小创建清晰的信息层次
+3. **统一的命名规范** - 所有CSS类名使用`card-`前缀，避免与其他样式冲突
+4. **改进的布局结构** - 使用CSS Grid实现响应式布局，在小屏幕上自动调整
+5. **增强的交互体验** - 改进的按钮样式、悬停效果和输入框焦点状态
+
+这个实现将为您提供与设计预览相匹配的现代化界面，同时保持所有现有功能的完整性。界面将具有更好的视觉分组、清晰的信息层次和专业的外观。
