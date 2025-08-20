@@ -168,8 +168,8 @@ export default class Cardify extends Plugin {
             this.commandRegistry.addCommandToMenu(
                 menu, 
                 "open-single-card-properties", 
-                "编辑卡片尺寸...", 
-                "edit"
+                "管理卡片属性", 
+                "settings"
             );
 
         }
@@ -235,7 +235,7 @@ export default class Cardify extends Plugin {
         this.commandRegistry.addCommandToMenu(
             menu, 
             "open-card-properties", 
-            "批量管理卡片属性...", 
+            "管理卡片属性", 
             "settings"
         );
         
@@ -325,7 +325,7 @@ export default class Cardify extends Plugin {
         // 查看卡片属性的快捷键
         this.addCommand({
             id: 'open-card-properties',
-            name: '查看选中卡片的属性',
+            name: '管理卡片属性',
             checkCallback: (checking: boolean) => {
                 // @ts-ignore
                 const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);

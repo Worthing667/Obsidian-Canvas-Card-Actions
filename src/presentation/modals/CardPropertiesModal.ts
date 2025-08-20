@@ -56,7 +56,7 @@ export class CardPropertiesModal extends Modal {
     contentEl.empty();
     
     // 标题
-    contentEl.createEl("h2", { text: "批量卡片属性管理" });
+    contentEl.createEl("h2", { text: "管理卡片属性" });
     
     // 统计信息
     const statsDiv = contentEl.createDiv({ cls: "card-properties-stats" });

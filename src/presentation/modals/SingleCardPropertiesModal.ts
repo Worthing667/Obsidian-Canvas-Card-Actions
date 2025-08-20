@@ -21,7 +21,7 @@ export class SingleCardPropertiesModal extends Modal {
     contentEl.empty();
     
     // 简洁的标题
-    contentEl.createEl("h2", { text: "卡片属性" });
+    contentEl.createEl("h2", { text: "管理卡片属性" });
     
     // 当前信息显示
     this.createInfoSection(contentEl);
