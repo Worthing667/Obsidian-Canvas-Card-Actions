@@ -97,6 +97,20 @@ const copyToPluginDir = () => {
             treeShaking: true,
             outfile: path.join(outdir, 'main.js'),
             charset: "utf8",
+            plugins: [{
+                name: 'copy-obsidian-files',
+                setup(build) {
+                    build.onEnd(() => {
+                        if (!fs.existsSync(outdir)) {
+                            fs.mkdirSync(outdir, { recursive: true });
+                        }
+                        copyFileLog('manifest.json', path.join(outdir, 'manifest.json'));
+                        if (fs.existsSync('styles.css')) {
+                            copyFileLog('styles.css', path.join(outdir, 'styles.css'));
+                        }
+                    });
+                }
+            }]
         });
 
         if (prod) {

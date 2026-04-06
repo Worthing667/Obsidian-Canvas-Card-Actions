@@ -12,6 +12,7 @@ import {
     CopySingleCardCommand, 
     CopyByPositionCommand, 
     CopyByBadgeOrderCommand,
+    CopyByManualOrderCommand,
     SplitCardCommand,
     OpenBadgeModalCommand 
 } from './presentation/commands';
@@ -194,6 +195,14 @@ export default class Cardify extends Plugin {
         
         this.commandRegistry.registerCommand("copy-by-badge", copyByBadgeCommand);
         this.commandRegistry.addCommandToMenu(menu, "copy-by-badge", "按徽章顺序复制内容", "sort-asc");
+        
+        // 添加手动排序复制命令
+        const copyByManualOrderCommand = new CopyByManualOrderCommand(
+            this.app,
+            selectionArray
+        );
+        this.commandRegistry.registerCommand("copy-by-manual-order", copyByManualOrderCommand);
+        this.commandRegistry.addCommandToMenu(menu, "copy-by-manual-order", "手动排序复制", "list-ordered");
         
         // 添加分隔线
         menu.addSeparator();

@@ -1,6 +1,7 @@
 import { ICommand } from "./ICommand";
 import { IContentService } from "../../services/ContentService";
 import { SortPriority } from "../../domain/strategies";
+import { DragSortModal } from "../modals/DragSortModal";
 
 export class CopySingleCardCommand implements ICommand {
     constructor(
@@ -57,5 +58,24 @@ export class CopyByBadgeOrderCommand implements ICommand {
 
     getDescription(): string {
         return "按徽章顺序复制内容";
+    }
+}
+
+export class CopyByManualOrderCommand implements ICommand {
+    constructor(
+        private app: any,
+        private selection: any[]
+    ) {}
+
+    async execute(): Promise<void> {
+        new DragSortModal(this.app, this.selection).open();
+    }
+
+    canExecute(): boolean {
+        return this.selection.length > 1;
+    }
+
+    getDescription(): string {
+        return "手动排序复制";
     }
 }
