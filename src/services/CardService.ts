@@ -8,7 +8,7 @@ export interface ICardService {
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[];
     generateUniqueId(): string;
     calculateNewCardPosition(baseCard: CardData, index: number, cardSpacing?: number): Position;
-    createCardFromSortedContent(content: string, position: Position): Promise<CanvasNodeData>;
+    unifyCardSizes(nodes: any[], targetSize: 'min' | 'max' | { width: number, height: number }): Promise<void>;
     unifyCardWidth(nodes: any[], targetWidth: number): Promise<void>;
     unifyCardHeight(nodes: any[], targetHeight: number): Promise<void>;
 }
@@ -91,27 +91,6 @@ export class CardService implements ICardService {
         };
     }
 
-    async createCardFromSortedContent(content: string, position: Position): Promise<CanvasNodeData> {
-        const nodeData: CanvasNodeData = {
-            id: this.generateUniqueId(),
-            type: 'text',
-            text: content,
-            x: position.x,
-            y: position.y,
-            width: this.defaultCardWidth,
-            height: this.defaultCardHeight
-        };
-
-        try {
-            await this.canvasAdapter.addNode(nodeData);
-            await this.canvasAdapter.requestSave();
-            return nodeData;
-        } catch (error) {
-            console.error("创建卡片失败:", error);
-            throw new Error("创建卡片失败");
-        }
-    }
-
     private lastSizeOperation: {
         type: string;
         originalStates: Array<{id: string, width: number, height: number}>;
@@ -152,16 +131,56 @@ export class CardService implements ICardService {
         };
     }
 
-    /**
-     * 统一卡片尺寸 - 核心功能，简单高效
-     * 重点：批量操作，事务性，可恢复
-     */
-    async unifyCardSizes(nodes: any[], targetSize: 'min' | 'max' | { width: number, height: number }): Promise<void> {
+    private async applyDimensionChange(nodes: any[], targetWidth?: number, targetHeight?: number, successMessage?: string): Promise<void> {
         const textNodes = nodes.filter(node => node.getData().type === "text");
         
         if (textNodes.length === 0) {
             throw new Error("没有找到可调整的文本卡片");
         }
+
+        // 验证尺寸合理性
+        if (targetWidth !== undefined && (targetWidth < 50 || targetWidth > 2000)) {
+            throw new Error("宽度超出合理范围(50-2000像素)");
+        }
+        if (targetHeight !== undefined && (targetHeight < 50 || targetHeight > 2000)) {
+            throw new Error("高度超出合理范围(50-2000像素)");
+        }
+
+        try {
+            const canvasData = this.canvasAdapter.getData();
+            
+            textNodes.forEach(node => {
+                const nodeData = canvasData.nodes.find(n => n.id === node.id);
+                if (nodeData) {
+                    if (targetWidth !== undefined) nodeData.width = targetWidth;
+                    if (targetHeight !== undefined) nodeData.height = targetHeight;
+                }
+            });
+
+            await this.canvasAdapter.setData(canvasData);
+            await this.canvasAdapter.requestSave();
+
+            if (successMessage) {
+                new Notice(successMessage);
+            }
+
+        } catch (error) {
+            console.error("尺寸调整操作失败:", error);
+            
+            if (error.message.includes("Canvas")) {
+                throw new Error("Canvas操作失败，请刷新页面后重试");
+            } else if (error.message.includes("save")) {
+                throw new Error("保存失败，请检查文件权限");
+            } else {
+                throw new Error(`操作失败：${error.message}`);
+            }
+        }
+    }
+
+    /**
+     * 统一卡片尺寸 - 核心功能，简单高效
+     */
+    async unifyCardSizes(nodes: any[], targetSize: 'min' | 'max' | { width: number, height: number }): Promise<void> {
 
         // 分析当前尺寸
         const analysis = this.analyzeCardSizes(nodes);
@@ -180,252 +199,25 @@ export class CardService implements ICardService {
             targetHeight = targetSize.height;
         }
 
-        // 验证尺寸合理性
-        if (targetWidth < 50 || targetHeight < 50 || targetWidth > 2000 || targetHeight > 2000) {
-            throw new Error("尺寸超出合理范围(50-2000像素)");
-        }
-
-        try {
-            // 保存原始状态用于撤销 - 这比统计信息重要100倍！
-            const originalStates = textNodes.map(node => {
-                const data = node.getData();
-                return { 
-                    id: data.id, 
-                    width: data.width, 
-                    height: data.height 
-                };
-            });
-
-            // 批量更新 - 关键：一次性获取所有数据，批量修改，一次性提交
-            const canvasData = this.canvasAdapter.getData();
-            
-            // 在内存中批量修改所有节点
-            textNodes.forEach(node => {
-                const nodeData = canvasData.nodes.find(n => n.id === node.id);
-                if (nodeData) {
-                    nodeData.width = targetWidth;
-                    nodeData.height = targetHeight;
-                }
-            });
-
-            // 一次性提交所有更改
-            await this.canvasAdapter.setData(canvasData);
-            await this.canvasAdapter.requestSave();
-
-            // 存储撤销信息 - 简单但实用的撤销机制
-            this.lastSizeOperation = {
-                type: 'unify',
-                originalStates,
-                timestamp: Date.now()
-            };
-
-            new Notice(`已统一 ${textNodes.length} 个卡片尺寸为 ${targetWidth}×${targetHeight}`);
-
-        } catch (error) {
-            // 实用的错误处理 - 给用户可操作的信息
-            console.error("统一尺寸操作失败:", error);
-            
-            if (error.message.includes("Canvas")) {
-                throw new Error("Canvas操作失败，请刷新页面后重试");
-            } else if (error.message.includes("save")) {
-                throw new Error("保存失败，请检查文件权限");
-            } else {
-                throw new Error(`操作失败：${error.message}`);
-            }
-        }
+        const msg = `已统一 ${nodes.filter(n => n.getData().type === "text").length} 个卡片尺寸为 ${targetWidth}×${targetHeight}`;
+        await this.applyDimensionChange(nodes, targetWidth, targetHeight, msg);
     }
 
     /**
-     * 撤销上一次尺寸操作 - 比复杂的预览更有用
-     */
-    async undoLastSizeOperation(): Promise<void> {
-        if (!this.lastSizeOperation || Date.now() - this.lastSizeOperation.timestamp > 300000) {
-            throw new Error("没有可撤销的操作或操作已过期(5分钟内有效)");
-        }
-
-        try {
-            const canvasData = this.canvasAdapter.getData();
-            
-            // 恢复原始尺寸
-            this.lastSizeOperation.originalStates.forEach(state => {
-                const nodeData = canvasData.nodes.find(n => n.id === state.id);
-                if (nodeData) {
-                    nodeData.width = state.width;
-                    nodeData.height = state.height;
-                }
-            });
-
-            await this.canvasAdapter.setData(canvasData);
-            await this.canvasAdapter.requestSave();
-
-            new Notice(`已撤销尺寸操作，恢复 ${this.lastSizeOperation.originalStates.length} 个卡片`);
-            this.lastSizeOperation = null;
-
-        } catch (error) {
-            console.error("撤销操作失败:", error);
-            throw new Error("撤销失败，请手动调整");
-        }
-    }
-
-    /**
-     * 快速检查是否需要统一尺寸
-     * 这个方法只在菜单显示时调用，避免不必要的计算
-     */
-    canUnifyCardSizes(nodes: any[]): { canUnify: boolean, suggestion: string } {
-        try {
-            const analysis = this.analyzeCardSizes(nodes);
-            
-            if (!analysis.hasVariedSizes) {
-                return { canUnify: false, suggestion: "卡片尺寸已统一" };
-            }
-
-            if (analysis.cardCount === 1) {
-                return { canUnify: false, suggestion: "需要选择多个卡片" };
-            }
-
-            return { 
-                canUnify: true, 
-                suggestion: `统一 ${analysis.cardCount} 个卡片的尺寸` 
-            };
-        } catch (error) {
-            return { canUnify: false, suggestion: "无法分析卡片尺寸" };
-        }
-    }
-
-    /**
-     * 获取常用尺寸预设 - 简单实用的快捷选项
-     */
-    getCommonSizes(): Array<{ name: string, width: number, height: number }> {
-        return [
-            { name: "小卡片", width: 250, height: 200 },
-            { name: "标准卡片", width: 400, height: 300 },
-            { name: "大卡片", width: 500, height: 400 }
-        ];
-    }
-
-    /**
-     * 只统一卡片宽度 - 新增功能
+     * 只统一卡片宽度
      */
     async unifyCardWidth(nodes: any[], targetWidth: number): Promise<void> {
-        const textNodes = nodes.filter(node => node.getData().type === "text");
-        
-        if (textNodes.length === 0) {
-            throw new Error("没有找到可调整的文本卡片");
-        }
-
-        // 验证宽度合理性
-        if (targetWidth < 50 || targetWidth > 2000) {
-            throw new Error("宽度超出合理范围(50-2000像素)");
-        }
-
-        try {
-            // 保存原始状态用于撤销
-            const originalStates = textNodes.map(node => {
-                const data = node.getData();
-                return { 
-                    id: data.id, 
-                    width: data.width, 
-                    height: data.height 
-                };
-            });
-
-            // 批量更新 - 只修改宽度，保持高度不变
-            const canvasData = this.canvasAdapter.getData();
-            
-            // 在内存中批量修改所有节点的宽度
-            textNodes.forEach(node => {
-                const nodeData = canvasData.nodes.find(n => n.id === node.id);
-                if (nodeData) {
-                    nodeData.width = targetWidth;
-                }
-            });
-
-            // 一次性提交所有更改
-            await this.canvasAdapter.setData(canvasData);
-            await this.canvasAdapter.requestSave();
-
-            // 存储撤销信息
-            this.lastSizeOperation = {
-                type: 'unifyWidth',
-                originalStates,
-                timestamp: Date.now()
-            };
-
-            new Notice(`已统一 ${textNodes.length} 个卡片宽度为 ${targetWidth}px，高度保持不变`);
-
-        } catch (error) {
-            console.error("统一宽度操作失败:", error);
-            
-            if (error.message.includes("Canvas")) {
-                throw new Error("Canvas操作失败，请刷新页面后重试");
-            } else if (error.message.includes("save")) {
-                throw new Error("保存失败，请检查文件权限");
-            } else {
-                throw new Error(`操作失败：${error.message}`);
-            }
-        }
+        const count = nodes.filter(n => n.getData().type === "text").length;
+        const msg = `已统一 ${count} 个卡片宽度为 ${targetWidth}px，高度保持不变`;
+        await this.applyDimensionChange(nodes, targetWidth, undefined, msg);
     }
 
     /**
-     * 只统一卡片高度 - 新增功能
+     * 只统一卡片高度
      */
     async unifyCardHeight(nodes: any[], targetHeight: number): Promise<void> {
-        const textNodes = nodes.filter(node => node.getData().type === "text");
-        
-        if (textNodes.length === 0) {
-            throw new Error("没有找到可调整的文本卡片");
-        }
-
-        // 验证高度合理性
-        if (targetHeight < 50 || targetHeight > 2000) {
-            throw new Error("高度超出合理范围(50-2000像素)");
-        }
-
-        try {
-            // 保存原始状态用于撤销
-            const originalStates = textNodes.map(node => {
-                const data = node.getData();
-                return { 
-                    id: data.id, 
-                    width: data.width, 
-                    height: data.height 
-                };
-            });
-
-            // 批量更新 - 只修改高度，保持宽度不变
-            const canvasData = this.canvasAdapter.getData();
-            
-            // 在内存中批量修改所有节点的高度
-            textNodes.forEach(node => {
-                const nodeData = canvasData.nodes.find(n => n.id === node.id);
-                if (nodeData) {
-                    nodeData.height = targetHeight;
-                }
-            });
-
-            // 一次性提交所有更改
-            await this.canvasAdapter.setData(canvasData);
-            await this.canvasAdapter.requestSave();
-
-            // 存储撤销信息
-            this.lastSizeOperation = {
-                type: 'unifyHeight',
-                originalStates,
-                timestamp: Date.now()
-            };
-
-            new Notice(`已统一 ${textNodes.length} 个卡片高度为 ${targetHeight}px，宽度保持不变`);
-
-        } catch (error) {
-            console.error("统一高度操作失败:", error);
-            
-            if (error.message.includes("Canvas")) {
-                throw new Error("Canvas操作失败，请刷新页面后重试");
-            } else if (error.message.includes("save")) {
-                throw new Error("保存失败，请检查文件权限");
-            } else {
-                throw new Error(`操作失败：${error.message}`);
-            }
-        }
+        const count = nodes.filter(n => n.getData().type === "text").length;
+        const msg = `已统一 ${count} 个卡片高度为 ${targetHeight}px，宽度保持不变`;
+        await this.applyDimensionChange(nodes, undefined, targetHeight, msg);
     }
 }

@@ -1,4 +1,4 @@
-import CardifySettings from "../interface/ICardifySettings";
+import CardifySettings from "../settings/ICardifySettings";
 
 export interface IStorageAdapter {
     loadSettings(): Promise<CardifySettings>;

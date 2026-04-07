@@ -78,11 +78,6 @@ export class CanvasAdapter implements ICanvasAdapter {
         await this.setData(data);
     }
 
-    getTextCards(): CardData[] {
-        const model = this.getDataModel();
-        return model.getTextCards();
-    }
-
     async updateNode(nodeData: CanvasNodeData): Promise<void> {
         const model = this.getDataModel();
         const updatedModel = model.updateNode(nodeData);

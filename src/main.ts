@@ -1,6 +1,6 @@
 import { Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
-import CardifySettings from "./interface/ICardifySettings";
-import CardifySettingTab from "./class/CardifySettingTabClass";
+import CardifySettings from "./settings/ICardifySettings";
+import CardifySettingTab from "./settings/CardifySettingTab";
 
 // 导入新架构的组件
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter } from './adapters';

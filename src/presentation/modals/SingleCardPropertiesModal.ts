@@ -1,6 +1,8 @@
 import { Modal, Notice, App } from 'obsidian';
 import { CardService } from '../../services/CardService';
+import { validateDimension } from "../../utils/dimensionUtils";
 import { ClipboardAdapter } from '../../adapters/ClipboardAdapter';
+import { ModalStyleManager } from '../styles/ModalStyles';
 
 export class SingleCardPropertiesModal extends Modal {
     private card: any;
@@ -42,36 +44,36 @@ export class SingleCardPropertiesModal extends Modal {
 
     private createInfoSection(container: HTMLElement) {
         // 创建统计信息区域
-        const statsSection = container.createDiv({ cls: "card-stats-section" });
-        const statsGrid = statsSection.createDiv({ cls: "card-stats-grid" });
+        const statsSection = container.createDiv({ cls: "cca-stats-section" });
+        const statsGrid = statsSection.createDiv({ cls: "cca-grid-cols-2" });
 
         // 当前尺寸统计
-        const sizeItem = statsGrid.createDiv({ cls: "card-stat-item" });
+        const sizeItem = statsGrid.createDiv({ cls: "cca-stat-item" });
         sizeItem.innerHTML = `
-            <div class="card-stat-label">当前尺寸</div>
-            <div class="card-stat-value" id="current-size">${this.cardData.width} × ${this.cardData.height}</div>
-            <div class="card-stat-detail">像素</div>
+            <div class="cca-stat-label">当前尺寸</div>
+            <div class="cca-stat-value" id="current-size">${this.cardData.width} × ${this.cardData.height}</div>
+            <div class="cca-stat-detail">像素</div>
         `;
 
         // 位置坐标统计
-        const positionItem = statsGrid.createDiv({ cls: "card-stat-item" });
+        const positionItem = statsGrid.createDiv({ cls: "cca-stat-item" });
         positionItem.innerHTML = `
-            <div class="card-stat-label">位置坐标</div>
-            <div class="card-stat-value">X: ${this.cardData.x}, Y: ${this.cardData.y}</div>
-            <div class="card-stat-detail">Canvas坐标</div>
+            <div class="cca-stat-label">位置坐标</div>
+            <div class="cca-stat-value">X: ${this.cardData.x}, Y: ${this.cardData.y}</div>
+            <div class="cca-stat-detail">Canvas坐标</div>
         `;
 
     }
 
     private createDimensionEditor(container: HTMLElement) {
-        const editorSection = container.createDiv({ cls: "card-operations-section" });
-        editorSection.createEl("h3", { cls: "card-operation-title", text: "尺寸调整" });
+        const editorSection = container.createDiv({ cls: "cca-stats-section" });
+        editorSection.createEl("h3", { cls: "cca-section-title", text: "尺寸调整" });
 
         // 尺寸控制区域
-        const dimensionControls = editorSection.createDiv({ cls: "card-dimension-controls" });
+        const dimensionControls = editorSection.createDiv({ cls: "cca-grid-cols-2" });
 
         // 宽度控制
-        const widthGroup = dimensionControls.createDiv({ cls: "card-control-group" });
+        const widthGroup = dimensionControls.createDiv({ cls: "cca-control-group" });
         widthGroup.createEl("label", { text: "宽度 (px)" });
         const widthInput = widthGroup.createEl("input", {
             type: "number",
@@ -80,7 +82,7 @@ export class SingleCardPropertiesModal extends Modal {
         }) as HTMLInputElement;
 
         // 高度控制
-        const heightGroup = dimensionControls.createDiv({ cls: "card-control-group" });
+        const heightGroup = dimensionControls.createDiv({ cls: "cca-control-group" });
         heightGroup.createEl("label", { text: "高度 (px)" });
         const heightInput = heightGroup.createEl("input", {
             type: "number",
@@ -147,11 +149,11 @@ export class SingleCardPropertiesModal extends Modal {
     }
 
     private createCopySection(container: HTMLElement) {
-        const actionButtons = container.createDiv({ cls: "card-action-buttons" });
+        const actionButtons = container.createDiv({ cls: "cca-action-footer" });
 
         const copySizeBtn = actionButtons.createEl("button", {
             text: "复制尺寸信息",
-            cls: "card-btn card-btn-secondary"
+            cls: "cca-btn cca-btn-secondary"
         });
         copySizeBtn.addEventListener("click", async () => {
             const sizeInfo = `卡片尺寸: ${this.cardData.width} × ${this.cardData.height} px`;
@@ -160,7 +162,7 @@ export class SingleCardPropertiesModal extends Modal {
 
         const copyPosBtn = actionButtons.createEl("button", {
             text: "复制位置信息",
-            cls: "card-btn card-btn-secondary"
+            cls: "cca-btn cca-btn-secondary"
         });
         copyPosBtn.addEventListener("click", async () => {
             const posInfo = `卡片位置: X: ${this.cardData.x}, Y: ${this.cardData.y}`;
@@ -169,7 +171,7 @@ export class SingleCardPropertiesModal extends Modal {
 
         const applyBtn = actionButtons.createEl("button", {
             text: "应用更改",
-            cls: "card-btn card-btn-primary"
+            cls: "cca-btn cca-btn-primary"
         });
         applyBtn.addEventListener("click", async () => {
             const widthInput = (container as any)._widthInput;
@@ -208,124 +210,15 @@ export class SingleCardPropertiesModal extends Modal {
     }
 
     private validateDimension(value: number): boolean {
-        return !isNaN(value) && value >= 50 && value <= 2000;
+        return validateDimension(value);
     }
 
     private addStyles() {
+        ModalStyleManager.injectSharedStyles();
+        
+        // 此 Modal 独有的少量样式
         const style = document.createElement("style");
         style.textContent = `
-            /* 统计信息区域 */
-            .card-stats-section {
-                background: var(--background-secondary-alt);
-                border-radius: 6px;
-                padding: 20px;
-                margin-bottom: 24px;
-                border: 1px solid var(--background-modifier-border);
-            }
-
-            .card-stats-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
-            }
-
-            .card-stat-item {
-                text-align: center;
-            }
-
-            .card-stat-label {
-                font-size: 12px;
-                color: var(--text-muted);
-                margin-bottom: 4px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .card-stat-value {
-                font-size: 18px;
-                font-weight: 600;
-                color: var(--text-normal);
-                margin-bottom: 2px;
-            }
-
-            .card-stat-detail {
-                font-size: 13px;
-                color: var(--text-faint);
-            }
-
-            /* 内容预览区域 */
-            .card-preview-section {
-                background: var(--background-secondary-alt);
-                border-radius: 6px;
-                padding: 16px;
-                margin-bottom: 24px;
-                border: 1px solid var(--background-modifier-border);
-                min-height: 100px;
-            }
-
-            .card-section-title {
-                font-size: 14px;
-                color: var(--text-muted);
-                margin-bottom: 12px;
-                font-weight: 500;
-            }
-
-            .card-preview-content {
-                color: var(--text-faint);
-                font-size: 13px;
-                line-height: 1.5;
-            }
-
-            /* 操作区域 */
-            .card-operations-section {
-                background: var(--background-secondary-alt);
-                border-radius: 6px;
-                padding: 20px;
-                margin-bottom: 24px;
-                border: 1px solid var(--background-modifier-border);
-            }
-
-            .card-operation-title {
-                font-size: 13px;
-                color: var(--text-muted);
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin-bottom: 16px;
-                font-weight: 500;
-            }
-
-            .card-dimension-controls {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-                margin-bottom: 16px;
-            }
-
-            .card-control-group {
-                display: flex;
-                flex-direction: column;
-            }
-
-            .card-control-group label {
-                font-size: 13px;
-                color: var(--text-muted);
-                margin-bottom: 6px;
-            }
-
-            .card-control-group input {
-                background: var(--background-primary);
-                border: 1px solid var(--background-modifier-border);
-                color: var(--text-normal);
-                padding: 10px 12px;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-
-            .card-control-group input:focus {
-                outline: none;
-                border-color: var(--interactive-accent);
-            }
-
             .card-aspect-ratio-toggle {
                 display: flex;
                 align-items: center;
@@ -338,56 +231,6 @@ export class SingleCardPropertiesModal extends Modal {
             .card-aspect-ratio-toggle input {
                 cursor: pointer;
             }
-
-            /* 操作按钮 */
-            .card-action-buttons {
-                display: flex;
-                gap: 12px;
-                padding-top: 20px;
-                border-top: 1px solid var(--background-modifier-border);
-            }
-
-            .card-btn {
-                flex: 1;
-                padding: 12px 16px;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .card-btn-primary {
-                background: var(--interactive-accent);
-                color: var(--text-on-accent);
-            }
-
-            .card-btn-primary:hover {
-                background: var(--interactive-accent-hover);
-            }
-
-            .card-btn-secondary {
-                background: var(--background-secondary);
-                color: var(--text-muted);
-            }
-
-            .card-btn-secondary:hover {
-                background: var(--background-modifier-hover);
-                color: var(--text-normal);
-            }
-
-            /* 响应式调整 */
-            @media (max-width: 640px) {
-                .card-stats-grid {
-                    grid-template-columns: 1fr;
-                    gap: 16px;
-                }
-                
-                .card-dimension-controls {
-                    grid-template-columns: 1fr;
-                }
-            }
         `;
         
         document.head.appendChild(style);
@@ -395,6 +238,7 @@ export class SingleCardPropertiesModal extends Modal {
         // 在模态框关闭时清理样式
         this.scope.register([], "cleanup-style", () => {
             style.remove();
+            ModalStyleManager.removeSharedStyles();
         });
     }
 

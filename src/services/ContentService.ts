@@ -149,10 +149,5 @@ export class ContentService implements IContentService {
     formatBadgedCardsContent(cards: Array<{text: string, badge: string}>): string {
         return cards.map(card => `[${card.badge}] ${card.text}`).join('\n\n');
     }
-
-    async createSortedContentCard(sortedContent: string[], position: { x: number, y: number }): Promise<void> {
-        // 这是新功能的扩展点：根据排序内容创建新卡片
-        // 可以在未来实现
-        throw new Error("功能尚未实现");
-    }
 }
+

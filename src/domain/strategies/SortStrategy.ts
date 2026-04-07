@@ -5,11 +5,6 @@ export interface SortStrategy<T> {
     sort(items: T[]): T[];
 }
 
-export interface CardWithBadge {
-    card: CardData;
-    badge: BadgeData;
-}
-
 export interface SortableCard {
     text: string;
     x: number;

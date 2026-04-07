@@ -20,23 +20,3 @@ export class SplitCardCommand implements ICommand {
         return "按分隔符拆分卡片";
     }
 }
-
-export class CreateCardFromContentCommand implements ICommand {
-    constructor(
-        private cardService: ICardService,
-        private content: string,
-        private position: { x: number, y: number }
-    ) {}
-
-    async execute(): Promise<void> {
-        await this.cardService.createCardFromSortedContent(this.content, this.position);
-    }
-
-    canExecute(): boolean {
-        return !!this.content.trim();
-    }
-
-    getDescription(): string {
-        return "根据内容创建卡片";
-    }
-}

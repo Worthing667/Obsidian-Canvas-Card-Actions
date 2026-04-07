@@ -1,5 +1,9 @@
 import { Modal, Notice } from "obsidian";
 import { CardService } from "../../services/CardService";
+import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
+import { PositionSortStrategy } from "../../domain/strategies/PositionSort";
+import { validateDimension } from "../../utils/dimensionUtils";
+import { ModalStyleManager } from "../styles/ModalStyles";
 
 interface CardInfo {
   id: string;
@@ -46,12 +50,8 @@ export class CardPropertiesModal extends Modal {
     });
 
     // 按位置排序（从上到下，从左到右）
-    this.cardInfos.sort((a, b) => {
-      if (Math.abs(a.y - b.y) > 10) {
-        return a.y - b.y;
-      }
-      return a.x - b.x;
-    });
+    const sorter = new PositionSortStrategy('yx', 10);
+    this.cardInfos = sorter.sort(this.cardInfos as unknown as any[]) as unknown as CardInfo[];
   }
 
   onOpen(): void {
@@ -83,31 +83,31 @@ export class CardPropertiesModal extends Modal {
     const stats = this.calculateStatistics();
     
     // 创建统计信息区域
-    const statsSection = container.createDiv({ cls: "stats-section" });
-    const statsGrid = statsSection.createDiv({ cls: "stats-grid" });
+    const statsSection = container.createDiv({ cls: "cca-stats-section" });
+    const statsGrid = statsSection.createDiv({ cls: "cca-grid-cols-3" });
     
     // 选中卡片数量
-    const countItem = statsGrid.createDiv({ cls: "stat-item" });
+    const countItem = statsGrid.createDiv({ cls: "cca-stat-item" });
     countItem.innerHTML = `
-      <div class="stat-label">选中卡片</div>
-      <div class="stat-value highlight">${stats.count}</div>
-      <div class="stat-detail">张卡片</div>
+      <div class="cca-stat-label">选中卡片</div>
+      <div class="cca-stat-value highlight">${stats.count}</div>
+      <div class="cca-stat-detail">张卡片</div>
     `;
     
     // 尺寸范围
-    const sizeItem = statsGrid.createDiv({ cls: "stat-item" });
+    const sizeItem = statsGrid.createDiv({ cls: "cca-stat-item" });
     sizeItem.innerHTML = `
-      <div class="stat-label">尺寸范围</div>
-      <div class="stat-value">${stats.avgWidth}×${stats.avgHeight}</div>
-      <div class="stat-detail">宽 ${stats.minWidth}-${stats.maxWidth}px<br>高 ${stats.minHeight}-${stats.maxHeight}px</div>
+      <div class="cca-stat-label">尺寸范围</div>
+      <div class="cca-stat-value">${stats.avgWidth}×${stats.avgHeight}</div>
+      <div class="cca-stat-detail">宽 ${stats.minWidth}-${stats.maxWidth}px<br>高 ${stats.minHeight}-${stats.maxHeight}px</div>
     `;
     
     // 位置范围
-    const positionItem = statsGrid.createDiv({ cls: "stat-item" });
+    const positionItem = statsGrid.createDiv({ cls: "cca-stat-item" });
     positionItem.innerHTML = `
-      <div class="stat-label">位置范围</div>
-      <div class="stat-value">X: ${stats.minX}-${stats.maxX}</div>
-      <div class="stat-detail">Y: ${stats.minY}-${stats.maxY}</div>
+      <div class="cca-stat-label">位置范围</div>
+      <div class="cca-stat-value">X: ${stats.minX}-${stats.maxX}</div>
+      <div class="cca-stat-detail">Y: ${stats.minY}-${stats.maxY}</div>
     `;
   }
 
@@ -157,7 +157,7 @@ export class CardPropertiesModal extends Modal {
       // 徽章
       const badgeCell = row.createEl("td", { cls: "col-badge" });
       if (info.hasBadge) {
-        const badgeSpan = badgeCell.createEl("span", { 
+        badgeCell.createEl("span", { 
           cls: "layer-badge",
           text: info.badgeContent || ""
         });
@@ -172,8 +172,8 @@ export class CardPropertiesModal extends Modal {
     const operationsContainer = container.createDiv({ cls: "operations-container" });
     
     // 批量操作组 - 左栏
-    const operationGroup = operationsContainer.createDiv({ cls: "operation-group" });
-    const operationTitle = operationGroup.createEl("h3", { cls: "operation-title", text: "批量操作" });
+    const operationGroup = operationsContainer.createDiv({ cls: "cca-stats-section" });
+    operationGroup.createEl("h3", { cls: "cca-section-title", text: "批量操作" });
     
     // 创建按钮组容器
     const buttonGroup = operationGroup.createDiv({ cls: "button-group" });
@@ -210,8 +210,8 @@ export class CardPropertiesModal extends Modal {
     });
     
     // 自定义尺寸操作组 - 右栏
-    const customSizeGroup = operationsContainer.createDiv({ cls: "operation-group" });
-    const customSizeTitle = customSizeGroup.createEl("h3", { cls: "operation-title", text: "自定义尺寸" });
+    const customSizeGroup = operationsContainer.createDiv({ cls: "cca-stats-section" });
+    customSizeGroup.createEl("h3", { cls: "cca-section-title", text: "自定义尺寸" });
     
     // 创建紧凑的自定义输入区域
     const sizeInputs = customSizeGroup.createDiv({ cls: "size-inputs-compact" });
@@ -243,7 +243,7 @@ export class CardPropertiesModal extends Modal {
 
     // 初始化宽高比（使用当前选中卡片的平均宽高比）
     const stats = this.calculateStatistics();
-    let aspectRatio = stats.avgWidth / stats.avgHeight;
+    const aspectRatio = stats.avgWidth / stats.avgHeight;
 
     // 设置初始输入框状态
     this.setupAspectRatioLogic(aspectRatio);
@@ -339,12 +339,12 @@ export class CardPropertiesModal extends Modal {
 
   private createCopySection(container: HTMLElement): void {
     // 创建底部操作
-    const actionFooter = container.createDiv({ cls: "action-footer" });
+    const actionFooter = container.createDiv({ cls: "cca-action-footer" });
     
     // 复制所有卡片的尺寸信息
     const copyAllSizesBtn = actionFooter.createEl("button", {
       text: "复制所有卡片尺寸",
-      cls: "btn btn-secondary"
+      cls: "cca-btn cca-btn-secondary"
     });
     
     copyAllSizesBtn.addEventListener("click", async () => {
@@ -353,19 +353,14 @@ export class CardPropertiesModal extends Modal {
       ).join('\n');
       
       const sizeInfo = `批量卡片尺寸 (${this.cardInfos.length}张):\n${sizeList}`;
-      try {
-        await navigator.clipboard.writeText(sizeInfo);
-        new Notice("所有卡片尺寸已复制到剪贴板");
-      } catch (error) {
-        console.error("复制失败:", error);
-        new Notice("复制失败，请重试");
-      }
+      const clipboardAdapter = new ClipboardAdapter();
+      await clipboardAdapter.writeTextWithNotice(sizeInfo, "所有卡片尺寸已复制到剪贴板");
     });
 
     // 复制统计信息
     const copyStatsBtn = actionFooter.createEl("button", {
       text: "复制统计信息",
-      cls: "btn btn-info"
+      cls: "cca-btn cca-btn-info"
     });
     
     copyStatsBtn.addEventListener("click", async () => {
@@ -376,19 +371,14 @@ export class CardPropertiesModal extends Modal {
 平均尺寸: ${stats.avgWidth} × ${stats.avgHeight}px
 位置范围: X: ${stats.minX}-${stats.maxX}, Y: ${stats.minY}-${stats.maxY}`;
 
-      try {
-        await navigator.clipboard.writeText(statsInfo);
-        new Notice("统计信息已复制到剪贴板");
-      } catch (error) {
-        console.error("复制失败:", error);
-        new Notice("复制失败，请重试");
-      }
+      const clipboardAdapter = new ClipboardAdapter();
+      await clipboardAdapter.writeTextWithNotice(statsInfo, "统计信息已复制到剪贴板");
     });
 
     // 应用更改按钮
     const applyBtn = actionFooter.createEl("button", {
       text: "应用更改",
-      cls: "btn btn-primary"
+      cls: "cca-btn cca-btn-primary"
     });
     
     applyBtn.addEventListener("click", async () => {
@@ -530,53 +520,20 @@ export class CardPropertiesModal extends Modal {
   }
 
   private validateDimension(value: number): boolean {
-    return !isNaN(value) && value >= 50 && value <= 2000;
+    return validateDimension(value);
   }
 
   private addStyles(): void {
+    ModalStyleManager.injectSharedStyles();
     const style = document.createElement("style");
+    style.id = "card-properties-modal-styles";
+    
+    if (document.getElementById("card-properties-modal-styles")) {
+      document.getElementById("card-properties-modal-styles")?.remove();
+    }
+    
     style.textContent = `
-      /* 统计信息优化 */
-      .stats-section {
-        background: var(--background-secondary-alt);
-        border-radius: 6px;
-        padding: 20px;
-        margin-bottom: 24px;
-        border: 1px solid var(--background-modifier-border);
-      }
-
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-      }
-
-      .stat-item {
-        text-align: center;
-      }
-
-      .stat-label {
-        color: var(--text-muted);
-        margin-bottom: 4px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .stat-value {
-        font-weight: 600;
-        color: var(--text-normal);
-        margin-bottom: 4px;
-      }
-
-      .stat-value.highlight {
-        color: #ff9756;
-      }
-
-      .stat-detail {
-        color: var(--text-faint);
-      }
-
-      /* 表格样式优化 - 使用用户默认字号 */
+      /* 表格特定样式 */
       .table-container {
         background: var(--background-secondary-alt);
         border-radius: 6px;
@@ -646,47 +603,12 @@ export class CardPropertiesModal extends Modal {
         font-weight: 500;
       }
 
-      /* 操作区域优化 - 双栏布局 */
+      /* 操作区域特定布局 */
       .operations-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
         margin-bottom: 24px;
-      }
-
-      .operation-group {
-        background: var(--background-secondary-alt);
-        border-radius: 6px;
-        padding: 18px;
-        border: 1px solid var(--background-modifier-border);
-      }
-
-      .operation-title {
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 15px;
-        font-weight: 500;
-      }
-
-      /* 功能描述样式 */
-      .function-description {
-        background: var(--background-primary);
-        border-radius: 4px;
-        padding: 12px;
-        margin-bottom: 16px;
-        border: 1px solid var(--background-modifier-border);
-      }
-
-      .desc-item {
-        color: var(--text-muted);
-        font-size: 12px;
-        line-height: 1.4;
-        margin-bottom: 4px;
-      }
-
-      .desc-item:last-child {
-        margin-bottom: 0;
       }
 
       .button-group {
@@ -713,8 +635,8 @@ export class CardPropertiesModal extends Modal {
       }
 
       .btn-option.active {
-        background: #7c6adb;
-        border-color: #7c6adb;
+        background: var(--interactive-accent);
+        border-color: var(--interactive-accent);
         color: var(--text-on-accent);
       }
 
@@ -749,7 +671,7 @@ export class CardPropertiesModal extends Modal {
       }
 
       .input-compact input:focus {
-        border-color: #7c6adb;
+        border-color: var(--interactive-accent);
       }
 
       .input-compact input::placeholder {
@@ -771,12 +693,6 @@ export class CardPropertiesModal extends Modal {
         cursor: pointer;
       }
 
-      /* 底部操作按钮优化 */
-      .action-footer {
-        display: flex;
-        gap: 10px;
-        padding-top: 20px;
-        border-top: 1px solid var(--background-modifier-border);
       }
 
       .btn {

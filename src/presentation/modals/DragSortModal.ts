@@ -1,4 +1,7 @@
 import { Modal, Notice } from "obsidian";
+import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
+import { ModalStyleManager } from "../styles/ModalStyles";
+import { PositionSortStrategy } from "../../domain/strategies/PositionSort";
 
 interface DragSortCardItem {
     id: string;
@@ -43,12 +46,8 @@ export class DragSortModal extends Modal {
         }
 
         // 按位置排序：从上到下，从左到右
-        rawItems.sort((a, b) => {
-            if (Math.abs(a.y - b.y) > 10) return a.y - b.y;
-            return a.x - b.x;
-        });
-
-        this.cardItems = rawItems.map(({ x, y, ...item }) => item);
+        const sorter = new PositionSortStrategy('yx', 10);
+        this.cardItems = sorter.sort(rawItems as unknown as any[]) as unknown as DragSortCardItem[];
     }
 
     onOpen(): void {
@@ -89,6 +88,7 @@ export class DragSortModal extends Modal {
         });
 
         // 注入样式
+        ModalStyleManager.injectSharedStyles();
         this.addStyles();
     }
 
@@ -195,13 +195,11 @@ export class DragSortModal extends Modal {
     private async copyContent(): Promise<void> {
         try {
             const content = this.cardItems.map((item) => item.text).join("\n\n");
-
-            await navigator.clipboard.writeText(content);
-            new Notice(`已按手动排序复制 ${this.cardItems.length} 张卡片的内容`);
+            const clipboardAdapter = new ClipboardAdapter();
+            await clipboardAdapter.writeTextWithNotice(content, `已按手动排序复制 ${this.cardItems.length} 张卡片的内容`);
             this.close();
         } catch (error) {
             console.error("手动排序复制失败:", error);
-            new Notice("复制失败，请重试");
         }
     }
 
@@ -374,5 +372,6 @@ export class DragSortModal extends Modal {
 
         // 清理样式
         document.getElementById("drag-sort-modal-styles")?.remove();
+        ModalStyleManager.removeSharedStyles();
     }
 }

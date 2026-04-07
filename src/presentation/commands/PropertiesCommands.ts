@@ -106,8 +106,8 @@ export class CopyCardDimensionsCommand {
       }
       
       // 复制到剪贴板
-      await navigator.clipboard.writeText(copyText);
-      new Notice(`已复制 ${textCards.length} 个卡片的尺寸信息`);
+      const clipboardAdapter = new ClipboardAdapter();
+      await clipboardAdapter.writeTextWithNotice(copyText, `已复制 ${textCards.length} 个卡片的尺寸信息`);
       
     } catch (error) {
       console.error("复制尺寸信息失败:", error);

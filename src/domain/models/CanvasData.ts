@@ -40,12 +40,6 @@ export class CanvasDataModel {
         );
     }
 
-    getTextCards(): CardData[] {
-        return this.nodes
-            .filter(node => node.type === 'text' && node.text)
-            .map(node => CardData.fromCanvasNodeData(node));
-    }
-
     findNodeById(id: string): CanvasNodeData | null {
         return this.nodes.find(node => node.id === id) || null;
     }
@@ -64,11 +58,6 @@ export class CanvasDataModel {
 
     addNodes(nodes: CanvasNodeData[]): CanvasDataModel {
         const newNodes = [...this.nodes, ...nodes];
-        return new CanvasDataModel(newNodes, this.edges);
-    }
-
-    removeNode(id: string): CanvasDataModel {
-        const newNodes = this.nodes.filter(node => node.id !== id);
         return new CanvasDataModel(newNodes, this.edges);
     }
 
