@@ -1,0 +1,4 @@
+/*
+The plugin injects its runtime styles dynamically.
+This file is kept so the GitHub release workflow can attach a styles.css asset.
+*/

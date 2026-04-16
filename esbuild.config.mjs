@@ -108,6 +108,9 @@ const copyToPluginDir = () => {
                         if (fs.existsSync('styles.css')) {
                             copyFileLog('styles.css', path.join(outdir, 'styles.css'));
                         }
+                        if (prod) {
+                            copyFileLog(path.join(outdir, 'main.js'), 'main.js');
+                        }
                     });
                 }
             }]
