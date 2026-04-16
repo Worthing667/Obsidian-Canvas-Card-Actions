@@ -13,7 +13,7 @@ import {
     CopyByPositionCommand, 
     CopyByBadgeOrderCommand,
     CopyByManualOrderCommand,
-    SplitCardCommand,
+    OpenSplitCardModalCommand,
     OpenBadgeModalCommand 
 } from './presentation/commands';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
@@ -133,10 +133,16 @@ export default class Cardify extends Plugin {
         }
 
         // 拆分卡片命令
-        if (node.text && this.cardService) {
-            const splitCommand = new SplitCardCommand(this.cardService, node, this.settings.canvasCardDelimiter);
+        const nodeText = node?.getData?.()?.text;
+        if (typeof nodeText === "string" && nodeText.trim() && this.cardService) {
+            const splitCommand = new OpenSplitCardModalCommand(
+                this.app,
+                this.cardService,
+                node,
+                this.settings.canvasCardDelimiter
+            );
             this.commandRegistry.registerCommand('split-card', splitCommand);
-            this.commandRegistry.addCommandToMenu(menu, 'split-card', '按分隔符拆分卡片', 'split');
+            this.commandRegistry.addCommandToMenu(menu, 'split-card', '拆分卡片...', 'split');
         }
 
         // 复制单卡内容命令

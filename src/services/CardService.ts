@@ -3,8 +3,15 @@ import { CanvasNodeData } from "../domain/models/CanvasData";
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { Notice } from "obsidian";
 
+export interface HeadingSplitOption {
+    level: number;
+    cardCount: number;
+}
+
 export interface ICardService {
     splitCard(node: any, delimiter: string): Promise<void>;
+    splitCardByHeadingLevel(node: any, level: number): Promise<void>;
+    getAvailableHeadingSplitOptions(node: any): HeadingSplitOption[];
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[];
     generateUniqueId(): string;
     calculateNewCardPosition(baseCard: CardData, index: number, cardSpacing?: number): Position;
@@ -25,17 +32,56 @@ export class CardService implements ICardService {
         const nodeData = node.getData();
         const text = nodeData.text;
 
-        if (!text || !text.includes(delimiter)) {
+        if (!text || !delimiter?.trim() || !text.includes(delimiter)) {
             new Notice("卡片中未找到分隔符。");
             return;
         }
 
-        const parts = text.split(delimiter).map((p: string) => p.trim()).filter((p: string) => p);
+        const parts = this.getDelimitedParts(text, delimiter);
         if (parts.length <= 1) {
             new Notice("没有可拆分的内容。");
             return;
         }
 
+        await this.applySplit(nodeData, parts, `卡片已拆分为 ${parts.length} 张卡片`);
+    }
+
+    async splitCardByHeadingLevel(node: any, level: number): Promise<void> {
+        const nodeData = node.getData();
+        const text = nodeData.text;
+
+        if (!text || level < 1 || level > 6) {
+            new Notice("当前卡片没有可用于按标题拆分的内容。");
+            return;
+        }
+
+        const parts = this.getHeadingSplitParts(text, level);
+        if (parts.length <= 1) {
+            new Notice(`当前卡片无法按 ${level} 级标题拆分。`);
+            return;
+        }
+
+        await this.applySplit(nodeData, parts, `卡片已按 ${level} 级标题拆分为 ${parts.length} 张卡片`);
+    }
+
+    getAvailableHeadingSplitOptions(node: any): HeadingSplitOption[] {
+        const text = node?.getData?.()?.text;
+        if (!text || typeof text !== "string") {
+            return [];
+        }
+
+        const options: HeadingSplitOption[] = [];
+        for (let level = 1; level <= 6; level++) {
+            const cardCount = this.getHeadingSplitParts(text, level).length;
+            if (cardCount > 1) {
+                options.push({ level, cardCount });
+            }
+        }
+
+        return options;
+    }
+
+    private async applySplit(nodeData: any, parts: string[], successMessage: string): Promise<void> {
         try {
             // 更新原始卡片
             const updatedNodeData = { ...nodeData, text: parts[0] };
@@ -60,11 +106,66 @@ export class CardService implements ICardService {
             await this.canvasAdapter.addNodes(adjustedCards);
             await this.canvasAdapter.requestSave();
 
-            new Notice(`卡片已拆分为 ${parts.length} 张卡片`);
+            new Notice(successMessage);
         } catch (error) {
             console.error("拆分卡片失败:", error);
             new Notice("拆分卡片失败，请查看控制台了解详情");
         }
+    }
+
+    private getDelimitedParts(text: string, delimiter: string): string[] {
+        if (!delimiter?.trim()) {
+            return [];
+        }
+
+        return text
+            .split(delimiter)
+            .map((part: string) => part.trim())
+            .filter((part: string) => part);
+    }
+
+    private getHeadingSplitParts(text: string, level: number): string[] {
+        const lines = text.split(/\r?\n/);
+        const sections: string[] = [];
+        const introLines: string[] = [];
+        let currentLines: string[] | null = null;
+
+        for (const line of lines) {
+            if (this.isHeadingOfLevel(line, level)) {
+                if (currentLines) {
+                    const section = currentLines.join("\n").trim();
+                    if (section) {
+                        sections.push(section);
+                    }
+                }
+
+                currentLines = introLines.length > 0
+                    ? [...introLines, "", line]
+                    : [line];
+                introLines.length = 0;
+                continue;
+            }
+
+            if (currentLines) {
+                currentLines.push(line);
+            } else {
+                introLines.push(line);
+            }
+        }
+
+        if (currentLines) {
+            const section = currentLines.join("\n").trim();
+            if (section) {
+                sections.push(section);
+            }
+        }
+
+        return sections;
+    }
+
+    private isHeadingOfLevel(line: string, level: number): boolean {
+        const match = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
+        return !!match && match[1].length === level;
     }
 
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[] {
