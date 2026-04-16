@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-canvas-card-actions",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "A plugin to split a text card in Obsidian Canvas into multiple cards based on a delimiter.",
 	"main": "main.js",
 	"scripts": {

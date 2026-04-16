@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-canvas-card-actions",
 	"name": "Canvas Card Actions",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"minAppVersion": "0.15.0",
 	"description": "Add card splitting, content copying, badges, and property management to Obsidian Canvas.",
 	"author": "woxin667",
