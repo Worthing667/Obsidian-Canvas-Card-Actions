@@ -292,7 +292,7 @@ var CardService = class {
   async splitCard(node, delimiter) {
     const nodeData = node.getData();
     const text = nodeData.text;
-    if (!text || !(delimiter == null ? void 0 : delimiter.trim()) || !text.includes(delimiter)) {
+    if (!text || !(delimiter == null ? void 0 : delimiter.trim())) {
       new import_obsidian4.Notice("卡片中未找到分隔符。");
       return;
     }
@@ -332,6 +332,9 @@ var CardService = class {
     }
     return options;
   }
+  countDelimitedParts(text, delimiter) {
+    return this.getDelimitedParts(text, delimiter).length;
+  }
   async applySplit(nodeData, parts, successMessage) {
     try {
       const updatedNodeData = { ...nodeData, text: parts[0] };
@@ -359,7 +362,26 @@ var CardService = class {
     if (!(delimiter == null ? void 0 : delimiter.trim())) {
       return [];
     }
-    return text.split(delimiter).map((part) => part.trim()).filter((part) => part);
+    const normalizedDelimiter = delimiter.trim();
+    const lines = text.split(/\r?\n/);
+    const parts = [];
+    let currentLines = [];
+    for (const line of lines) {
+      if (this.isDelimiterLine(line, normalizedDelimiter)) {
+        const part = currentLines.join("\n").trim();
+        if (part) {
+          parts.push(part);
+        }
+        currentLines = [];
+        continue;
+      }
+      currentLines.push(line);
+    }
+    const finalPart = currentLines.join("\n").trim();
+    if (finalPart) {
+      parts.push(finalPart);
+    }
+    return parts;
   }
   getHeadingSplitParts(text, level) {
     const lines = text.split(/\r?\n/);
@@ -395,6 +417,9 @@ var CardService = class {
   isHeadingOfLevel(line, level) {
     const match = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
     return !!match && match[1].length === level;
+  }
+  isDelimiterLine(line, delimiter) {
+    return line.trim() === delimiter;
   }
   createCardsFromContent(contents, basePosition) {
     return contents.map((content, index) => ({
@@ -1725,10 +1750,10 @@ var SplitCardModal = class extends import_obsidian10.Modal {
   }
   getDelimiterPartCount(text) {
     var _a;
-    if (!text || !((_a = this.delimiter) == null ? void 0 : _a.trim()) || !text.includes(this.delimiter)) {
+    if (!text || !((_a = this.delimiter) == null ? void 0 : _a.trim())) {
       return 0;
     }
-    return text.split(this.delimiter).map((part) => part.trim()).filter((part) => part).length;
+    return this.cardService.countDelimitedParts(text, this.delimiter);
   }
   getHeadingLevelLabel(level) {
     var _a;

@@ -12,6 +12,7 @@ export interface ICardService {
     splitCard(node: any, delimiter: string): Promise<void>;
     splitCardByHeadingLevel(node: any, level: number): Promise<void>;
     getAvailableHeadingSplitOptions(node: any): HeadingSplitOption[];
+    countDelimitedParts(text: string, delimiter: string): number;
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[];
     generateUniqueId(): string;
     calculateNewCardPosition(baseCard: CardData, index: number, cardSpacing?: number): Position;
@@ -32,7 +33,7 @@ export class CardService implements ICardService {
         const nodeData = node.getData();
         const text = nodeData.text;
 
-        if (!text || !delimiter?.trim() || !text.includes(delimiter)) {
+        if (!text || !delimiter?.trim()) {
             new Notice("卡片中未找到分隔符。");
             return;
         }
@@ -81,6 +82,10 @@ export class CardService implements ICardService {
         return options;
     }
 
+    countDelimitedParts(text: string, delimiter: string): number {
+        return this.getDelimitedParts(text, delimiter).length;
+    }
+
     private async applySplit(nodeData: any, parts: string[], successMessage: string): Promise<void> {
         try {
             // 更新原始卡片
@@ -118,10 +123,30 @@ export class CardService implements ICardService {
             return [];
         }
 
-        return text
-            .split(delimiter)
-            .map((part: string) => part.trim())
-            .filter((part: string) => part);
+        const normalizedDelimiter = delimiter.trim();
+        const lines = text.split(/\r?\n/);
+        const parts: string[] = [];
+        let currentLines: string[] = [];
+
+        for (const line of lines) {
+            if (this.isDelimiterLine(line, normalizedDelimiter)) {
+                const part = currentLines.join("\n").trim();
+                if (part) {
+                    parts.push(part);
+                }
+                currentLines = [];
+                continue;
+            }
+
+            currentLines.push(line);
+        }
+
+        const finalPart = currentLines.join("\n").trim();
+        if (finalPart) {
+            parts.push(finalPart);
+        }
+
+        return parts;
     }
 
     private getHeadingSplitParts(text: string, level: number): string[] {
@@ -166,6 +191,10 @@ export class CardService implements ICardService {
     private isHeadingOfLevel(line: string, level: number): boolean {
         const match = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
         return !!match && match[1].length === level;
+    }
+
+    private isDelimiterLine(line: string, delimiter: string): boolean {
+        return line.trim() === delimiter;
     }
 
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[] {

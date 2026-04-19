@@ -126,14 +126,11 @@ export class SplitCardModal extends Modal {
     }
 
     private getDelimiterPartCount(text: string): number {
-        if (!text || !this.delimiter?.trim() || !text.includes(this.delimiter)) {
+        if (!text || !this.delimiter?.trim()) {
             return 0;
         }
 
-        return text
-            .split(this.delimiter)
-            .map((part: string) => part.trim())
-            .filter((part: string) => part).length;
+        return this.cardService.countDelimitedParts(text, this.delimiter);
     }
 
     private getHeadingLevelLabel(level: number): string {
