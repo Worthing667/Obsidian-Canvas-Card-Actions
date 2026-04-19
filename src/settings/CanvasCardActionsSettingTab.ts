@@ -45,11 +45,36 @@ export default class CanvasCardActionsSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.enableBadges = value;
 					await this.plugin.saveSettings();
-					
+
 					// 如果启用了徽章功能，初始化所有徽章显示
 					if (value) {
 						this.plugin.loadAllCanvasBadges();
 					}
+				}));
+
+		new Setting(containerEl)
+			.setName('卡片合并默认顺序')
+			.setDesc('设置一键合并时使用的位置或徽章顺序')
+			.addDropdown(dropdown => dropdown
+				.addOption('position', '按位置顺序')
+				.addOption('badge', '按徽章顺序')
+				.setValue(this.plugin.settings.mergeDefaultOrder)
+				.onChange(async (value: 'position' | 'badge') => {
+					this.plugin.settings.mergeDefaultOrder = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('卡片合并默认输出')
+			.setDesc('设置一键合并的默认输出目标')
+			.addDropdown(dropdown => dropdown
+				.addOption('canvas-card', '新建Canvas卡片')
+				.addOption('sidebar-preview', '侧边栏预览')
+				.addOption('markdown-file', '新建Markdown文稿')
+				.setValue(this.plugin.settings.mergeDefaultOutput)
+				.onChange(async (value: 'canvas-card' | 'sidebar-preview' | 'markdown-file') => {
+					this.plugin.settings.mergeDefaultOutput = value;
+					await this.plugin.saveSettings();
 				}));
 	}
 }

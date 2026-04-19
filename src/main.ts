@@ -3,18 +3,23 @@ import CanvasCardActionsSettings from "./settings/ICanvasCardActionsSettings";
 import CanvasCardActionsSettingTab from "./settings/CanvasCardActionsSettingTab";
 
 // 导入新架构的组件
-import { CanvasAdapter, ClipboardAdapter, StorageAdapter } from './adapters';
-import { CardService, BadgeService, ContentService } from './services';
+import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
+import { CardService, BadgeService, ContentService, MergeService } from './services';
 import { CommandRegistry } from './presentation/commands';
 import { BadgeModal } from './presentation/modals';
 import { BadgeStyleManager } from './presentation/styles';
-import { 
-    CopySingleCardCommand, 
-    CopyByPositionCommand, 
+import { MergePreviewView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
+import {
+    CopySingleCardCommand,
+    CopyByPositionCommand,
     CopyByBadgeOrderCommand,
     CopyByManualOrderCommand,
     OpenSplitCardModalCommand,
-    OpenBadgeModalCommand 
+    OpenBadgeModalCommand,
+    MergeByDefaultCommand,
+    MergeToCanvasCardCommand,
+    MergeToSidebarPreviewCommand,
+    MergeToMarkdownCommand
 } from './presentation/commands';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 
@@ -22,6 +27,8 @@ const DEFAULT_SETTINGS: CanvasCardActionsSettings = {
     canvasCardDelimiter: '---',
     sortPriority: 'yx',
     enableBadges: true,
+    mergeDefaultOrder: 'position',
+    mergeDefaultOutput: 'canvas-card',
 }
 
 export default class CanvasCardActionsPlugin extends Plugin {
@@ -33,8 +40,10 @@ export default class CanvasCardActionsPlugin extends Plugin {
     private cardService: CardService;
     private badgeService: BadgeService;
     private contentService: ContentService;
+    private mergeService: MergeService;
     private commandRegistry: CommandRegistry;
     private badgeStyleManager: BadgeStyleManager;
+    private vaultAdapter: VaultAdapter;
 
     async onload() {
 
@@ -52,6 +61,7 @@ export default class CanvasCardActionsPlugin extends Plugin {
         // 初始化适配器（不依赖Canvas的服务）
         this.clipboardAdapter = new ClipboardAdapter();
         this.storageAdapter = new StorageAdapter(this, DEFAULT_SETTINGS);
+        this.vaultAdapter = new VaultAdapter(this.app);
         
         // 初始化设置
         await this.loadSettings();
@@ -67,6 +77,11 @@ export default class CanvasCardActionsPlugin extends Plugin {
 
     private setupUI(): void {
         this.badgeStyleManager.injectStyles();
+        this.registerMergePreviewView();
+    }
+
+    private registerMergePreviewView(): void {
+        this.registerView(MERGE_PREVIEW_VIEW_TYPE, (leaf) => new MergePreviewView(leaf));
     }
 
     private registerEventHandlers(): void {
@@ -116,6 +131,7 @@ export default class CanvasCardActionsPlugin extends Plugin {
         this.cardService = new CardService(canvasAdapter);
         this.badgeService = new BadgeService(canvasAdapter);
         this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
+        this.mergeService = new MergeService(this.app, canvasAdapter, this.contentService, this.vaultAdapter);
     }
 
     private addNodeMenuCommands(menu: any, node: any): void {
@@ -174,7 +190,7 @@ export default class CanvasCardActionsPlugin extends Plugin {
     }
 
     private addSelectionMenuCommands(menu: any, selection: any): void {
-        if (!this.contentService) {
+        if (!this.contentService || !this.mergeService) {
             return;
         }
         
@@ -209,10 +225,45 @@ export default class CanvasCardActionsPlugin extends Plugin {
         );
         this.commandRegistry.registerCommand("copy-by-manual-order", copyByManualOrderCommand);
         this.commandRegistry.addCommandToMenu(menu, "copy-by-manual-order", "手动排序复制", "list-ordered");
-        
+
+        menu.addSeparator();
+
+        const mergeByDefaultCommand = new MergeByDefaultCommand(
+            this.mergeService,
+            selectionArray,
+            this.settings
+        );
+        this.commandRegistry.registerCommand("merge-by-default", mergeByDefaultCommand);
+        this.commandRegistry.addCommandToMenu(menu, "merge-by-default", "一键合并（默认）", "combine-glyph");
+
+        const mergeToCardCommand = new MergeToCanvasCardCommand(
+            this.mergeService,
+            selectionArray,
+            this.settings
+        );
+        this.commandRegistry.registerCommand("merge-to-card", mergeToCardCommand);
+        this.commandRegistry.addCommandToMenu(menu, "merge-to-card", "合并并新建卡片", "file-plus");
+
+        const mergeToSidebarCommand = new MergeToSidebarPreviewCommand(
+            this.mergeService,
+            selectionArray,
+            this.settings
+        );
+        this.commandRegistry.registerCommand("merge-to-sidebar", mergeToSidebarCommand);
+        this.commandRegistry.addCommandToMenu(menu, "merge-to-sidebar", "合并并侧边栏预览", "layout-sidebar-right");
+
+        const mergeToMarkdownCommand = new MergeToMarkdownCommand(
+            this.mergeService,
+            selectionArray,
+            this.app.workspace.getActiveFile(),
+            this.settings
+        );
+        this.commandRegistry.registerCommand("merge-to-markdown", mergeToMarkdownCommand);
+        this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并并新建文稿", "file-text");
+
         // 添加分隔线
         menu.addSeparator();
-        
+
         // 批量卡片属性管理命令 - 统一命名
         const propertiesCommand = new OpenCardPropertiesCommand(
             this.app,
