@@ -58,10 +58,6 @@ var CanvasCardActionsSettingTab = class extends import_obsidian.PluginSettingTab
       this.plugin.settings.mergeDefaultOrder = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("卡片合并默认输出").setDesc("设置一键合并的默认输出目标").addDropdown((dropdown) => dropdown.addOption("canvas-card", "新建Canvas卡片").addOption("sidebar-preview", "侧边栏预览").addOption("markdown-file", "新建Markdown文稿").setValue(this.plugin.settings.mergeDefaultOutput).onChange(async (value) => {
-      this.plugin.settings.mergeDefaultOutput = value;
-      await this.plugin.saveSettings();
-    }));
   }
 };
 
@@ -921,7 +917,7 @@ var MergePreviewView = class extends import_obsidian7.ItemView {
     this.metaElRef = container.createDiv({ cls: "canvas-card-actions-merge-preview-meta" });
     this.contentElRef = container.createEl("pre", { cls: "canvas-card-actions-merge-preview-content" });
     this.metaElRef.setText("暂无合并结果");
-    this.contentElRef.setText("请在 Canvas 里选中卡片后执行“合并并侧边栏预览”。");
+    this.contentElRef.setText("请在 Canvas 里选中卡片后执行“合并 → 侧边栏预览”。");
   }
   async onClose() {
     this.contentElRef = null;
@@ -944,20 +940,6 @@ var MergeService = class {
     this.canvasAdapter = canvasAdapter;
     this.contentService = contentService;
     this.vaultAdapter = vaultAdapter;
-  }
-  async mergeByDefault(selection, settings) {
-    const order = settings.mergeDefaultOrder === "badge" ? "badge" : "position";
-    const output = settings.mergeDefaultOutput;
-    if (output === "sidebar-preview") {
-      await this.mergeToSidebar(selection, { order, sortPriority: settings.sortPriority });
-      return;
-    }
-    if (output === "markdown-file") {
-      const file = this.app.workspace.getActiveFile();
-      await this.mergeToMarkdown(selection, file, { order, sortPriority: settings.sortPriority });
-      return;
-    }
-    await this.mergeToCanvasCard(selection, { order, sortPriority: settings.sortPriority });
   }
   async mergeToCanvasCard(selection, options) {
     const result = await this.contentService.buildMergedContent({
@@ -1881,22 +1863,6 @@ var OpenBadgeModalCommand = class {
 };
 
 // src/presentation/commands/MergeCommands.ts
-var MergeByDefaultCommand = class {
-  constructor(mergeService, selection, settings) {
-    this.mergeService = mergeService;
-    this.selection = selection;
-    this.settings = settings;
-  }
-  async execute() {
-    await this.mergeService.mergeByDefault(this.selection, this.settings);
-  }
-  canExecute() {
-    return this.selection.length > 0;
-  }
-  getDescription() {
-    return "一键合并卡片";
-  }
-};
 var MergeToCanvasCardCommand = class {
   constructor(mergeService, selection, settings) {
     this.mergeService = mergeService;
@@ -1914,7 +1880,7 @@ var MergeToCanvasCardCommand = class {
     return this.selection.length > 0;
   }
   getDescription() {
-    return "合并并新建卡片";
+    return "合并 → 新建卡片";
   }
 };
 var MergeToSidebarPreviewCommand = class {
@@ -1934,7 +1900,7 @@ var MergeToSidebarPreviewCommand = class {
     return this.selection.length > 0;
   }
   getDescription() {
-    return "合并并侧边栏预览";
+    return "合并 → 侧边栏预览";
   }
 };
 var MergeToMarkdownCommand = class {
@@ -1955,7 +1921,7 @@ var MergeToMarkdownCommand = class {
     return this.selection.length > 0;
   }
   getDescription() {
-    return "合并并新建文稿";
+    return "合并 → 新建文稿";
   }
 };
 
@@ -3049,8 +3015,7 @@ var DEFAULT_SETTINGS = {
   canvasCardDelimiter: "---",
   sortPriority: "yx",
   enableBadges: true,
-  mergeDefaultOrder: "position",
-  mergeDefaultOutput: "canvas-card"
+  mergeDefaultOrder: "position"
 };
 var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
   async onload() {
@@ -3184,27 +3149,20 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     this.commandRegistry.registerCommand("copy-by-manual-order", copyByManualOrderCommand);
     this.commandRegistry.addCommandToMenu(menu, "copy-by-manual-order", "手动排序复制", "list-ordered");
     menu.addSeparator();
-    const mergeByDefaultCommand = new MergeByDefaultCommand(
-      this.mergeService,
-      selectionArray,
-      this.settings
-    );
-    this.commandRegistry.registerCommand("merge-by-default", mergeByDefaultCommand);
-    this.commandRegistry.addCommandToMenu(menu, "merge-by-default", "一键合并（默认）", "combine-glyph");
     const mergeToCardCommand = new MergeToCanvasCardCommand(
       this.mergeService,
       selectionArray,
       this.settings
     );
     this.commandRegistry.registerCommand("merge-to-card", mergeToCardCommand);
-    this.commandRegistry.addCommandToMenu(menu, "merge-to-card", "合并并新建卡片", "file-plus");
+    this.commandRegistry.addCommandToMenu(menu, "merge-to-card", "合并 → 新建卡片", "file-plus");
     const mergeToSidebarCommand = new MergeToSidebarPreviewCommand(
       this.mergeService,
       selectionArray,
       this.settings
     );
     this.commandRegistry.registerCommand("merge-to-sidebar", mergeToSidebarCommand);
-    this.commandRegistry.addCommandToMenu(menu, "merge-to-sidebar", "合并并侧边栏预览", "layout-sidebar-right");
+    this.commandRegistry.addCommandToMenu(menu, "merge-to-sidebar", "合并 → 侧边栏预览", "panel-right");
     const mergeToMarkdownCommand = new MergeToMarkdownCommand(
       this.mergeService,
       selectionArray,
@@ -3212,7 +3170,7 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
       this.settings
     );
     this.commandRegistry.registerCommand("merge-to-markdown", mergeToMarkdownCommand);
-    this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并并新建文稿", "file-text");
+    this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并 → 新建文稿", "file-text");
     menu.addSeparator();
     const propertiesCommand = new OpenCardPropertiesCommand(
       this.app,

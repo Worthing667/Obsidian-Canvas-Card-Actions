@@ -63,18 +63,5 @@ export default class CanvasCardActionsSettingTab extends PluginSettingTab {
 					this.plugin.settings.mergeDefaultOrder = value;
 					await this.plugin.saveSettings();
 				}));
-
-		new Setting(containerEl)
-			.setName('卡片合并默认输出')
-			.setDesc('设置一键合并的默认输出目标')
-			.addDropdown(dropdown => dropdown
-				.addOption('canvas-card', '新建Canvas卡片')
-				.addOption('sidebar-preview', '侧边栏预览')
-				.addOption('markdown-file', '新建Markdown文稿')
-				.setValue(this.plugin.settings.mergeDefaultOutput)
-				.onChange(async (value: 'canvas-card' | 'sidebar-preview' | 'markdown-file') => {
-					this.plugin.settings.mergeDefaultOutput = value;
-					await this.plugin.saveSettings();
-				}));
 	}
 }

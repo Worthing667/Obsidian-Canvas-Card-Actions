@@ -27,7 +27,7 @@ export class MergePreviewView extends ItemView {
         this.metaElRef = container.createDiv({ cls: 'canvas-card-actions-merge-preview-meta' });
         this.contentElRef = container.createEl('pre', { cls: 'canvas-card-actions-merge-preview-content' });
         this.metaElRef.setText('暂无合并结果');
-        this.contentElRef.setText('请在 Canvas 里选中卡片后执行“合并并侧边栏预览”。');
+        this.contentElRef.setText('请在 Canvas 里选中卡片后执行“合并 → 侧边栏预览”。');
     }
 
     async onClose(): Promise<void> {

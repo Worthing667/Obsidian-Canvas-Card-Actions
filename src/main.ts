@@ -16,7 +16,6 @@ import {
     CopyByManualOrderCommand,
     OpenSplitCardModalCommand,
     OpenBadgeModalCommand,
-    MergeByDefaultCommand,
     MergeToCanvasCardCommand,
     MergeToSidebarPreviewCommand,
     MergeToMarkdownCommand
@@ -28,7 +27,6 @@ const DEFAULT_SETTINGS: CanvasCardActionsSettings = {
     sortPriority: 'yx',
     enableBadges: true,
     mergeDefaultOrder: 'position',
-    mergeDefaultOutput: 'canvas-card',
 }
 
 export default class CanvasCardActionsPlugin extends Plugin {
@@ -228,21 +226,13 @@ export default class CanvasCardActionsPlugin extends Plugin {
 
         menu.addSeparator();
 
-        const mergeByDefaultCommand = new MergeByDefaultCommand(
-            this.mergeService,
-            selectionArray,
-            this.settings
-        );
-        this.commandRegistry.registerCommand("merge-by-default", mergeByDefaultCommand);
-        this.commandRegistry.addCommandToMenu(menu, "merge-by-default", "一键合并（默认）", "combine-glyph");
-
         const mergeToCardCommand = new MergeToCanvasCardCommand(
             this.mergeService,
             selectionArray,
             this.settings
         );
         this.commandRegistry.registerCommand("merge-to-card", mergeToCardCommand);
-        this.commandRegistry.addCommandToMenu(menu, "merge-to-card", "合并并新建卡片", "file-plus");
+        this.commandRegistry.addCommandToMenu(menu, "merge-to-card", "合并 → 新建卡片", "file-plus");
 
         const mergeToSidebarCommand = new MergeToSidebarPreviewCommand(
             this.mergeService,
@@ -250,7 +240,7 @@ export default class CanvasCardActionsPlugin extends Plugin {
             this.settings
         );
         this.commandRegistry.registerCommand("merge-to-sidebar", mergeToSidebarCommand);
-        this.commandRegistry.addCommandToMenu(menu, "merge-to-sidebar", "合并并侧边栏预览", "layout-sidebar-right");
+        this.commandRegistry.addCommandToMenu(menu, "merge-to-sidebar", "合并 → 侧边栏预览", "panel-right");
 
         const mergeToMarkdownCommand = new MergeToMarkdownCommand(
             this.mergeService,
@@ -259,7 +249,7 @@ export default class CanvasCardActionsPlugin extends Plugin {
             this.settings
         );
         this.commandRegistry.registerCommand("merge-to-markdown", mergeToMarkdownCommand);
-        this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并并新建文稿", "file-text");
+        this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并 → 新建文稿", "file-text");
 
         // 添加分隔线
         menu.addSeparator();

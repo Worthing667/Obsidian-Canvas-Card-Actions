@@ -4,10 +4,8 @@ import { IVaultAdapter } from "../adapters/VaultAdapter";
 import { IContentService, MergeOrder } from "./ContentService";
 import { SortPriority } from "../domain/strategies";
 import { MergePreviewView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
-import CanvasCardActionsSettings from "../settings/ICanvasCardActionsSettings";
 
 export interface IMergeService {
-    mergeByDefault(selection: any[], settings: CanvasCardActionsSettings): Promise<void>;
     mergeToCanvasCard(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void>;
     mergeToSidebar(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void>;
     mergeToMarkdown(selection: any[], canvasFile: TFile | null, options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void>;
@@ -20,24 +18,6 @@ export class MergeService implements IMergeService {
         private contentService: IContentService,
         private vaultAdapter: IVaultAdapter
     ) {}
-
-    async mergeByDefault(selection: any[], settings: CanvasCardActionsSettings): Promise<void> {
-        const order = settings.mergeDefaultOrder === 'badge' ? 'badge' : 'position';
-        const output = settings.mergeDefaultOutput;
-
-        if (output === 'sidebar-preview') {
-            await this.mergeToSidebar(selection, { order, sortPriority: settings.sortPriority });
-            return;
-        }
-
-        if (output === 'markdown-file') {
-            const file = this.app.workspace.getActiveFile();
-            await this.mergeToMarkdown(selection, file, { order, sortPriority: settings.sortPriority });
-            return;
-        }
-
-        await this.mergeToCanvasCard(selection, { order, sortPriority: settings.sortPriority });
-    }
 
     async mergeToCanvasCard(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void> {
         const result = await this.contentService.buildMergedContent({
