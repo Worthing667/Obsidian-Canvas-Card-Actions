@@ -54,8 +54,8 @@ var CanvasCardActionsSettingTab = class extends import_obsidian.PluginSettingTab
         this.plugin.loadAllCanvasBadges();
       }
     }));
-    new import_obsidian.Setting(containerEl).setName("卡片合并默认顺序").setDesc("设置一键合并时使用的位置或徽章顺序").addDropdown((dropdown) => dropdown.addOption("position", "按位置顺序").addOption("badge", "按徽章顺序").setValue(this.plugin.settings.mergeDefaultOrder).onChange(async (value) => {
-      this.plugin.settings.mergeDefaultOrder = value;
+    new import_obsidian.Setting(containerEl).setName("一键排序方式").setDesc("设置一键复制、一键拼合和预览工作台默认使用的位置或徽章顺序").addDropdown((dropdown) => dropdown.addOption("position", "按位置顺序").addOption("badge", "按徽章顺序").setValue(this.plugin.settings.defaultSortMode).onChange(async (value) => {
+      this.plugin.settings.defaultSortMode = value;
       await this.plugin.saveSettings();
     }));
   }
@@ -214,7 +214,12 @@ var StorageAdapter = class {
   async loadSettings() {
     try {
       const data = await this.plugin.loadData();
-      return Object.assign({}, this.defaultSettings, data);
+      const normalizedData = { ...data || {} };
+      if (!normalizedData.defaultSortMode && normalizedData.mergeDefaultOrder) {
+        normalizedData.defaultSortMode = normalizedData.mergeDefaultOrder;
+      }
+      delete normalizedData.mergeDefaultOrder;
+      return Object.assign({}, this.defaultSettings, normalizedData);
     } catch (error) {
       console.error("Failed to load settings:", error);
       return this.defaultSettings;
@@ -222,7 +227,7 @@ var StorageAdapter = class {
   }
   async saveSettings(settings) {
     try {
-      await this.plugin.saveData(settings);
+      await this.plugin.saveData({ ...settings });
     } catch (error) {
       console.error("Failed to save settings:", error);
       throw new Error("保存设置失败");
@@ -747,27 +752,11 @@ var ContentService = class {
   }
   async copyContentByPosition(selection, sortPriority = "yx") {
     try {
-      const selectedNodes = this.resolveSelection(selection);
-      if (selectedNodes.length === 0) {
-        new import_obsidian6.Notice("请先选择要复制的卡片");
-        return;
-      }
-      const result = await this.buildMergedContent({
-        selection: selectedNodes,
+      await this.copyMergedContent({
+        selection,
         order: "position",
         sortPriority
-      });
-      if (result.count === 0) {
-        new import_obsidian6.Notice("没有选中任何文本卡片");
-        return;
-      }
-      const success = await this.clipboardAdapter.writeTextWithNotice(
-        result.content,
-        `已按位置顺序复制 ${result.count} 张卡片的内容`
-      );
-      if (!success) {
-        throw new Error("复制到剪贴板失败");
-      }
+      }, "已按位置顺序复制卡片内容");
     } catch (error) {
       console.error("按位置复制失败:", error);
       new import_obsidian6.Notice("复制失败，请查看控制台了解详情");
@@ -775,27 +764,11 @@ var ContentService = class {
   }
   async copyContentByBadgeOrder(selection) {
     try {
-      const selectedNodes = this.resolveSelection(selection);
-      if (selectedNodes.length === 0) {
-        new import_obsidian6.Notice("请先选择要复制的卡片");
-        return;
-      }
-      const result = await this.buildMergedContent({
-        selection: selectedNodes,
+      await this.copyMergedContent({
+        selection,
         order: "badge",
         includeBadgePrefix: true
-      });
-      if (result.count === 0) {
-        new import_obsidian6.Notice("选中的卡片中没有找到带徽章的卡片");
-        return;
-      }
-      const success = await this.clipboardAdapter.writeTextWithNotice(
-        result.content,
-        `已按徽章顺序复制 ${result.count} 张卡片的内容`
-      );
-      if (!success) {
-        throw new Error("复制到剪贴板失败");
-      }
+      }, "已按徽章顺序复制卡片内容");
     } catch (error) {
       console.error("按徽章顺序复制失败:", error);
       new import_obsidian6.Notice("复制失败，请查看控制台了解详情");
@@ -820,42 +793,70 @@ var ContentService = class {
       new import_obsidian6.Notice("复制失败，请查看控制台了解详情");
     }
   }
+  async copyMergedContent(options, successNotice) {
+    const result = await this.buildMergedContent(options);
+    if (result.count === 0) {
+      const emptyMessage = options.order === "badge" ? "选中的卡片中没有找到带徽章的卡片" : "没有选中任何文本卡片";
+      new import_obsidian6.Notice(emptyMessage);
+      return false;
+    }
+    return this.clipboardAdapter.writeTextWithNotice(
+      result.content,
+      `${successNotice}（共 ${result.count} 张卡片）`
+    );
+  }
   async buildMergedContent(options) {
-    const selectedNodes = this.resolveSelection(options.selection || []);
-    if (selectedNodes.length === 0) {
+    const orderedCards = await this.getOrderedCards(options);
+    if (orderedCards.length === 0) {
       return { content: "", count: 0 };
+    }
+    const includeBadgePrefix = options.order === "badge" && options.includeBadgePrefix !== false;
+    const content = includeBadgePrefix ? this.formatBadgedCardsContent(
+      orderedCards.filter((card) => !!card.badge).map((card) => ({ text: card.text, badge: card.badge || "" }))
+    ) : orderedCards.map((card) => card.text).join("\n\n");
+    return {
+      content,
+      count: orderedCards.length
+    };
+  }
+  async createSelectionSnapshot(selection) {
+    var _a, _b, _c, _d, _e;
+    const selectedNodes = this.resolveSelection(selection);
+    const snapshots = [];
+    for (const node of selectedNodes) {
+      const nodeData = (_a = node == null ? void 0 : node.getData) == null ? void 0 : _a.call(node);
+      if ((nodeData == null ? void 0 : nodeData.type) !== "text" || !nodeData.text || !nodeData.text.trim()) {
+        continue;
+      }
+      const existingBadge = nodeData.badge ? { content: nodeData.badge, type: nodeData.badgeType } : await this.badgeService.getCurrentBadge(node);
+      snapshots.push({
+        id: nodeData.id,
+        text: nodeData.text.trim(),
+        x: (_b = nodeData.x) != null ? _b : 0,
+        y: (_c = nodeData.y) != null ? _c : 0,
+        width: (_d = nodeData.width) != null ? _d : 400,
+        height: (_e = nodeData.height) != null ? _e : 400,
+        badge: existingBadge == null ? void 0 : existingBadge.content,
+        badgeType: existingBadge == null ? void 0 : existingBadge.type
+      });
+    }
+    return snapshots;
+  }
+  async getOrderedCards(options) {
+    const snapshots = options.snapshots && options.snapshots.length > 0 ? this.normalizeSnapshots(options.snapshots) : await this.createSelectionSnapshot(options.selection || []);
+    if (snapshots.length === 0) {
+      return [];
     }
     if (options.order === "badge") {
-      const badgedCards = await this.collectBadgedCards(selectedNodes);
-      if (badgedCards.length === 0) {
-        return { content: "", count: 0 };
-      }
+      const badgedCards = snapshots.filter((card) => !!card.badge);
       const badgeSorter = new BadgeSortStrategy();
-      const sortedCards2 = badgeSorter.sort(badgedCards);
-      const includeBadgePrefix = options.includeBadgePrefix !== false;
-      const content = includeBadgePrefix ? this.formatBadgedCardsContent(sortedCards2) : sortedCards2.map((card) => card.text).join("\n\n");
-      return {
-        content,
-        count: sortedCards2.length
-      };
+      return badgeSorter.sort(badgedCards);
     }
     if (options.order === "manual") {
-      const manualCards = this.collectManualCards(selectedNodes);
-      return {
-        content: manualCards.map((card) => card.text).join("\n\n"),
-        count: manualCards.length
-      };
-    }
-    const positionCards = this.collectPositionCards(selectedNodes);
-    if (positionCards.length === 0) {
-      return { content: "", count: 0 };
+      return this.sortManualSnapshots(snapshots, options.manualOrderIds || []);
     }
     const positionSorter = new PositionSortStrategy(options.sortPriority || "yx");
-    const sortedCards = positionSorter.sort(positionCards);
-    return {
-      content: sortedCards.map((card) => card.text).join("\n\n"),
-      count: sortedCards.length
-    };
+    return positionSorter.sort(snapshots);
   }
   formatBadgedCardsContent(cards) {
     return cards.map((card) => `[${card.badge}] ${card.text}`).join("\n\n");
@@ -866,89 +867,536 @@ var ContentService = class {
     }
     return this.canvasAdapter.getSelectedNodes();
   }
-  collectPositionCards(selectedNodes) {
-    const cards = [];
-    selectedNodes.forEach((node) => {
-      const nodeData = node.getData();
-      if (nodeData.type === "text" && nodeData.text && nodeData.text.trim()) {
-        cards.push({
-          text: nodeData.text.trim(),
-          x: nodeData.x,
-          y: nodeData.y
-        });
-      }
-    });
-    return cards;
+  normalizeSnapshots(snapshots) {
+    return snapshots.filter((snapshot) => {
+      var _a;
+      return !!((_a = snapshot.text) == null ? void 0 : _a.trim());
+    }).map((snapshot) => ({
+      ...snapshot,
+      text: snapshot.text.trim()
+    }));
   }
-  collectManualCards(selectedNodes) {
-    const cards = [];
-    selectedNodes.forEach((node) => {
-      const nodeData = node.getData();
-      if (nodeData.type === "text" && nodeData.text && nodeData.text.trim()) {
-        cards.push({
-          text: nodeData.text.trim()
-        });
-      }
-    });
-    return cards;
-  }
-  async collectBadgedCards(selectedNodes) {
-    const badgedCards = [];
-    for (const node of selectedNodes) {
-      const nodeData = node.getData();
-      if (nodeData.type === "text" && nodeData.text && nodeData.text.trim()) {
-        const badge = await this.badgeService.getCurrentBadge(node);
-        if (badge && !badge.isEmpty()) {
-          badgedCards.push({
-            text: nodeData.text.trim(),
-            badge: badge.content,
-            badgeType: badge.type
-          });
-        }
-      }
+  sortManualSnapshots(snapshots, manualOrderIds) {
+    if (manualOrderIds.length === 0) {
+      return [...snapshots];
     }
-    return badgedCards;
+    const snapshotById = new Map(snapshots.map((snapshot) => [snapshot.id, snapshot]));
+    const orderedSnapshots = [];
+    manualOrderIds.forEach((id) => {
+      const snapshot = snapshotById.get(id);
+      if (snapshot) {
+        orderedSnapshots.push(snapshot);
+        snapshotById.delete(id);
+      }
+    });
+    snapshotById.forEach((snapshot) => orderedSnapshots.push(snapshot));
+    return orderedSnapshots;
   }
 };
 
 // src/services/MergeService.ts
 var import_obsidian8 = require("obsidian");
 
-// src/presentation/views/MergePreviewView.ts
+// src/presentation/views/MergeWorkbenchView.ts
 var import_obsidian7 = require("obsidian");
+
+// src/services/PreviewWorkbenchService.ts
+var PreviewWorkbenchService = class {
+  constructor() {
+    this.previewCollapseThreshold = 30;
+  }
+  createState(options) {
+    var _a;
+    return {
+      canvasFilePath: options.canvasFilePath,
+      canvasFileBasename: options.canvasFileBasename,
+      selectionSnapshot: [...options.selectionSnapshot],
+      sortMode: options.defaultSortMode,
+      manualOrderIds: [],
+      previewExpanded: (_a = options.previewExpanded) != null ? _a : false,
+      lastComputedContent: ""
+    };
+  }
+  setSortMode(state, sortMode, sortPriority) {
+    if (state.sortMode === sortMode) {
+      return state;
+    }
+    if (sortMode === "manual") {
+      const currentCards = this.getOrderedCards(state, sortPriority);
+      return {
+        ...state,
+        sortMode,
+        manualOrderIds: currentCards.map((card) => card.id)
+      };
+    }
+    return {
+      ...state,
+      sortMode
+    };
+  }
+  setPreviewExpanded(state, previewExpanded) {
+    return {
+      ...state,
+      previewExpanded
+    };
+  }
+  setLastComputedContent(state, lastComputedContent) {
+    return {
+      ...state,
+      lastComputedContent
+    };
+  }
+  reorderManual(state, fromIndex, toIndex, sortPriority) {
+    const cards = this.getOrderedCards(state, sortPriority);
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= cards.length || toIndex >= cards.length) {
+      return state;
+    }
+    const ids = cards.map((card) => card.id);
+    const [movedId] = ids.splice(fromIndex, 1);
+    ids.splice(toIndex, 0, movedId);
+    return {
+      ...state,
+      sortMode: "manual",
+      manualOrderIds: ids
+    };
+  }
+  getOrderedCards(state, sortPriority) {
+    const cards = this.getTextCards(state.selectionSnapshot);
+    if (state.sortMode === "badge") {
+      const badgedCards = cards.filter((card) => !!card.badge);
+      const sorter2 = new BadgeSortStrategy();
+      return sorter2.sort(badgedCards);
+    }
+    if (state.sortMode === "manual") {
+      return this.sortByManualOrder(cards, state.manualOrderIds);
+    }
+    const sorter = new PositionSortStrategy(sortPriority);
+    return sorter.sort(cards);
+  }
+  buildPreviewContent(state, sortPriority) {
+    const cards = this.getOrderedCards(state, sortPriority);
+    const includeBadgePrefix = state.sortMode === "badge";
+    return cards.map((card) => includeBadgePrefix && card.badge ? `[${card.badge}] ${card.text}` : card.text).join("\n\n");
+  }
+  getTextCards(cards) {
+    return cards.filter((card) => {
+      var _a;
+      return !!((_a = card.text) == null ? void 0 : _a.trim());
+    }).map((card) => ({
+      ...card,
+      text: card.text.trim()
+    }));
+  }
+  sortByManualOrder(cards, manualOrderIds) {
+    if (manualOrderIds.length === 0) {
+      return cards;
+    }
+    const cardById = new Map(cards.map((card) => [card.id, card]));
+    const orderedCards = [];
+    manualOrderIds.forEach((id) => {
+      const card = cardById.get(id);
+      if (card) {
+        orderedCards.push(card);
+        cardById.delete(id);
+      }
+    });
+    cardById.forEach((card) => orderedCards.push(card));
+    return orderedCards;
+  }
+};
+
+// src/presentation/views/MergeWorkbenchView.ts
 var MERGE_PREVIEW_VIEW_TYPE = "canvas-card-actions-merge-preview";
-var MergePreviewView = class extends import_obsidian7.ItemView {
+var MergeWorkbenchView = class extends import_obsidian7.ItemView {
   constructor(leaf) {
     super(leaf);
-    this.contentElRef = null;
-    this.metaElRef = null;
+    this.workbenchService = new PreviewWorkbenchService();
+    this.context = null;
+    this.draggedIndex = null;
+    this.previewTimer = null;
   }
   getViewType() {
     return MERGE_PREVIEW_VIEW_TYPE;
   }
   getDisplayText() {
-    return "卡片合并预览";
+    return "卡片预览工作台";
   }
   async onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    const container = contentEl.createDiv({ cls: "canvas-card-actions-merge-preview" });
-    this.metaElRef = container.createDiv({ cls: "canvas-card-actions-merge-preview-meta" });
-    this.contentElRef = container.createEl("pre", { cls: "canvas-card-actions-merge-preview-content" });
-    this.metaElRef.setText("暂无合并结果");
-    this.contentElRef.setText("请在 Canvas 里选中卡片后执行“合并 → 侧边栏预览”。");
+    this.ensureStyles();
+    this.render();
   }
   async onClose() {
-    this.contentElRef = null;
-    this.metaElRef = null;
+    if (this.previewTimer) {
+      window.clearTimeout(this.previewTimer);
+      this.previewTimer = null;
+    }
   }
-  setContent(payload) {
-    if (!this.contentElRef || !this.metaElRef) {
+  setWorkbenchContext(context) {
+    this.context = context;
+    this.render();
+  }
+  render() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("canvas-card-actions-workbench");
+    if (!this.context) {
+      const emptyState = contentEl.createDiv({ cls: "canvas-card-actions-workbench-empty" });
+      emptyState.createEl("h3", { text: "暂无工作台内容" });
+      emptyState.createEl("p", { text: "请先在 Canvas 中多选卡片，再执行“打开预览...”或相关命令。" });
       return;
     }
-    const orderText = payload.order === "badge" ? "按徽章" : payload.order === "manual" ? "手动排序" : "按位置";
-    this.metaElRef.setText(`已合并 ${payload.count} 张卡片（${orderText}）`);
-    this.contentElRef.setText(payload.content || "没有可预览的内容");
+    const container = contentEl.createDiv({ cls: "canvas-card-actions-workbench-container" });
+    this.renderToolbar(container);
+    this.renderList(container);
+    this.renderPreviewArea(container);
+  }
+  renderToolbar(container) {
+    if (!this.context) {
+      return;
+    }
+    const toolbar = container.createDiv({ cls: "canvas-card-actions-workbench-toolbar" });
+    const modeGroup = toolbar.createDiv({ cls: "canvas-card-actions-workbench-modes" });
+    const meta = toolbar.createDiv({ cls: "canvas-card-actions-workbench-meta" });
+    this.createModeButton(modeGroup, "position", "位置");
+    this.createModeButton(modeGroup, "badge", "徽章");
+    this.createModeButton(modeGroup, "manual", "手动");
+    const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+    meta.createEl("div", { text: `${this.context.state.canvasFileBasename} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
+    meta.createEl("div", { text: `当前模式 ${this.getModeLabel(this.context.state.sortMode)} · 可输出 ${currentCards.length} 张` });
+  }
+  renderList(container) {
+    if (!this.context) {
+      return;
+    }
+    const section = container.createDiv({ cls: "canvas-card-actions-workbench-list-section" });
+    section.createEl("h4", { text: "当前顺序" });
+    const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+    const list = section.createDiv({ cls: "canvas-card-actions-workbench-list" });
+    if (cards.length === 0) {
+      const empty = list.createDiv({ cls: "canvas-card-actions-workbench-list-empty" });
+      empty.setText(this.context.state.sortMode === "badge" ? "当前没有带徽章的卡片可排序。" : "当前没有可处理的文本卡片。");
+      return;
+    }
+    cards.forEach((card, index) => {
+      var _a, _b, _c;
+      const row = list.createDiv({ cls: "canvas-card-actions-workbench-row" });
+      row.dataset.index = index.toString();
+      row.setAttribute("draggable", String(((_a = this.context) == null ? void 0 : _a.state.sortMode) === "manual"));
+      if (((_b = this.context) == null ? void 0 : _b.state.sortMode) === "manual") {
+        row.addEventListener("dragstart", (event) => this.onDragStart(event, index));
+        row.addEventListener("dragover", (event) => this.onDragOver(event));
+        row.addEventListener("dragleave", () => row.classList.remove("is-drop-target"));
+        row.addEventListener("drop", (event) => this.onDrop(event, index));
+        row.addEventListener("dragend", () => this.onDragEnd());
+      }
+      const indexEl = row.createDiv({ cls: "canvas-card-actions-workbench-index" });
+      indexEl.setText(String(index + 1));
+      const textEl = row.createDiv({ cls: "canvas-card-actions-workbench-text" });
+      textEl.setText(this.toPreviewText(card.text));
+      textEl.title = card.text;
+      if (card.badge) {
+        const badgeEl = row.createDiv({ cls: "canvas-card-actions-workbench-badge" });
+        badgeEl.setText(card.badge);
+      }
+      if (((_c = this.context) == null ? void 0 : _c.state.sortMode) === "manual") {
+        const handle = row.createDiv({ cls: "canvas-card-actions-workbench-handle" });
+        handle.setText("⠿");
+      }
+    });
+  }
+  renderPreviewArea(container) {
+    if (!this.context) {
+      return;
+    }
+    const section = container.createDiv({ cls: "canvas-card-actions-workbench-preview-section" });
+    const header = section.createDiv({ cls: "canvas-card-actions-workbench-preview-header" });
+    const toggle = header.createEl("button", {
+      text: this.context.state.previewExpanded ? "收起结果预览" : "展开结果预览",
+      cls: "mod-cta"
+    });
+    toggle.addEventListener("click", () => {
+      if (!this.context) {
+        return;
+      }
+      this.context.state = this.workbenchService.setPreviewExpanded(
+        this.context.state,
+        !this.context.state.previewExpanded
+      );
+      this.render();
+    });
+    const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+    const hint = header.createDiv({ cls: "canvas-card-actions-workbench-preview-hint" });
+    if (!this.context.state.previewExpanded) {
+      hint.setText(
+        orderedCards.length >= this.workbenchService.previewCollapseThreshold ? "内容较多，展开后再渲染预览。" : "预览默认折叠，展开后生成合并结果。"
+      );
+    }
+    const preview = section.createEl("pre", { cls: "canvas-card-actions-workbench-preview-content" });
+    if (this.context.state.previewExpanded) {
+      preview.setText(this.context.state.lastComputedContent || "正在生成预览...");
+      this.schedulePreviewRender(preview);
+    } else {
+      preview.addClass("is-collapsed");
+      preview.setText("预览已折叠。");
+    }
+    const actions = section.createDiv({ cls: "canvas-card-actions-workbench-actions" });
+    const hasCards = orderedCards.length > 0;
+    this.createActionButton(actions, "复制", async () => {
+      if (this.context) {
+        await this.context.onCopy(this.context.state);
+      }
+    }, !hasCards);
+    this.createActionButton(actions, "新建卡片", async () => {
+      if (this.context) {
+        await this.context.onCreateCard(this.context.state);
+      }
+    }, !hasCards);
+    this.createActionButton(actions, "新建文稿", async () => {
+      if (this.context) {
+        await this.context.onCreateMarkdown(this.context.state);
+      }
+    }, !hasCards);
+  }
+  schedulePreviewRender(previewEl) {
+    if (!this.context) {
+      return;
+    }
+    if (this.previewTimer) {
+      window.clearTimeout(this.previewTimer);
+    }
+    this.previewTimer = window.setTimeout(() => {
+      if (!this.context) {
+        return;
+      }
+      const content = this.workbenchService.buildPreviewContent(this.context.state, this.context.sortPriority);
+      this.context.state = this.workbenchService.setLastComputedContent(this.context.state, content);
+      previewEl.setText(content || "没有可预览的内容");
+    }, 200);
+  }
+  createModeButton(container, mode, label) {
+    if (!this.context) {
+      return;
+    }
+    const button = container.createEl("button", {
+      text: label,
+      cls: this.context.state.sortMode === mode ? "mod-cta" : ""
+    });
+    button.addEventListener("click", () => {
+      if (!this.context) {
+        return;
+      }
+      this.context.state = this.workbenchService.setSortMode(
+        this.context.state,
+        mode,
+        this.context.sortPriority
+      );
+      this.render();
+    });
+  }
+  createActionButton(container, label, handler, disabled) {
+    const button = container.createEl("button", {
+      text: label,
+      cls: label === "复制" ? "mod-cta" : ""
+    });
+    button.disabled = disabled;
+    button.addEventListener("click", async () => {
+      if (button.disabled) {
+        new import_obsidian7.Notice("当前没有可输出的卡片");
+        return;
+      }
+      await handler();
+    });
+  }
+  onDragStart(event, index) {
+    this.draggedIndex = index;
+    const target = event.currentTarget;
+    target == null ? void 0 : target.classList.add("is-dragging");
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", String(index));
+    }
+  }
+  onDragOver(event) {
+    event.preventDefault();
+    const target = event.currentTarget;
+    target == null ? void 0 : target.classList.add("is-drop-target");
+  }
+  onDrop(event, targetIndex) {
+    event.preventDefault();
+    if (!this.context || this.draggedIndex === null || this.draggedIndex === targetIndex) {
+      this.onDragEnd();
+      return;
+    }
+    this.context.state = this.workbenchService.reorderManual(
+      this.context.state,
+      this.draggedIndex,
+      targetIndex,
+      this.context.sortPriority
+    );
+    this.onDragEnd();
+    this.render();
+  }
+  onDragEnd() {
+    this.draggedIndex = null;
+    this.contentEl.querySelectorAll(".canvas-card-actions-workbench-row").forEach((row) => {
+      row.classList.remove("is-dragging");
+      row.classList.remove("is-drop-target");
+    });
+  }
+  getModeLabel(mode) {
+    if (mode === "badge") {
+      return "徽章";
+    }
+    if (mode === "manual") {
+      return "手动";
+    }
+    return "位置";
+  }
+  toPreviewText(text) {
+    return text.length > 60 ? `${text.slice(0, 60)}...` : text;
+  }
+  ensureStyles() {
+    if (document.getElementById("canvas-card-actions-workbench-style")) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "canvas-card-actions-workbench-style";
+    style.textContent = `
+            .canvas-card-actions-workbench-container {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                padding: 12px;
+            }
+
+            .canvas-card-actions-workbench-empty {
+                padding: 20px;
+                color: var(--text-muted);
+            }
+
+            .canvas-card-actions-workbench-toolbar {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .canvas-card-actions-workbench-modes,
+            .canvas-card-actions-workbench-actions {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .canvas-card-actions-workbench-meta {
+                color: var(--text-muted);
+                font-size: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .canvas-card-actions-workbench-list {
+                border: 1px solid var(--background-modifier-border);
+                border-radius: 8px;
+                overflow: hidden;
+                background: var(--background-secondary);
+            }
+
+            .canvas-card-actions-workbench-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border-bottom: 1px solid var(--background-modifier-border);
+                user-select: none;
+            }
+
+            .canvas-card-actions-workbench-row:last-child {
+                border-bottom: none;
+            }
+
+            .canvas-card-actions-workbench-row[draggable="true"] {
+                cursor: grab;
+            }
+
+            .canvas-card-actions-workbench-row.is-dragging {
+                opacity: 0.45;
+            }
+
+            .canvas-card-actions-workbench-row.is-drop-target {
+                background: var(--background-modifier-hover);
+            }
+
+            .canvas-card-actions-workbench-index {
+                min-width: 24px;
+                color: var(--text-faint);
+                font-variant-numeric: tabular-nums;
+            }
+
+            .canvas-card-actions-workbench-text {
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .canvas-card-actions-workbench-badge {
+                padding: 2px 8px;
+                border-radius: 999px;
+                background: var(--background-modifier-hover);
+                color: var(--text-accent);
+                font-size: 12px;
+            }
+
+            .canvas-card-actions-workbench-handle {
+                color: var(--text-faint);
+                font-size: 16px;
+            }
+
+            .canvas-card-actions-workbench-list-empty {
+                padding: 16px 12px;
+                color: var(--text-muted);
+            }
+
+            .canvas-card-actions-workbench-preview-section {
+                border-top: 1px solid var(--background-modifier-border);
+                padding-top: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .canvas-card-actions-workbench-preview-header {
+                display: flex;
+                justify-content: space-between;
+                gap: 12px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .canvas-card-actions-workbench-preview-hint {
+                color: var(--text-muted);
+                font-size: 12px;
+            }
+
+            .canvas-card-actions-workbench-preview-content {
+                margin: 0;
+                padding: 12px;
+                background: var(--background-secondary);
+                border: 1px solid var(--background-modifier-border);
+                border-radius: 8px;
+                white-space: pre-wrap;
+                max-height: 260px;
+                overflow: auto;
+            }
+
+            .canvas-card-actions-workbench-preview-content.is-collapsed {
+                color: var(--text-muted);
+            }
+        `;
+    document.head.appendChild(style);
   }
 };
 
@@ -959,19 +1407,22 @@ var MergeService = class {
     this.canvasAdapter = canvasAdapter;
     this.contentService = contentService;
     this.vaultAdapter = vaultAdapter;
+    this.workbenchService = new PreviewWorkbenchService();
   }
   async mergeToCanvasCard(selection, options) {
     const result = await this.contentService.buildMergedContent({
       selection,
       order: (options == null ? void 0 : options.order) || "position",
       sortPriority: (options == null ? void 0 : options.sortPriority) || "yx",
+      manualOrderIds: options == null ? void 0 : options.manualOrderIds,
       includeBadgePrefix: true
     });
     if (!result.content || result.count === 0) {
       new import_obsidian8.Notice("没有可合并的文本卡片");
       return false;
     }
-    const anchor = this.resolveAnchorCard(selection);
+    const snapshots = await this.contentService.createSelectionSnapshot(selection);
+    const anchor = this.resolveAnchorCard(snapshots);
     const nodeData = {
       id: `${Math.random().toString(36).slice(2, 11)}`,
       type: "text",
@@ -986,33 +1437,19 @@ var MergeService = class {
     new import_obsidian8.Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
     return true;
   }
-  async mergeToSidebar(selection, options) {
-    const order = (options == null ? void 0 : options.order) || "position";
-    const result = await this.contentService.buildMergedContent({
-      selection,
-      order,
+  async mergeToSidebar(selection, canvasFile, options) {
+    return this.openWorkbench(selection, canvasFile, {
+      order: (options == null ? void 0 : options.order) || "position",
       sortPriority: (options == null ? void 0 : options.sortPriority) || "yx",
-      includeBadgePrefix: true
+      previewExpanded: true
     });
-    if (!result.content || result.count === 0) {
-      new import_obsidian8.Notice("没有可合并的文本卡片");
-      return false;
-    }
-    const view = await this.activateMergePreviewView();
-    view.setContent({
-      content: result.content,
-      count: result.count,
-      order
-    });
-    new import_obsidian8.Notice(`已在侧边栏预览 ${result.count} 张卡片的合并结果`);
-    return true;
   }
   async mergeToMarkdown(selection, canvasFile, options) {
-    const order = (options == null ? void 0 : options.order) || "position";
     const result = await this.contentService.buildMergedContent({
       selection,
-      order,
+      order: (options == null ? void 0 : options.order) || "position",
       sortPriority: (options == null ? void 0 : options.sortPriority) || "yx",
+      manualOrderIds: options == null ? void 0 : options.manualOrderIds,
       includeBadgePrefix: true
     });
     if (!result.content || result.count === 0) {
@@ -1028,31 +1465,165 @@ var MergeService = class {
     new import_obsidian8.Notice(`已创建文稿：${file.path}`);
     return true;
   }
-  resolveAnchorCard(selection) {
+  async openWorkbench(selection, canvasFile, options) {
+    var _a;
+    const snapshots = await this.contentService.createSelectionSnapshot(selection);
+    if (snapshots.length === 0) {
+      new import_obsidian8.Notice("没有可预览的文本卡片");
+      return false;
+    }
+    const view = await this.activateMergePreviewView();
+    const sortPriority = (options == null ? void 0 : options.sortPriority) || "yx";
+    const state = this.workbenchService.createState({
+      canvasFilePath: (canvasFile == null ? void 0 : canvasFile.path) || null,
+      canvasFileBasename: (canvasFile == null ? void 0 : canvasFile.basename) || "当前 Canvas",
+      selectionSnapshot: snapshots,
+      defaultSortMode: (options == null ? void 0 : options.order) || "position",
+      previewExpanded: (_a = options == null ? void 0 : options.previewExpanded) != null ? _a : false
+    });
+    view.setWorkbenchContext({
+      state,
+      sortPriority,
+      onCopy: async (currentState) => {
+        await this.contentService.copyMergedContent({
+          snapshots: currentState.selectionSnapshot,
+          order: currentState.sortMode,
+          sortPriority,
+          manualOrderIds: currentState.manualOrderIds,
+          includeBadgePrefix: currentState.sortMode === "badge"
+        }, "已复制工作台当前顺序的内容");
+      },
+      onCreateCard: async (currentState) => {
+        await this.mergeSnapshotsToCanvasCard(currentState.selectionSnapshot, currentState.canvasFilePath, {
+          order: currentState.sortMode,
+          sortPriority,
+          manualOrderIds: currentState.manualOrderIds
+        });
+      },
+      onCreateMarkdown: async (currentState) => {
+        await this.mergeSnapshotsToMarkdown(currentState.selectionSnapshot, currentState.canvasFilePath, {
+          order: currentState.sortMode,
+          sortPriority,
+          manualOrderIds: currentState.manualOrderIds
+        });
+      }
+    });
+    new import_obsidian8.Notice(`已打开预览工作台（${snapshots.length} 张卡片）`);
+    return true;
+  }
+  async mergeSnapshotsToCanvasCard(snapshots, canvasFilePath, options) {
+    const result = await this.contentService.buildMergedContent({
+      snapshots,
+      order: (options == null ? void 0 : options.order) || "position",
+      sortPriority: (options == null ? void 0 : options.sortPriority) || "yx",
+      manualOrderIds: options == null ? void 0 : options.manualOrderIds,
+      includeBadgePrefix: true
+    });
+    if (!result.content || result.count === 0) {
+      new import_obsidian8.Notice("没有可合并的文本卡片");
+      return false;
+    }
+    const anchor = this.resolveAnchorCard(snapshots);
+    const nodeData = {
+      id: `${Math.random().toString(36).slice(2, 11)}`,
+      type: "text",
+      text: result.content,
+      x: anchor.x + anchor.width + 40,
+      y: anchor.y,
+      width: anchor.width,
+      height: anchor.height
+    };
+    const adapter = canvasFilePath ? await this.resolveCanvasAdapterByPath(canvasFilePath) : this.canvasAdapter;
+    if (!adapter) {
+      new import_obsidian8.Notice("无法定位原始 Canvas，未能创建新卡片");
+      return false;
+    }
+    await adapter.addNode(nodeData);
+    await adapter.requestSave();
+    new import_obsidian8.Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
+    return true;
+  }
+  async mergeSnapshotsToMarkdown(snapshots, canvasFilePath, options) {
+    const result = await this.contentService.buildMergedContent({
+      snapshots,
+      order: (options == null ? void 0 : options.order) || "position",
+      sortPriority: (options == null ? void 0 : options.sortPriority) || "yx",
+      manualOrderIds: options == null ? void 0 : options.manualOrderIds,
+      includeBadgePrefix: true
+    });
+    if (!result.content || result.count === 0) {
+      new import_obsidian8.Notice("没有可合并的文本卡片");
+      return false;
+    }
+    const canvasFile = this.resolveCanvasFile(canvasFilePath);
+    if (!canvasFile) {
+      new import_obsidian8.Notice("找不到原始 Canvas 文件，无法创建文稿");
+      return false;
+    }
+    const baseName = `${canvasFile.basename}-卡片合并`;
+    const file = await this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName);
+    new import_obsidian8.Notice(`已创建文稿：${file.path}`);
+    return true;
+  }
+  resolveAnchorCard(snapshots) {
     const fallback = { x: 0, y: 0, width: 400, height: 400 };
-    if (!Array.isArray(selection) || selection.length === 0) {
+    if (!Array.isArray(snapshots) || snapshots.length === 0) {
       return fallback;
     }
-    const textNodes = selection.map((node) => {
-      var _a;
-      return (_a = node == null ? void 0 : node.getData) == null ? void 0 : _a.call(node);
-    }).filter((nodeData) => nodeData && nodeData.type === "text");
-    if (textNodes.length === 0) {
-      return fallback;
-    }
-    textNodes.sort((a, b) => {
+    const sortedSnapshots = [...snapshots].sort((a, b) => {
       if (Math.abs(a.y - b.y) > 10) {
         return a.y - b.y;
       }
       return a.x - b.x;
     });
-    const first = textNodes[0];
+    const first = sortedSnapshots[0];
     return {
       x: first.x,
       y: first.y,
       width: first.width || fallback.width,
       height: first.height || fallback.height
     };
+  }
+  resolveCanvasFile(canvasFilePath) {
+    if (!canvasFilePath) {
+      return null;
+    }
+    const abstractFile = this.app.vault.getAbstractFileByPath(canvasFilePath);
+    if (!abstractFile || !(abstractFile instanceof import_obsidian8.TFile) || abstractFile.extension !== "canvas") {
+      return null;
+    }
+    return abstractFile;
+  }
+  async resolveCanvasAdapterByPath(canvasFilePath) {
+    var _a;
+    const existingLeaf = this.findCanvasLeafByPath(canvasFilePath);
+    if ((_a = existingLeaf == null ? void 0 : existingLeaf.view) == null ? void 0 : _a.canvas) {
+      return new CanvasAdapter(existingLeaf.view.canvas);
+    }
+    const canvasFile = this.resolveCanvasFile(canvasFilePath);
+    if (!canvasFile) {
+      return null;
+    }
+    const leaf = this.app.workspace.getLeaf(false);
+    if (!leaf) {
+      return null;
+    }
+    await leaf.openFile(canvasFile, { active: false });
+    const canvasLeaf = this.findCanvasLeafByPath(canvasFilePath) || leaf;
+    const view = canvasLeaf.view;
+    if (!(view == null ? void 0 : view.canvas)) {
+      return null;
+    }
+    return new CanvasAdapter(view.canvas);
+  }
+  findCanvasLeafByPath(canvasFilePath) {
+    const leaves = this.app.workspace.getLeavesOfType("canvas");
+    const matchedLeaf = leaves.find((leaf) => {
+      var _a;
+      const view = leaf.view;
+      return ((_a = view == null ? void 0 : view.file) == null ? void 0 : _a.path) === canvasFilePath;
+    });
+    return matchedLeaf || null;
   }
   async activateMergePreviewView() {
     const leaves = this.app.workspace.getLeavesOfType(MERGE_PREVIEW_VIEW_TYPE);
@@ -1620,52 +2191,6 @@ var CopySingleCardCommand = class {
     return "复制卡片内容";
   }
 };
-var CopyByPositionCommand = class {
-  constructor(contentService, selection, sortPriority = "yx") {
-    this.contentService = contentService;
-    this.selection = selection;
-    this.sortPriority = sortPriority;
-  }
-  async execute() {
-    await this.contentService.copyContentByPosition(this.selection, this.sortPriority);
-  }
-  canExecute() {
-    return this.selection.length > 0;
-  }
-  getDescription() {
-    return "按位置复制内容";
-  }
-};
-var CopyByBadgeOrderCommand = class {
-  constructor(contentService, selection) {
-    this.contentService = contentService;
-    this.selection = selection;
-  }
-  async execute() {
-    await this.contentService.copyContentByBadgeOrder(this.selection);
-  }
-  canExecute() {
-    return this.selection.length > 0;
-  }
-  getDescription() {
-    return "按徽章顺序复制内容";
-  }
-};
-var CopyByManualOrderCommand = class {
-  constructor(app, selection) {
-    this.app = app;
-    this.selection = selection;
-  }
-  async execute() {
-    new DragSortModal(this.app, this.selection).open();
-  }
-  canExecute() {
-    return this.selection.length > 1;
-  }
-  getDescription() {
-    return "手动排序复制";
-  }
-};
 
 // src/presentation/modals/SplitCardModal.ts
 var import_obsidian10 = require("obsidian");
@@ -1904,7 +2429,7 @@ var MergeToCanvasCardCommand = class {
     this.settings = settings;
   }
   async execute() {
-    const order = this.settings.mergeDefaultOrder === "badge" ? "badge" : "position";
+    const order = this.settings.defaultSortMode === "badge" ? "badge" : "position";
     await this.mergeService.mergeToCanvasCard(this.selection, {
       order,
       sortPriority: this.settings.sortPriority
@@ -1918,14 +2443,15 @@ var MergeToCanvasCardCommand = class {
   }
 };
 var MergeToSidebarPreviewCommand = class {
-  constructor(mergeService, selection, settings) {
+  constructor(mergeService, selection, canvasFile, settings) {
     this.mergeService = mergeService;
     this.selection = selection;
+    this.canvasFile = canvasFile;
     this.settings = settings;
   }
   async execute() {
-    const order = this.settings.mergeDefaultOrder === "badge" ? "badge" : "position";
-    await this.mergeService.mergeToSidebar(this.selection, {
+    const order = this.settings.defaultSortMode === "badge" ? "badge" : "position";
+    await this.mergeService.mergeToSidebar(this.selection, this.canvasFile, {
       order,
       sortPriority: this.settings.sortPriority
     });
@@ -1945,7 +2471,7 @@ var MergeToMarkdownCommand = class {
     this.settings = settings;
   }
   async execute() {
-    const order = this.settings.mergeDefaultOrder === "badge" ? "badge" : "position";
+    const order = this.settings.defaultSortMode === "badge" ? "badge" : "position";
     await this.mergeService.mergeToMarkdown(this.selection, this.canvasFile, {
       order,
       sortPriority: this.settings.sortPriority
@@ -1984,7 +2510,7 @@ var ManualMergeCommand = class {
           text: "侧边栏预览",
           cls: "drag-sort-btn drag-sort-btn-secondary",
           onClick: async ({ nodes, modal }) => {
-            const success = await this.mergeService.mergeToSidebar(nodes, { order: "manual" });
+            const success = await this.mergeService.mergeToSidebar(nodes, this.canvasFile, { order: "manual" });
             if (success) {
               modal.close();
             }
@@ -2008,6 +2534,69 @@ var ManualMergeCommand = class {
   }
   getDescription() {
     return "手动排序拼合";
+  }
+};
+
+// src/presentation/commands/QuickActionCommands.ts
+var QuickCopyCommand = class {
+  constructor(contentService, selection, settings) {
+    this.contentService = contentService;
+    this.selection = selection;
+    this.settings = settings;
+  }
+  async execute() {
+    const order = this.settings.defaultSortMode;
+    await this.contentService.copyMergedContent({
+      selection: this.selection,
+      order,
+      sortPriority: this.settings.sortPriority,
+      includeBadgePrefix: order === "badge"
+    }, "已执行一键复制");
+  }
+  canExecute() {
+    return this.selection.length > 0;
+  }
+  getDescription() {
+    return "一键复制";
+  }
+};
+var QuickMergeCommand = class {
+  constructor(mergeService, selection, settings) {
+    this.mergeService = mergeService;
+    this.selection = selection;
+    this.settings = settings;
+  }
+  async execute() {
+    await this.mergeService.mergeToCanvasCard(this.selection, {
+      order: this.settings.defaultSortMode,
+      sortPriority: this.settings.sortPriority
+    });
+  }
+  canExecute() {
+    return this.selection.length > 0;
+  }
+  getDescription() {
+    return "一键拼合";
+  }
+};
+var OpenPreviewWorkbenchCommand = class {
+  constructor(mergeService, selection, canvasFile, settings) {
+    this.mergeService = mergeService;
+    this.selection = selection;
+    this.canvasFile = canvasFile;
+    this.settings = settings;
+  }
+  async execute() {
+    await this.mergeService.openWorkbench(this.selection, this.canvasFile, {
+      order: this.settings.defaultSortMode,
+      sortPriority: this.settings.sortPriority
+    });
+  }
+  canExecute() {
+    return this.selection.length > 0;
+  }
+  getDescription() {
+    return "打开预览工作台";
   }
 };
 
@@ -3101,7 +3690,7 @@ var DEFAULT_SETTINGS = {
   canvasCardDelimiter: "---",
   sortPriority: "yx",
   enableBadges: true,
-  mergeDefaultOrder: "position"
+  defaultSortMode: "position"
 };
 var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
   async onload() {
@@ -3111,6 +3700,7 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     this.registerEventHandlers();
     this.initializeBadges();
     this.registerHotkeys();
+    this.registerSelectionCommands();
   }
   async initializeServices() {
     this.clipboardAdapter = new ClipboardAdapter();
@@ -3128,7 +3718,7 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     this.registerMergePreviewView();
   }
   registerMergePreviewView() {
-    this.registerView(MERGE_PREVIEW_VIEW_TYPE, (leaf) => new MergePreviewView(leaf));
+    this.registerView(MERGE_PREVIEW_VIEW_TYPE, (leaf) => new MergeWorkbenchView(leaf));
   }
   registerEventHandlers() {
     this.registerCanvasMenus();
@@ -3150,12 +3740,13 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
         return;
       }
       this.setupCanvasServices(canvas);
-      this.addSelectionMenuCommands(menu, selection);
+      this.addSelectionMenuCommands(menu, selection, this.resolveCanvasFileForCanvas(canvas));
     }));
   }
   setupCanvasServices(canvas) {
-    if (!canvas)
+    if (!canvas) {
       return;
+    }
     const canvasAdapter = new CanvasAdapter(canvas);
     this.cardService = new CardService(canvasAdapter);
     this.badgeService = new BadgeService(canvasAdapter);
@@ -3166,9 +3757,9 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     var _a, _b;
     if (this.badgeService && this.badgeService.isValidBadgeNode(node)) {
       const badgeCommand = new OpenBadgeModalCommand(
-        async (node2) => {
-          const currentBadge = await this.badgeService.getCurrentBadge(node2);
-          new BadgeModal(this.app, node2, this.badgeService, (currentBadge == null ? void 0 : currentBadge.content) || "").open();
+        async (targetNode) => {
+          const currentBadge = await this.badgeService.getCurrentBadge(targetNode);
+          new BadgeModal(this.app, targetNode, this.badgeService, (currentBadge == null ? void 0 : currentBadge.content) || "").open();
         },
         node
       );
@@ -3197,20 +3788,13 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
         this.app,
         this.cardService,
         [node],
-        // 将单个节点包装为数组
         this.clipboardAdapter
       );
       this.commandRegistry.registerCommand("open-single-card-properties", propertiesCommand);
-      this.commandRegistry.addCommandToMenu(
-        menu,
-        "open-single-card-properties",
-        "管理卡片属性",
-        // 统一命名
-        "settings"
-      );
+      this.commandRegistry.addCommandToMenu(menu, "open-single-card-properties", "管理卡片属性", "settings");
     }
   }
-  addSelectionMenuCommands(menu, selection) {
+  addSelectionMenuCommands(menu, selection, canvasFile) {
     if (!this.contentService || !this.mergeService) {
       return;
     }
@@ -3218,53 +3802,20 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     if (selectionArray.length === 0) {
       return;
     }
-    const copyByPositionCommand = new CopyByPositionCommand(
-      this.contentService,
-      selectionArray,
-      this.settings.sortPriority
-    );
-    this.commandRegistry.registerCommand("copy-by-position", copyByPositionCommand);
-    this.commandRegistry.addCommandToMenu(menu, "copy-by-position", "按位置复制内容", "map-pin");
-    const copyByBadgeCommand = new CopyByBadgeOrderCommand(this.contentService, selectionArray);
-    this.commandRegistry.registerCommand("copy-by-badge", copyByBadgeCommand);
-    this.commandRegistry.addCommandToMenu(menu, "copy-by-badge", "按徽章顺序复制内容", "sort-asc");
-    const copyByManualOrderCommand = new CopyByManualOrderCommand(
-      this.app,
-      selectionArray
-    );
-    this.commandRegistry.registerCommand("copy-by-manual-order", copyByManualOrderCommand);
-    this.commandRegistry.addCommandToMenu(menu, "copy-by-manual-order", "手动排序复制", "list-ordered");
-    menu.addSeparator();
-    const mergeToCardCommand = new MergeToCanvasCardCommand(
+    const quickCopyCommand = new QuickCopyCommand(this.contentService, selectionArray, this.settings);
+    this.commandRegistry.registerCommand("quick-copy", quickCopyCommand);
+    this.commandRegistry.addCommandToMenu(menu, "quick-copy", "一键复制", "copy");
+    const quickMergeCommand = new QuickMergeCommand(this.mergeService, selectionArray, this.settings);
+    this.commandRegistry.registerCommand("quick-merge", quickMergeCommand);
+    this.commandRegistry.addCommandToMenu(menu, "quick-merge", "一键拼合", "file-plus");
+    const openPreviewCommand = new OpenPreviewWorkbenchCommand(
       this.mergeService,
       selectionArray,
+      canvasFile,
       this.settings
     );
-    this.commandRegistry.registerCommand("merge-to-card", mergeToCardCommand);
-    this.commandRegistry.addCommandToMenu(menu, "merge-to-card", "合并 → 新建卡片", "file-plus");
-    const mergeToSidebarCommand = new MergeToSidebarPreviewCommand(
-      this.mergeService,
-      selectionArray,
-      this.settings
-    );
-    this.commandRegistry.registerCommand("merge-to-sidebar", mergeToSidebarCommand);
-    this.commandRegistry.addCommandToMenu(menu, "merge-to-sidebar", "合并 → 侧边栏预览", "panel-right");
-    const mergeToMarkdownCommand = new MergeToMarkdownCommand(
-      this.mergeService,
-      selectionArray,
-      this.app.workspace.getActiveFile(),
-      this.settings
-    );
-    this.commandRegistry.registerCommand("merge-to-markdown", mergeToMarkdownCommand);
-    this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并 → 新建文稿", "file-text");
-    const manualMergeCommand = new ManualMergeCommand(
-      this.app,
-      this.mergeService,
-      selectionArray,
-      this.app.workspace.getActiveFile()
-    );
-    this.commandRegistry.registerCommand("manual-merge", manualMergeCommand);
-    this.commandRegistry.addCommandToMenu(menu, "manual-merge", "手动排序拼合...", "list-ordered");
+    this.commandRegistry.registerCommand("open-preview-workbench", openPreviewCommand);
+    this.commandRegistry.addCommandToMenu(menu, "open-preview-workbench", "打开预览...", "panel-right");
     menu.addSeparator();
     const propertiesCommand = new OpenCardPropertiesCommand(
       this.app,
@@ -3273,13 +3824,16 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
       this.clipboardAdapter
     );
     this.commandRegistry.registerCommand("open-card-properties", propertiesCommand);
-    this.commandRegistry.addCommandToMenu(
-      menu,
-      "open-card-properties",
-      "管理卡片属性",
-      // 统一命名
-      "settings"
-    );
+    this.commandRegistry.addCommandToMenu(menu, "open-card-properties", "管理卡片属性", "settings");
+  }
+  resolveCanvasFileForCanvas(canvas) {
+    var _a;
+    const leaf = this.app.workspace.getLeavesOfType("canvas").find((workspaceLeaf) => {
+      var _a2;
+      return ((_a2 = workspaceLeaf.view) == null ? void 0 : _a2.canvas) === canvas;
+    });
+    const file = ((_a = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a.file) || this.app.workspace.getActiveFile();
+    return file instanceof import_obsidian15.TFile && file.extension === "canvas" ? file : null;
   }
   registerCanvasEvents() {
     this.registerEvent(
@@ -3304,8 +3858,9 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
       const view = leaf.view;
       if (((_a = view.file) == null ? void 0 : _a.path) === file.path) {
         const canvas = view.canvas;
-        if (!canvas)
+        if (!canvas) {
           continue;
+        }
         try {
           const canvasAdapter = new CanvasAdapter(canvas);
           const badgeService = new BadgeService(canvasAdapter);
@@ -3337,54 +3892,121 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     this.commandRegistry.clear();
     console.log("Canvas Card Actions plugin unloaded");
   }
-  // ============================================
-  // 快捷键注册（可选）
-  // ============================================
   registerHotkeys() {
     this.addCommand({
       id: "open-card-properties",
       name: "管理卡片属性",
-      // 统一命名
       checkCallback: (checking) => {
-        const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);
-        if (activeView && activeView.getViewType() === "canvas") {
-          const canvas = activeView.canvas;
-          if (canvas && canvas.selection && canvas.selection.size > 0) {
-            if (!checking) {
-              this.setupCanvasServices(canvas);
-              const selectionArray = Array.from(canvas.selection);
-              const command = new OpenCardPropertiesCommand(
-                this.app,
-                this.cardService,
-                selectionArray,
-                this.clipboardAdapter
-              );
-              command.execute();
-            }
-            return true;
-          }
+        const context = this.getActiveCanvasSelectionContext();
+        if (!context) {
+          return false;
         }
-        return false;
+        if (!checking) {
+          this.setupCanvasServices(context.canvas);
+          const command = new OpenCardPropertiesCommand(
+            this.app,
+            this.cardService,
+            context.selection,
+            this.clipboardAdapter
+          );
+          void command.execute();
+        }
+        return true;
       }
     });
     this.addCommand({
       id: "copy-card-dimensions",
       name: "复制选中卡片的尺寸",
       checkCallback: (checking) => {
-        const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);
-        if (activeView && activeView.getViewType() === "canvas") {
-          const canvas = activeView.canvas;
-          if (canvas && canvas.selection && canvas.selection.size > 0) {
-            if (!checking) {
-              const selectionArray = Array.from(canvas.selection);
-              const command = new CopyCardDimensionsCommand(selectionArray);
-              command.execute();
-            }
-            return true;
-          }
+        const context = this.getActiveCanvasSelectionContext();
+        if (!context) {
+          return false;
         }
-        return false;
+        if (!checking) {
+          const command = new CopyCardDimensionsCommand(context.selection);
+          void command.execute();
+        }
+        return true;
       }
     });
+  }
+  registerSelectionCommands() {
+    this.registerCanvasSelectionCommand(
+      "quick-copy-selected-cards",
+      "将当前选区一键复制",
+      ({ selection }) => new QuickCopyCommand(this.contentService, selection, this.settings)
+    );
+    this.registerCanvasSelectionCommand(
+      "quick-merge-selected-cards",
+      "将当前选区一键拼合",
+      ({ selection }) => new QuickMergeCommand(this.mergeService, selection, this.settings)
+    );
+    this.registerCanvasSelectionCommand(
+      "open-merge-workbench",
+      "打开预览工作台",
+      ({ selection, file }) => new OpenPreviewWorkbenchCommand(this.mergeService, selection, file, this.settings)
+    );
+    this.registerCanvasSelectionCommand(
+      "merge-selected-cards-to-canvas-card",
+      "合并选区为新卡片",
+      ({ selection }) => new MergeToCanvasCardCommand(this.mergeService, selection, this.settings)
+    );
+    this.registerCanvasSelectionCommand(
+      "preview-selected-cards-in-workbench",
+      "在工作台中预览合并结果",
+      ({ selection, file }) => new MergeToSidebarPreviewCommand(this.mergeService, selection, file, this.settings)
+    );
+    this.registerCanvasSelectionCommand(
+      "merge-selected-cards-to-markdown",
+      "合并选区为新文稿",
+      ({ selection, file }) => new MergeToMarkdownCommand(this.mergeService, selection, file, this.settings)
+    );
+    this.registerCanvasSelectionCommand(
+      "manual-merge-selected-cards",
+      "手动排序拼合选区",
+      ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file)
+    );
+  }
+  registerCanvasSelectionCommand(id, name, factory) {
+    this.addCommand({
+      id,
+      name,
+      checkCallback: (checking) => {
+        const context = this.getActiveCanvasSelectionContext();
+        if (!context) {
+          return false;
+        }
+        this.setupCanvasServices(context.canvas);
+        const command = factory({
+          selection: context.selection,
+          file: context.file
+        });
+        if (command.canExecute && !command.canExecute()) {
+          return false;
+        }
+        if (!checking) {
+          void command.execute();
+        }
+        return true;
+      }
+    });
+  }
+  getActiveCanvasSelectionContext() {
+    var _a;
+    const activeLeaf = this.app.workspace.activeLeaf;
+    const activeView = activeLeaf == null ? void 0 : activeLeaf.view;
+    if (!activeView || ((_a = activeView.getViewType) == null ? void 0 : _a.call(activeView)) !== "canvas" || !activeView.canvas) {
+      return null;
+    }
+    const selection = Array.from(activeView.canvas.selection || []);
+    if (selection.length === 0) {
+      return null;
+    }
+    const file = activeView.file instanceof import_obsidian15.TFile ? activeView.file : null;
+    return {
+      canvas: activeView.canvas,
+      selection,
+      file
+    };
   }
 };

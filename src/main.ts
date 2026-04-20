@@ -1,39 +1,38 @@
-import { Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { Plugin, TFile } from 'obsidian';
 import CanvasCardActionsSettings from "./settings/ICanvasCardActionsSettings";
 import CanvasCardActionsSettingTab from "./settings/CanvasCardActionsSettingTab";
 
-// 导入新架构的组件
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
 import { CardService, BadgeService, ContentService, MergeService } from './services';
-import { CommandRegistry } from './presentation/commands';
-import { BadgeModal } from './presentation/modals';
-import { BadgeStyleManager } from './presentation/styles';
-import { MergePreviewView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
 import {
+    CommandRegistry,
     CopySingleCardCommand,
-    CopyByPositionCommand,
-    CopyByBadgeOrderCommand,
-    CopyByManualOrderCommand,
     OpenSplitCardModalCommand,
     OpenBadgeModalCommand,
     MergeToCanvasCardCommand,
     MergeToSidebarPreviewCommand,
     MergeToMarkdownCommand,
-    ManualMergeCommand
+    ManualMergeCommand,
+    OpenPreviewWorkbenchCommand,
+    QuickCopyCommand,
+    QuickMergeCommand,
+    ICommand
 } from './presentation/commands';
+import { BadgeModal } from './presentation/modals';
+import { BadgeStyleManager } from './presentation/styles';
+import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 
 const DEFAULT_SETTINGS: CanvasCardActionsSettings = {
     canvasCardDelimiter: '---',
     sortPriority: 'yx',
     enableBadges: true,
-    mergeDefaultOrder: 'position',
-}
+    defaultSortMode: 'position',
+};
 
 export default class CanvasCardActionsPlugin extends Plugin {
     settings: CanvasCardActionsSettings;
-    
-    // 依赖注入容器
+
     private clipboardAdapter: ClipboardAdapter;
     private storageAdapter: StorageAdapter;
     private cardService: CardService;
@@ -45,27 +44,22 @@ export default class CanvasCardActionsPlugin extends Plugin {
     private vaultAdapter: VaultAdapter;
 
     async onload() {
-
         await this.initializeServices();
         this.registerSettingTab();
         this.setupUI();
         this.registerEventHandlers();
         this.initializeBadges();
-        
-        // 添加快捷键注册
         this.registerHotkeys();
+        this.registerSelectionCommands();
     }
 
     private async initializeServices(): Promise<void> {
-        // 初始化适配器（不依赖Canvas的服务）
         this.clipboardAdapter = new ClipboardAdapter();
         this.storageAdapter = new StorageAdapter(this, DEFAULT_SETTINGS);
         this.vaultAdapter = new VaultAdapter(this.app);
-        
-        // 初始化设置
+
         await this.loadSettings();
-        
-        // 初始化服务（这些服务在Canvas打开时会被重新配置）
+
         this.commandRegistry = new CommandRegistry();
         this.badgeStyleManager = new BadgeStyleManager();
     }
@@ -80,14 +74,11 @@ export default class CanvasCardActionsPlugin extends Plugin {
     }
 
     private registerMergePreviewView(): void {
-        this.registerView(MERGE_PREVIEW_VIEW_TYPE, (leaf) => new MergePreviewView(leaf));
+        this.registerView(MERGE_PREVIEW_VIEW_TYPE, (leaf) => new MergeWorkbenchView(leaf));
     }
 
     private registerEventHandlers(): void {
-        // 注册Canvas菜单事件
         this.registerCanvasMenus();
-        
-        // 监听Canvas事件
         this.registerCanvasEvents();
     }
 
@@ -98,34 +89,29 @@ export default class CanvasCardActionsPlugin extends Plugin {
     }
 
     registerCanvasMenus() {
-        // 单个节点右键菜单
         // @ts-ignore
         this.registerEvent(this.app.workspace.on("canvas:node-menu", (menu: any, node: any) => {
             this.setupCanvasServices(node.canvas);
             this.addNodeMenuCommands(menu, node);
         }));
 
-        // 多选节点右键菜单
         // @ts-ignore
         this.registerEvent(this.app.workspace.on("canvas:selection-menu", (menu: any, canvas: any) => {
             const selection = canvas.selection;
-            
             if (!selection || selection.size === 0) {
                 return;
             }
-            
-            // 使用canvas设置服务
+
             this.setupCanvasServices(canvas);
-            
-            // 传递选择集合到命令处理器
-            this.addSelectionMenuCommands(menu, selection);
+            this.addSelectionMenuCommands(menu, selection, this.resolveCanvasFileForCanvas(canvas));
         }));
     }
 
     private setupCanvasServices(canvas: any): void {
-        if (!canvas) return;
+        if (!canvas) {
+            return;
+        }
 
-        // 为当前Canvas创建适配器和服务实例
         const canvasAdapter = new CanvasAdapter(canvas);
         this.cardService = new CardService(canvasAdapter);
         this.badgeService = new BadgeService(canvasAdapter);
@@ -134,12 +120,11 @@ export default class CanvasCardActionsPlugin extends Plugin {
     }
 
     private addNodeMenuCommands(menu: any, node: any): void {
-        // 徽章命令
         if (this.badgeService && this.badgeService.isValidBadgeNode(node)) {
             const badgeCommand = new OpenBadgeModalCommand(
-                async (node) => {
-                    const currentBadge = await this.badgeService.getCurrentBadge(node);
-                    new BadgeModal(this.app, node, this.badgeService, currentBadge?.content || '').open();
+                async (targetNode) => {
+                    const currentBadge = await this.badgeService.getCurrentBadge(targetNode);
+                    new BadgeModal(this.app, targetNode, this.badgeService, currentBadge?.content || '').open();
                 },
                 node
             );
@@ -147,7 +132,6 @@ export default class CanvasCardActionsPlugin extends Plugin {
             this.commandRegistry.addCommandToMenu(menu, 'open-badge-modal', '添加/编辑徽章', 'tag');
         }
 
-        // 拆分卡片命令
         const nodeText = node?.getData?.()?.text;
         if (typeof nodeText === "string" && nodeText.trim() && this.cardService) {
             const splitCommand = new OpenSplitCardModalCommand(
@@ -160,111 +144,56 @@ export default class CanvasCardActionsPlugin extends Plugin {
             this.commandRegistry.addCommandToMenu(menu, 'split-card', '拆分卡片...', 'split');
         }
 
-        // 复制单卡内容命令
         if (node.text && this.contentService) {
             const copyCommand = new CopySingleCardCommand(this.contentService, node);
             this.commandRegistry.registerCommand('copy-single-card', copyCommand);
             this.commandRegistry.addCommandToMenu(menu, 'copy-single-card', '复制卡片内容', 'copy');
         }
 
-        // 卡片属性管理命令 - 统一命名
         if (node.getData && node.getData().type === "text") {
             menu.addSeparator();
-            
+
             const propertiesCommand = new OpenCardPropertiesCommand(
                 this.app,
                 this.cardService,
-                [node], // 将单个节点包装为数组
+                [node],
                 this.clipboardAdapter
             );
-            
+
             this.commandRegistry.registerCommand("open-single-card-properties", propertiesCommand);
-            this.commandRegistry.addCommandToMenu(
-                menu, 
-                "open-single-card-properties", 
-                "管理卡片属性", // 统一命名
-                "settings"
-            );
+            this.commandRegistry.addCommandToMenu(menu, "open-single-card-properties", "管理卡片属性", "settings");
         }
     }
 
-    private addSelectionMenuCommands(menu: any, selection: any): void {
+    private addSelectionMenuCommands(menu: any, selection: any, canvasFile: TFile | null): void {
         if (!this.contentService || !this.mergeService) {
             return;
         }
-        
-        // 将选择集合转换为数组
+
         const selectionArray = Array.from(selection);
-        
-        // 验证我们有实际的节点
         if (selectionArray.length === 0) {
             return;
         }
-        
-        // 添加按位置复制命令
-        const copyByPositionCommand = new CopyByPositionCommand(
-            this.contentService,
+
+        const quickCopyCommand = new QuickCopyCommand(this.contentService, selectionArray, this.settings);
+        this.commandRegistry.registerCommand("quick-copy", quickCopyCommand);
+        this.commandRegistry.addCommandToMenu(menu, "quick-copy", "一键复制", "copy");
+
+        const quickMergeCommand = new QuickMergeCommand(this.mergeService, selectionArray, this.settings);
+        this.commandRegistry.registerCommand("quick-merge", quickMergeCommand);
+        this.commandRegistry.addCommandToMenu(menu, "quick-merge", "一键拼合", "file-plus");
+
+        const openPreviewCommand = new OpenPreviewWorkbenchCommand(
+            this.mergeService,
             selectionArray,
-            this.settings.sortPriority
+            canvasFile,
+            this.settings
         );
-        
-        this.commandRegistry.registerCommand("copy-by-position", copyByPositionCommand);
-        this.commandRegistry.addCommandToMenu(menu, "copy-by-position", "按位置复制内容", "map-pin");
-        
-        // 添加按徽章复制命令
-        const copyByBadgeCommand = new CopyByBadgeOrderCommand(this.contentService, selectionArray);
-        
-        this.commandRegistry.registerCommand("copy-by-badge", copyByBadgeCommand);
-        this.commandRegistry.addCommandToMenu(menu, "copy-by-badge", "按徽章顺序复制内容", "sort-asc");
-        
-        // 添加手动排序复制命令
-        const copyByManualOrderCommand = new CopyByManualOrderCommand(
-            this.app,
-            selectionArray
-        );
-        this.commandRegistry.registerCommand("copy-by-manual-order", copyByManualOrderCommand);
-        this.commandRegistry.addCommandToMenu(menu, "copy-by-manual-order", "手动排序复制", "list-ordered");
+        this.commandRegistry.registerCommand("open-preview-workbench", openPreviewCommand);
+        this.commandRegistry.addCommandToMenu(menu, "open-preview-workbench", "打开预览...", "panel-right");
 
         menu.addSeparator();
 
-        const mergeToCardCommand = new MergeToCanvasCardCommand(
-            this.mergeService,
-            selectionArray,
-            this.settings
-        );
-        this.commandRegistry.registerCommand("merge-to-card", mergeToCardCommand);
-        this.commandRegistry.addCommandToMenu(menu, "merge-to-card", "合并 → 新建卡片", "file-plus");
-
-        const mergeToSidebarCommand = new MergeToSidebarPreviewCommand(
-            this.mergeService,
-            selectionArray,
-            this.settings
-        );
-        this.commandRegistry.registerCommand("merge-to-sidebar", mergeToSidebarCommand);
-        this.commandRegistry.addCommandToMenu(menu, "merge-to-sidebar", "合并 → 侧边栏预览", "panel-right");
-
-        const mergeToMarkdownCommand = new MergeToMarkdownCommand(
-            this.mergeService,
-            selectionArray,
-            this.app.workspace.getActiveFile(),
-            this.settings
-        );
-        this.commandRegistry.registerCommand("merge-to-markdown", mergeToMarkdownCommand);
-        this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并 → 新建文稿", "file-text");
-
-        const manualMergeCommand = new ManualMergeCommand(
-            this.app,
-            this.mergeService,
-            selectionArray,
-            this.app.workspace.getActiveFile()
-        );
-        this.commandRegistry.registerCommand("manual-merge", manualMergeCommand);
-        this.commandRegistry.addCommandToMenu(menu, "manual-merge", "手动排序拼合...", "list-ordered");
-
-        // 添加分隔线
-        menu.addSeparator();
-
-        // 批量卡片属性管理命令 - 统一命名
         const propertiesCommand = new OpenCardPropertiesCommand(
             this.app,
             this.cardService,
@@ -272,28 +201,29 @@ export default class CanvasCardActionsPlugin extends Plugin {
             this.clipboardAdapter
         );
         this.commandRegistry.registerCommand("open-card-properties", propertiesCommand);
-        this.commandRegistry.addCommandToMenu(
-            menu,
-            "open-card-properties",
-            "管理卡片属性", // 统一命名
-            "settings"
-        );
+        this.commandRegistry.addCommandToMenu(menu, "open-card-properties", "管理卡片属性", "settings");
+    }
+
+    private resolveCanvasFileForCanvas(canvas: any): TFile | null {
+        const leaf = this.app.workspace.getLeavesOfType("canvas").find((workspaceLeaf: any) => {
+            return workspaceLeaf.view?.canvas === canvas;
+        });
+
+        const file = (leaf?.view as any)?.file || this.app.workspace.getActiveFile();
+        return file instanceof TFile && file.extension === "canvas" ? file : null;
     }
 
     registerCanvasEvents() {
-        // 监听 Canvas 文件打开事件
         this.registerEvent(
             this.app.workspace.on("file-open", (file: TFile) => {
                 if (file && file.extension === "canvas") {
-                    // 延迟一下，确保 Canvas 完全加载
                     setTimeout(() => {
                         this.loadCanvasBadges(file);
                     }, 100);
                 }
             })
         );
-        
-        // 监听布局变化，确保样式持续存在
+
         this.registerEvent(
             this.app.workspace.on("layout-change", () => {
                 this.badgeStyleManager.ensureStylesExist();
@@ -303,18 +233,19 @@ export default class CanvasCardActionsPlugin extends Plugin {
 
     async loadCanvasBadges(file: TFile) {
         const leaves = this.app.workspace.getLeavesOfType("canvas");
-        
+
         for (const leaf of leaves) {
             const view = leaf.view as any;
             if (view.file?.path === file.path) {
                 const canvas = view.canvas;
-                if (!canvas) continue;
-                
+                if (!canvas) {
+                    continue;
+                }
+
                 try {
                     const canvasAdapter = new CanvasAdapter(canvas);
                     const badgeService = new BadgeService(canvasAdapter);
                     await badgeService.loadCanvasBadges();
-                    
                     console.log(`已加载 ${file.name} 的所有徽章`);
                 } catch (error) {
                     console.error("加载 Canvas 徽章时出错:", error);
@@ -322,11 +253,10 @@ export default class CanvasCardActionsPlugin extends Plugin {
             }
         }
     }
-    
+
     loadAllCanvasBadges() {
-        // 加载所有打开的 Canvas 的徽章
         const canvasLeaves = this.app.workspace.getLeavesOfType("canvas");
-        
+
         canvasLeaves.forEach((leaf) => {
             const view = leaf.view as any;
             if (view.file) {
@@ -342,70 +272,152 @@ export default class CanvasCardActionsPlugin extends Plugin {
     async saveSettings() {
         await this.storageAdapter.saveSettings(this.settings);
     }
-    
+
     onunload() {
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
         console.log("Canvas Card Actions plugin unloaded");
     }
 
-    // ============================================
-    // 快捷键注册（可选）
-    // ============================================
-
     private registerHotkeys() {
-        // 管理卡片属性的快捷键 - 统一命名
         this.addCommand({
             id: 'open-card-properties',
-            name: '管理卡片属性', // 统一命名
+            name: '管理卡片属性',
             checkCallback: (checking: boolean) => {
-                // @ts-ignore
-                const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);
-                // @ts-ignore
-                if (activeView && activeView.getViewType() === 'canvas') {
-                    // @ts-ignore
-                    const canvas = activeView.canvas;
-                    if (canvas && canvas.selection && canvas.selection.size > 0) {
-                        if (!checking) {
-                            this.setupCanvasServices(canvas);
-                            const selectionArray = Array.from(canvas.selection);
-                            const command = new OpenCardPropertiesCommand(
-                                this.app,
-                                this.cardService,
-                                selectionArray,
-                                this.clipboardAdapter
-                            );
-                            command.execute();
-                        }
-                        return true;
-                    }
+                const context = this.getActiveCanvasSelectionContext();
+                if (!context) {
+                    return false;
                 }
-                return false;
+
+                if (!checking) {
+                    this.setupCanvasServices(context.canvas);
+                    const command = new OpenCardPropertiesCommand(
+                        this.app,
+                        this.cardService,
+                        context.selection,
+                        this.clipboardAdapter
+                    );
+                    void command.execute();
+                }
+
+                return true;
             }
         });
 
-        // 复制卡片尺寸的快捷键
         this.addCommand({
             id: 'copy-card-dimensions',
             name: '复制选中卡片的尺寸',
             checkCallback: (checking: boolean) => {
-                // @ts-ignore
-                const activeView = this.app.workspace.getActiveViewOfType(this.app.workspace.ItemView);
-                // @ts-ignore
-                if (activeView && activeView.getViewType() === 'canvas') {
-                    // @ts-ignore
-                    const canvas = activeView.canvas;
-                    if (canvas && canvas.selection && canvas.selection.size > 0) {
-                        if (!checking) {
-                            const selectionArray = Array.from(canvas.selection);
-                            const command = new CopyCardDimensionsCommand(selectionArray);
-                            command.execute();
-                        }
-                        return true;
-                    }
+                const context = this.getActiveCanvasSelectionContext();
+                if (!context) {
+                    return false;
                 }
-                return false;
+
+                if (!checking) {
+                    const command = new CopyCardDimensionsCommand(context.selection);
+                    void command.execute();
+                }
+
+                return true;
             }
         });
+    }
+
+    private registerSelectionCommands(): void {
+        this.registerCanvasSelectionCommand(
+            'quick-copy-selected-cards',
+            '将当前选区一键复制',
+            ({ selection }) => new QuickCopyCommand(this.contentService, selection, this.settings)
+        );
+
+        this.registerCanvasSelectionCommand(
+            'quick-merge-selected-cards',
+            '将当前选区一键拼合',
+            ({ selection }) => new QuickMergeCommand(this.mergeService, selection, this.settings)
+        );
+
+        this.registerCanvasSelectionCommand(
+            'open-merge-workbench',
+            '打开预览工作台',
+            ({ selection, file }) => new OpenPreviewWorkbenchCommand(this.mergeService, selection, file, this.settings)
+        );
+
+        this.registerCanvasSelectionCommand(
+            'merge-selected-cards-to-canvas-card',
+            '合并选区为新卡片',
+            ({ selection }) => new MergeToCanvasCardCommand(this.mergeService, selection, this.settings)
+        );
+
+        this.registerCanvasSelectionCommand(
+            'preview-selected-cards-in-workbench',
+            '在工作台中预览合并结果',
+            ({ selection, file }) => new MergeToSidebarPreviewCommand(this.mergeService, selection, file, this.settings)
+        );
+
+        this.registerCanvasSelectionCommand(
+            'merge-selected-cards-to-markdown',
+            '合并选区为新文稿',
+            ({ selection, file }) => new MergeToMarkdownCommand(this.mergeService, selection, file, this.settings)
+        );
+
+        this.registerCanvasSelectionCommand(
+            'manual-merge-selected-cards',
+            '手动排序拼合选区',
+            ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file)
+        );
+    }
+
+    private registerCanvasSelectionCommand(
+        id: string,
+        name: string,
+        factory: (context: { selection: any[]; file: TFile | null }) => ICommand
+    ): void {
+        this.addCommand({
+            id,
+            name,
+            checkCallback: (checking: boolean) => {
+                const context = this.getActiveCanvasSelectionContext();
+                if (!context) {
+                    return false;
+                }
+
+                this.setupCanvasServices(context.canvas);
+                const command = factory({
+                    selection: context.selection,
+                    file: context.file
+                });
+
+                if (command.canExecute && !command.canExecute()) {
+                    return false;
+                }
+
+                if (!checking) {
+                    void command.execute();
+                }
+
+                return true;
+            }
+        });
+    }
+
+    private getActiveCanvasSelectionContext(): { canvas: any; selection: any[]; file: TFile | null } | null {
+        const activeLeaf = this.app.workspace.activeLeaf;
+        const activeView = activeLeaf?.view as any;
+
+        if (!activeView || activeView.getViewType?.() !== 'canvas' || !activeView.canvas) {
+            return null;
+        }
+
+        const selection = Array.from(activeView.canvas.selection || []);
+        if (selection.length === 0) {
+            return null;
+        }
+
+        const file = activeView.file instanceof TFile ? activeView.file : null;
+        return {
+            canvas: activeView.canvas,
+            selection,
+            file
+        };
     }
 }

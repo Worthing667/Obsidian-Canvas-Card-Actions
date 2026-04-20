@@ -12,7 +12,7 @@ export class MergeToCanvasCardCommand implements ICommand {
     ) {}
 
     async execute(): Promise<void> {
-        const order = this.settings.mergeDefaultOrder === 'badge' ? 'badge' : 'position';
+        const order = this.settings.defaultSortMode === 'badge' ? 'badge' : 'position';
         await this.mergeService.mergeToCanvasCard(this.selection, {
             order,
             sortPriority: this.settings.sortPriority
@@ -32,12 +32,13 @@ export class MergeToSidebarPreviewCommand implements ICommand {
     constructor(
         private mergeService: IMergeService,
         private selection: any[],
+        private canvasFile: TFile | null,
         private settings: CanvasCardActionsSettings
     ) {}
 
     async execute(): Promise<void> {
-        const order = this.settings.mergeDefaultOrder === 'badge' ? 'badge' : 'position';
-        await this.mergeService.mergeToSidebar(this.selection, {
+        const order = this.settings.defaultSortMode === 'badge' ? 'badge' : 'position';
+        await this.mergeService.mergeToSidebar(this.selection, this.canvasFile, {
             order,
             sortPriority: this.settings.sortPriority
         });
@@ -61,7 +62,7 @@ export class MergeToMarkdownCommand implements ICommand {
     ) {}
 
     async execute(): Promise<void> {
-        const order = this.settings.mergeDefaultOrder === 'badge' ? 'badge' : 'position';
+        const order = this.settings.defaultSortMode === 'badge' ? 'badge' : 'position';
         await this.mergeService.mergeToMarkdown(this.selection, this.canvasFile, {
             order,
             sortPriority: this.settings.sortPriority
@@ -104,7 +105,7 @@ export class ManualMergeCommand implements ICommand {
                     text: "侧边栏预览",
                     cls: "drag-sort-btn drag-sort-btn-secondary",
                     onClick: async ({ nodes, modal }) => {
-                        const success = await this.mergeService.mergeToSidebar(nodes, { order: 'manual' });
+                        const success = await this.mergeService.mergeToSidebar(nodes, this.canvasFile, { order: 'manual' });
                         if (success) {
                             modal.close();
                         }

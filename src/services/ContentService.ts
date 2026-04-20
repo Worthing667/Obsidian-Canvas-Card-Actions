@@ -3,13 +3,16 @@ import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { IClipboardAdapter } from "../adapters/ClipboardAdapter";
 import { IBadgeService } from "./BadgeService";
 import { Notice } from "obsidian";
+import type { CardSnapshot } from "../types/WorkbenchState";
 
 export type MergeOrder = 'position' | 'badge' | 'manual';
 
 export interface BuildMergedContentOptions {
     selection?: any[];
+    snapshots?: CardSnapshot[];
     order: MergeOrder;
     sortPriority?: SortPriority;
+    manualOrderIds?: string[];
     includeBadgePrefix?: boolean;
 }
 
@@ -22,7 +25,10 @@ export interface IContentService {
     copyContentByPosition(selection: any[], sortPriority: SortPriority): Promise<void>;
     copyContentByBadgeOrder(selection: any[]): Promise<void>;
     copySingleCardContent(node: any): Promise<void>;
+    copyMergedContent(options: BuildMergedContentOptions, successNotice: string): Promise<boolean>;
     buildMergedContent(options: BuildMergedContentOptions): Promise<MergedContentResult>;
+    createSelectionSnapshot(selection: any[]): Promise<CardSnapshot[]>;
+    getOrderedCards(options: BuildMergedContentOptions): Promise<CardSnapshot[]>;
     formatBadgedCardsContent(cards: Array<{text: string, badge: string}>): string;
 }
 
@@ -35,32 +41,11 @@ export class ContentService implements IContentService {
 
     async copyContentByPosition(selection: any[], sortPriority: SortPriority = 'yx'): Promise<void> {
         try {
-            const selectedNodes = this.resolveSelection(selection);
-            if (selectedNodes.length === 0) {
-                new Notice("请先选择要复制的卡片");
-                return;
-            }
-
-            const result = await this.buildMergedContent({
-                selection: selectedNodes,
+            await this.copyMergedContent({
+                selection,
                 order: 'position',
                 sortPriority
-            });
-
-            if (result.count === 0) {
-                new Notice("没有选中任何文本卡片");
-                return;
-            }
-
-            const success = await this.clipboardAdapter.writeTextWithNotice(
-                result.content,
-                `已按位置顺序复制 ${result.count} 张卡片的内容`
-            );
-
-            if (!success) {
-                throw new Error("复制到剪贴板失败");
-            }
-
+            }, '已按位置顺序复制卡片内容');
         } catch (error) {
             console.error("按位置复制失败:", error);
             new Notice("复制失败，请查看控制台了解详情");
@@ -69,32 +54,11 @@ export class ContentService implements IContentService {
 
     async copyContentByBadgeOrder(selection: any[]): Promise<void> {
         try {
-            const selectedNodes = this.resolveSelection(selection);
-            if (selectedNodes.length === 0) {
-                new Notice("请先选择要复制的卡片");
-                return;
-            }
-
-            const result = await this.buildMergedContent({
-                selection: selectedNodes,
+            await this.copyMergedContent({
+                selection,
                 order: 'badge',
                 includeBadgePrefix: true
-            });
-
-            if (result.count === 0) {
-                new Notice("选中的卡片中没有找到带徽章的卡片");
-                return;
-            }
-
-            const success = await this.clipboardAdapter.writeTextWithNotice(
-                result.content,
-                `已按徽章顺序复制 ${result.count} 张卡片的内容`
-            );
-
-            if (!success) {
-                throw new Error("复制到剪贴板失败");
-            }
-
+            }, '已按徽章顺序复制卡片内容');
         } catch (error) {
             console.error("按徽章顺序复制失败:", error);
             new Notice("复制失败，请查看控制台了解详情");
@@ -124,51 +88,94 @@ export class ContentService implements IContentService {
         }
     }
 
+    async copyMergedContent(options: BuildMergedContentOptions, successNotice: string): Promise<boolean> {
+        const result = await this.buildMergedContent(options);
+
+        if (result.count === 0) {
+            const emptyMessage = options.order === 'badge'
+                ? "选中的卡片中没有找到带徽章的卡片"
+                : "没有选中任何文本卡片";
+            new Notice(emptyMessage);
+            return false;
+        }
+
+        return this.clipboardAdapter.writeTextWithNotice(
+            result.content,
+            `${successNotice}（共 ${result.count} 张卡片）`
+        );
+    }
+
     async buildMergedContent(options: BuildMergedContentOptions): Promise<MergedContentResult> {
-        const selectedNodes = this.resolveSelection(options.selection || []);
-        if (selectedNodes.length === 0) {
+        const orderedCards = await this.getOrderedCards(options);
+        if (orderedCards.length === 0) {
             return { content: '', count: 0 };
+        }
+
+        const includeBadgePrefix = options.order === 'badge' && options.includeBadgePrefix !== false;
+        const content = includeBadgePrefix
+            ? this.formatBadgedCardsContent(
+                orderedCards
+                    .filter(card => !!card.badge)
+                    .map(card => ({ text: card.text, badge: card.badge || '' }))
+            )
+            : orderedCards.map(card => card.text).join('\n\n');
+
+        return {
+            content,
+            count: orderedCards.length
+        };
+    }
+
+    async createSelectionSnapshot(selection: any[]): Promise<CardSnapshot[]> {
+        const selectedNodes = this.resolveSelection(selection);
+        const snapshots: CardSnapshot[] = [];
+
+        for (const node of selectedNodes) {
+            const nodeData = node?.getData?.();
+            if (nodeData?.type !== 'text' || !nodeData.text || !nodeData.text.trim()) {
+                continue;
+            }
+
+            const existingBadge = nodeData.badge
+                ? { content: nodeData.badge, type: nodeData.badgeType }
+                : await this.badgeService.getCurrentBadge(node);
+
+            snapshots.push({
+                id: nodeData.id,
+                text: nodeData.text.trim(),
+                x: nodeData.x ?? 0,
+                y: nodeData.y ?? 0,
+                width: nodeData.width ?? 400,
+                height: nodeData.height ?? 400,
+                badge: existingBadge?.content,
+                badgeType: existingBadge?.type,
+            });
+        }
+
+        return snapshots;
+    }
+
+    async getOrderedCards(options: BuildMergedContentOptions): Promise<CardSnapshot[]> {
+        const snapshots = options.snapshots && options.snapshots.length > 0
+            ? this.normalizeSnapshots(options.snapshots)
+            : await this.createSelectionSnapshot(options.selection || []);
+
+        if (snapshots.length === 0) {
+            return [];
         }
 
         if (options.order === 'badge') {
-            const badgedCards = await this.collectBadgedCards(selectedNodes);
-            if (badgedCards.length === 0) {
-                return { content: '', count: 0 };
-            }
-
+            const badgedCards = snapshots.filter(card => !!card.badge);
             const badgeSorter = new BadgeSortStrategy();
-            const sortedCards = badgeSorter.sort(badgedCards);
-            const includeBadgePrefix = options.includeBadgePrefix !== false;
-            const content = includeBadgePrefix
-                ? this.formatBadgedCardsContent(sortedCards)
-                : sortedCards.map(card => card.text).join('\n\n');
-
-            return {
-                content,
-                count: sortedCards.length
-            };
+            return badgeSorter.sort(badgedCards as any) as CardSnapshot[];
         }
 
         if (options.order === 'manual') {
-            const manualCards = this.collectManualCards(selectedNodes);
-            return {
-                content: manualCards.map(card => card.text).join('\n\n'),
-                count: manualCards.length
-            };
-        }
-
-        const positionCards = this.collectPositionCards(selectedNodes);
-        if (positionCards.length === 0) {
-            return { content: '', count: 0 };
+            return this.sortManualSnapshots(snapshots, options.manualOrderIds || []);
         }
 
         const positionSorter = new PositionSortStrategy(options.sortPriority || 'yx');
-        const sortedCards = positionSorter.sort(positionCards);
-
-        return {
-            content: sortedCards.map(card => card.text).join('\n\n'),
-            count: sortedCards.length
-        };
+        return positionSorter.sort(snapshots as any) as CardSnapshot[];
     }
 
     formatBadgedCardsContent(cards: Array<{text: string, badge: string}>): string {
@@ -182,55 +189,32 @@ export class ContentService implements IContentService {
         return this.canvasAdapter.getSelectedNodes();
     }
 
-    private collectPositionCards(selectedNodes: any[]): Array<{text: string, x: number, y: number}> {
-        const cards: Array<{text: string, x: number, y: number}> = [];
-
-        selectedNodes.forEach((node: any) => {
-            const nodeData = node.getData();
-            if (nodeData.type === 'text' && nodeData.text && nodeData.text.trim()) {
-                cards.push({
-                    text: nodeData.text.trim(),
-                    x: nodeData.x,
-                    y: nodeData.y
-                });
-            }
-        });
-
-        return cards;
+    private normalizeSnapshots(snapshots: CardSnapshot[]): CardSnapshot[] {
+        return snapshots
+            .filter(snapshot => !!snapshot.text?.trim())
+            .map(snapshot => ({
+                ...snapshot,
+                text: snapshot.text.trim()
+            }));
     }
 
-    private collectManualCards(selectedNodes: any[]): Array<{text: string}> {
-        const cards: Array<{text: string}> = [];
-
-        selectedNodes.forEach((node: any) => {
-            const nodeData = node.getData();
-            if (nodeData.type === 'text' && nodeData.text && nodeData.text.trim()) {
-                cards.push({
-                    text: nodeData.text.trim()
-                });
-            }
-        });
-
-        return cards;
-    }
-
-    private async collectBadgedCards(selectedNodes: any[]): Promise<Array<{text: string, badge: string, badgeType: 'number' | 'text' | 'emoji'}>> {
-        const badgedCards: Array<{text: string, badge: string, badgeType: 'number' | 'text' | 'emoji'}> = [];
-
-        for (const node of selectedNodes) {
-            const nodeData = node.getData();
-            if (nodeData.type === 'text' && nodeData.text && nodeData.text.trim()) {
-                const badge = await this.badgeService.getCurrentBadge(node);
-                if (badge && !badge.isEmpty()) {
-                    badgedCards.push({
-                        text: nodeData.text.trim(),
-                        badge: badge.content,
-                        badgeType: badge.type
-                    });
-                }
-            }
+    private sortManualSnapshots(snapshots: CardSnapshot[], manualOrderIds: string[]): CardSnapshot[] {
+        if (manualOrderIds.length === 0) {
+            return [...snapshots];
         }
 
-        return badgedCards;
+        const snapshotById = new Map(snapshots.map(snapshot => [snapshot.id, snapshot]));
+        const orderedSnapshots: CardSnapshot[] = [];
+
+        manualOrderIds.forEach((id) => {
+            const snapshot = snapshotById.get(id);
+            if (snapshot) {
+                orderedSnapshots.push(snapshot);
+                snapshotById.delete(id);
+            }
+        });
+
+        snapshotById.forEach((snapshot) => orderedSnapshots.push(snapshot));
+        return orderedSnapshots;
     }
 }

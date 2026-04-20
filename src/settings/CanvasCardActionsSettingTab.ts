@@ -53,14 +53,14 @@ export default class CanvasCardActionsSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('卡片合并默认顺序')
-			.setDesc('设置一键合并时使用的位置或徽章顺序')
+			.setName('一键排序方式')
+			.setDesc('设置一键复制、一键拼合和预览工作台默认使用的位置或徽章顺序')
 			.addDropdown(dropdown => dropdown
 				.addOption('position', '按位置顺序')
 				.addOption('badge', '按徽章顺序')
-				.setValue(this.plugin.settings.mergeDefaultOrder)
+				.setValue(this.plugin.settings.defaultSortMode)
 				.onChange(async (value: 'position' | 'badge') => {
-					this.plugin.settings.mergeDefaultOrder = value;
+					this.plugin.settings.defaultSortMode = value;
 					await this.plugin.saveSettings();
 				}));
 	}
