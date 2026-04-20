@@ -839,6 +839,13 @@ var ContentService = class {
         count: sortedCards2.length
       };
     }
+    if (options.order === "manual") {
+      const manualCards = this.collectManualCards(selectedNodes);
+      return {
+        content: manualCards.map((card) => card.text).join("\n\n"),
+        count: manualCards.length
+      };
+    }
     const positionCards = this.collectPositionCards(selectedNodes);
     if (positionCards.length === 0) {
       return { content: "", count: 0 };
@@ -868,6 +875,18 @@ var ContentService = class {
           text: nodeData.text.trim(),
           x: nodeData.x,
           y: nodeData.y
+        });
+      }
+    });
+    return cards;
+  }
+  collectManualCards(selectedNodes) {
+    const cards = [];
+    selectedNodes.forEach((node) => {
+      const nodeData = node.getData();
+      if (nodeData.type === "text" && nodeData.text && nodeData.text.trim()) {
+        cards.push({
+          text: nodeData.text.trim()
         });
       }
     });
@@ -927,7 +946,7 @@ var MergePreviewView = class extends import_obsidian7.ItemView {
     if (!this.contentElRef || !this.metaElRef) {
       return;
     }
-    const orderText = payload.order === "badge" ? "按徽章" : "按位置";
+    const orderText = payload.order === "badge" ? "按徽章" : payload.order === "manual" ? "手动排序" : "按位置";
     this.metaElRef.setText(`已合并 ${payload.count} 张卡片（${orderText}）`);
     this.contentElRef.setText(payload.content || "没有可预览的内容");
   }
@@ -950,7 +969,7 @@ var MergeService = class {
     });
     if (!result.content || result.count === 0) {
       new import_obsidian8.Notice("没有可合并的文本卡片");
-      return;
+      return false;
     }
     const anchor = this.resolveAnchorCard(selection);
     const nodeData = {
@@ -965,6 +984,7 @@ var MergeService = class {
     await this.canvasAdapter.addNode(nodeData);
     await this.canvasAdapter.requestSave();
     new import_obsidian8.Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
+    return true;
   }
   async mergeToSidebar(selection, options) {
     const order = (options == null ? void 0 : options.order) || "position";
@@ -976,7 +996,7 @@ var MergeService = class {
     });
     if (!result.content || result.count === 0) {
       new import_obsidian8.Notice("没有可合并的文本卡片");
-      return;
+      return false;
     }
     const view = await this.activateMergePreviewView();
     view.setContent({
@@ -985,6 +1005,7 @@ var MergeService = class {
       order
     });
     new import_obsidian8.Notice(`已在侧边栏预览 ${result.count} 张卡片的合并结果`);
+    return true;
   }
   async mergeToMarkdown(selection, canvasFile, options) {
     const order = (options == null ? void 0 : options.order) || "position";
@@ -996,15 +1017,16 @@ var MergeService = class {
     });
     if (!result.content || result.count === 0) {
       new import_obsidian8.Notice("没有可合并的文本卡片");
-      return;
+      return false;
     }
     if (!canvasFile || canvasFile.extension !== "canvas") {
       new import_obsidian8.Notice("请在打开 Canvas 文件时使用该功能");
-      return;
+      return false;
     }
     const baseName = `${canvasFile.basename}-卡片合并`;
     const file = await this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName);
     new import_obsidian8.Notice(`已创建文稿：${file.path}`);
+    return true;
   }
   resolveAnchorCard(selection) {
     const fallback = { x: 0, y: 0, width: 400, height: 400 };
@@ -1261,11 +1283,25 @@ var ModalStyleManager = class {
 
 // src/presentation/modals/DragSortModal.ts
 var DragSortModal = class extends import_obsidian9.Modal {
-  constructor(app, cards) {
+  constructor(app, cards, options = {}) {
     super(app);
     this.cardItems = [];
     this.draggedIndex = null;
     this.cards = cards;
+    this.title = options.title || "手动排序复制";
+    this.descriptionBuilder = options.description || ((count) => `拖拽卡片调整复制顺序（共 ${count} 张卡片）`);
+    this.actions = options.actions || [
+      {
+        text: "复制",
+        cls: "drag-sort-btn drag-sort-btn-primary",
+        onClick: async ({ items, modal }) => {
+          const content = items.map((item) => item.text).join("\n\n");
+          const clipboardAdapter = new ClipboardAdapter();
+          await clipboardAdapter.writeTextWithNotice(content, `已按手动排序复制 ${items.length} 张卡片的内容`);
+          modal.close();
+        }
+      }
+    ];
     this.processCards();
   }
   processCards() {
@@ -1274,6 +1310,7 @@ var DragSortModal = class extends import_obsidian9.Modal {
       const data = node.getData();
       if (data.type === "text" && data.text && data.text.trim()) {
         rawItems.push({
+          node,
           id: data.id,
           text: data.text.trim(),
           previewText: data.text.trim().length > 50 ? data.text.trim().substring(0, 50) + "..." : data.text.trim(),
@@ -1291,9 +1328,9 @@ var DragSortModal = class extends import_obsidian9.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("drag-sort-modal");
-    contentEl.createEl("h2", { text: "手动排序复制" });
+    contentEl.createEl("h2", { text: this.title });
     const desc = contentEl.createDiv({ cls: "drag-sort-desc" });
-    desc.setText(`拖拽卡片调整复制顺序（共 ${this.cardItems.length} 张卡片）`);
+    desc.setText(this.descriptionBuilder(this.cardItems.length));
     this.listContainer = contentEl.createDiv({ cls: "drag-sort-list" });
     this.renderList();
     const footer = contentEl.createDiv({ cls: "drag-sort-footer" });
@@ -1306,12 +1343,18 @@ var DragSortModal = class extends import_obsidian9.Modal {
       this.renderList();
       new import_obsidian9.Notice("已重置排序");
     });
-    const copyBtn = footer.createEl("button", {
-      text: "复制",
-      cls: "drag-sort-btn drag-sort-btn-primary"
-    });
-    copyBtn.addEventListener("click", async () => {
-      await this.copyContent();
+    this.actions.forEach((action) => {
+      const actionBtn = footer.createEl("button", {
+        text: action.text,
+        cls: action.cls
+      });
+      actionBtn.addEventListener("click", async () => {
+        await action.onClick({
+          nodes: this.cardItems.map((item) => item.node),
+          items: [...this.cardItems],
+          modal: this
+        });
+      });
     });
     ModalStyleManager.injectSharedStyles();
     this.addStyles();
@@ -1391,16 +1434,6 @@ var DragSortModal = class extends import_obsidian9.Modal {
     items.forEach((item) => {
       item.classList.remove("dragging", "drag-over");
     });
-  }
-  async copyContent() {
-    try {
-      const content = this.cardItems.map((item) => item.text).join("\n\n");
-      const clipboardAdapter = new ClipboardAdapter();
-      await clipboardAdapter.writeTextWithNotice(content, `已按手动排序复制 ${this.cardItems.length} 张卡片的内容`);
-      this.close();
-    } catch (error) {
-      console.error("手动排序复制失败:", error);
-    }
   }
   addStyles() {
     var _a;
@@ -1507,12 +1540,13 @@ var DragSortModal = class extends import_obsidian9.Modal {
             .drag-sort-footer {
                 display: flex;
                 gap: 10px;
+                flex-wrap: wrap;
                 padding-top: 16px;
                 border-top: 1px solid var(--background-modifier-border);
             }
 
             .drag-sort-btn {
-                flex: 1;
+                flex: 1 1 140px;
                 padding: 10px 16px;
                 border: none;
                 border-radius: 6px;
@@ -1922,6 +1956,58 @@ var MergeToMarkdownCommand = class {
   }
   getDescription() {
     return "合并 → 新建文稿";
+  }
+};
+var ManualMergeCommand = class {
+  constructor(app, mergeService, selection, canvasFile) {
+    this.app = app;
+    this.mergeService = mergeService;
+    this.selection = selection;
+    this.canvasFile = canvasFile;
+  }
+  async execute() {
+    new DragSortModal(this.app, this.selection, {
+      title: "手动排序拼合",
+      description: (count) => `拖拽卡片调整拼合顺序（共 ${count} 张卡片）`,
+      actions: [
+        {
+          text: "新建卡片",
+          cls: "drag-sort-btn drag-sort-btn-primary",
+          onClick: async ({ nodes, modal }) => {
+            const success = await this.mergeService.mergeToCanvasCard(nodes, { order: "manual" });
+            if (success) {
+              modal.close();
+            }
+          }
+        },
+        {
+          text: "侧边栏预览",
+          cls: "drag-sort-btn drag-sort-btn-secondary",
+          onClick: async ({ nodes, modal }) => {
+            const success = await this.mergeService.mergeToSidebar(nodes, { order: "manual" });
+            if (success) {
+              modal.close();
+            }
+          }
+        },
+        {
+          text: "新建文稿",
+          cls: "drag-sort-btn drag-sort-btn-secondary",
+          onClick: async ({ nodes, modal }) => {
+            const success = await this.mergeService.mergeToMarkdown(nodes, this.canvasFile, { order: "manual" });
+            if (success) {
+              modal.close();
+            }
+          }
+        }
+      ]
+    }).open();
+  }
+  canExecute() {
+    return this.selection.length > 1;
+  }
+  getDescription() {
+    return "手动排序拼合";
   }
 };
 
@@ -3171,6 +3257,14 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     );
     this.commandRegistry.registerCommand("merge-to-markdown", mergeToMarkdownCommand);
     this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并 → 新建文稿", "file-text");
+    const manualMergeCommand = new ManualMergeCommand(
+      this.app,
+      this.mergeService,
+      selectionArray,
+      this.app.workspace.getActiveFile()
+    );
+    this.commandRegistry.registerCommand("manual-merge", manualMergeCommand);
+    this.commandRegistry.addCommandToMenu(menu, "manual-merge", "手动排序拼合...", "list-ordered");
     menu.addSeparator();
     const propertiesCommand = new OpenCardPropertiesCommand(
       this.app,

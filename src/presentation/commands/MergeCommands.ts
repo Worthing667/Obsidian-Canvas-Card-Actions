@@ -2,6 +2,7 @@ import { TFile } from "obsidian";
 import { ICommand } from "./ICommand";
 import { IMergeService } from "../../services/MergeService";
 import CanvasCardActionsSettings from "../../settings/ICanvasCardActionsSettings";
+import { DragSortModal } from "../modals/DragSortModal";
 
 export class MergeToCanvasCardCommand implements ICommand {
     constructor(
@@ -73,5 +74,61 @@ export class MergeToMarkdownCommand implements ICommand {
 
     getDescription(): string {
         return '合并 → 新建文稿';
+    }
+}
+
+export class ManualMergeCommand implements ICommand {
+    constructor(
+        private app: any,
+        private mergeService: IMergeService,
+        private selection: any[],
+        private canvasFile: TFile | null
+    ) {}
+
+    async execute(): Promise<void> {
+        new DragSortModal(this.app, this.selection, {
+            title: "手动排序拼合",
+            description: (count) => `拖拽卡片调整拼合顺序（共 ${count} 张卡片）`,
+            actions: [
+                {
+                    text: "新建卡片",
+                    cls: "drag-sort-btn drag-sort-btn-primary",
+                    onClick: async ({ nodes, modal }) => {
+                        const success = await this.mergeService.mergeToCanvasCard(nodes, { order: 'manual' });
+                        if (success) {
+                            modal.close();
+                        }
+                    }
+                },
+                {
+                    text: "侧边栏预览",
+                    cls: "drag-sort-btn drag-sort-btn-secondary",
+                    onClick: async ({ nodes, modal }) => {
+                        const success = await this.mergeService.mergeToSidebar(nodes, { order: 'manual' });
+                        if (success) {
+                            modal.close();
+                        }
+                    }
+                },
+                {
+                    text: "新建文稿",
+                    cls: "drag-sort-btn drag-sort-btn-secondary",
+                    onClick: async ({ nodes, modal }) => {
+                        const success = await this.mergeService.mergeToMarkdown(nodes, this.canvasFile, { order: 'manual' });
+                        if (success) {
+                            modal.close();
+                        }
+                    }
+                }
+            ]
+        }).open();
+    }
+
+    canExecute(): boolean {
+        return this.selection.length > 1;
+    }
+
+    getDescription(): string {
+        return '手动排序拼合';
     }
 }

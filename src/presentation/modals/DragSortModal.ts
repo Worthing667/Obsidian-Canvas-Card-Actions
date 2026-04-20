@@ -4,6 +4,7 @@ import { ModalStyleManager } from "../styles/ModalStyles";
 import { PositionSortStrategy } from "../../domain/strategies/PositionSort";
 
 interface DragSortCardItem {
+    node: any;
     id: string;
     text: string;
     previewText: string;
@@ -11,15 +12,50 @@ interface DragSortCardItem {
     badgeContent?: string;
 }
 
+interface DragSortActionContext {
+    nodes: any[];
+    items: DragSortCardItem[];
+    modal: DragSortModal;
+}
+
+interface DragSortAction {
+    text: string;
+    cls: string;
+    onClick: (context: DragSortActionContext) => Promise<void>;
+}
+
+interface DragSortModalOptions {
+    title?: string;
+    description?: (count: number) => string;
+    actions?: DragSortAction[];
+}
+
 export class DragSortModal extends Modal {
     private cards: any[];
     private cardItems: DragSortCardItem[] = [];
     private listContainer: HTMLElement;
     private draggedIndex: number | null = null;
+    private readonly title: string;
+    private readonly descriptionBuilder: (count: number) => string;
+    private readonly actions: DragSortAction[];
 
-    constructor(app: any, cards: any[]) {
+    constructor(app: any, cards: any[], options: DragSortModalOptions = {}) {
         super(app);
         this.cards = cards;
+        this.title = options.title || "手动排序复制";
+        this.descriptionBuilder = options.description || ((count) => `拖拽卡片调整复制顺序（共 ${count} 张卡片）`);
+        this.actions = options.actions || [
+            {
+                text: "复制",
+                cls: "drag-sort-btn drag-sort-btn-primary",
+                onClick: async ({ items, modal }) => {
+                    const content = items.map((item) => item.text).join("\n\n");
+                    const clipboardAdapter = new ClipboardAdapter();
+                    await clipboardAdapter.writeTextWithNotice(content, `已按手动排序复制 ${items.length} 张卡片的内容`);
+                    modal.close();
+                }
+            }
+        ];
         this.processCards();
     }
 
@@ -31,6 +67,7 @@ export class DragSortModal extends Modal {
             const data = node.getData();
             if (data.type === "text" && data.text && data.text.trim()) {
                 rawItems.push({
+                    node,
                     id: data.id,
                     text: data.text.trim(),
                     previewText:
@@ -56,11 +93,11 @@ export class DragSortModal extends Modal {
         contentEl.addClass("drag-sort-modal");
 
         // 标题
-        contentEl.createEl("h2", { text: "手动排序复制" });
+        contentEl.createEl("h2", { text: this.title });
 
         // 说明文字
         const desc = contentEl.createDiv({ cls: "drag-sort-desc" });
-        desc.setText(`拖拽卡片调整复制顺序（共 ${this.cardItems.length} 张卡片）`);
+        desc.setText(this.descriptionBuilder(this.cardItems.length));
 
         // 可拖拽列表
         this.listContainer = contentEl.createDiv({ cls: "drag-sort-list" });
@@ -79,12 +116,18 @@ export class DragSortModal extends Modal {
             new Notice("已重置排序");
         });
 
-        const copyBtn = footer.createEl("button", {
-            text: "复制",
-            cls: "drag-sort-btn drag-sort-btn-primary",
-        });
-        copyBtn.addEventListener("click", async () => {
-            await this.copyContent();
+        this.actions.forEach((action) => {
+            const actionBtn = footer.createEl("button", {
+                text: action.text,
+                cls: action.cls,
+            });
+            actionBtn.addEventListener("click", async () => {
+                await action.onClick({
+                    nodes: this.cardItems.map((item) => item.node),
+                    items: [...this.cardItems],
+                    modal: this
+                });
+            });
         });
 
         // 注入样式
@@ -190,17 +233,6 @@ export class DragSortModal extends Modal {
         items.forEach((item) => {
             item.classList.remove("dragging", "drag-over");
         });
-    }
-
-    private async copyContent(): Promise<void> {
-        try {
-            const content = this.cardItems.map((item) => item.text).join("\n\n");
-            const clipboardAdapter = new ClipboardAdapter();
-            await clipboardAdapter.writeTextWithNotice(content, `已按手动排序复制 ${this.cardItems.length} 张卡片的内容`);
-            this.close();
-        } catch (error) {
-            console.error("手动排序复制失败:", error);
-        }
     }
 
     private addStyles(): void {
@@ -310,12 +342,13 @@ export class DragSortModal extends Modal {
             .drag-sort-footer {
                 display: flex;
                 gap: 10px;
+                flex-wrap: wrap;
                 padding-top: 16px;
                 border-top: 1px solid var(--background-modifier-border);
             }
 
             .drag-sort-btn {
-                flex: 1;
+                flex: 1 1 140px;
                 padding: 10px 16px;
                 border: none;
                 border-radius: 6px;

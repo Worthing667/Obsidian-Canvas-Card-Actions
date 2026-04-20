@@ -18,7 +18,8 @@ import {
     OpenBadgeModalCommand,
     MergeToCanvasCardCommand,
     MergeToSidebarPreviewCommand,
-    MergeToMarkdownCommand
+    MergeToMarkdownCommand,
+    ManualMergeCommand
 } from './presentation/commands';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 
@@ -250,6 +251,15 @@ export default class CanvasCardActionsPlugin extends Plugin {
         );
         this.commandRegistry.registerCommand("merge-to-markdown", mergeToMarkdownCommand);
         this.commandRegistry.addCommandToMenu(menu, "merge-to-markdown", "合并 → 新建文稿", "file-text");
+
+        const manualMergeCommand = new ManualMergeCommand(
+            this.app,
+            this.mergeService,
+            selectionArray,
+            this.app.workspace.getActiveFile()
+        );
+        this.commandRegistry.registerCommand("manual-merge", manualMergeCommand);
+        this.commandRegistry.addCommandToMenu(menu, "manual-merge", "手动排序拼合...", "list-ordered");
 
         // 添加分隔线
         menu.addSeparator();

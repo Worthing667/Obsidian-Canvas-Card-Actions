@@ -6,9 +6,9 @@ import { SortPriority } from "../domain/strategies";
 import { MergePreviewView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
 
 export interface IMergeService {
-    mergeToCanvasCard(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void>;
-    mergeToSidebar(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void>;
-    mergeToMarkdown(selection: any[], canvasFile: TFile | null, options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void>;
+    mergeToCanvasCard(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<boolean>;
+    mergeToSidebar(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<boolean>;
+    mergeToMarkdown(selection: any[], canvasFile: TFile | null, options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<boolean>;
 }
 
 export class MergeService implements IMergeService {
@@ -19,7 +19,7 @@ export class MergeService implements IMergeService {
         private vaultAdapter: IVaultAdapter
     ) {}
 
-    async mergeToCanvasCard(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void> {
+    async mergeToCanvasCard(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<boolean> {
         const result = await this.contentService.buildMergedContent({
             selection,
             order: options?.order || 'position',
@@ -29,7 +29,7 @@ export class MergeService implements IMergeService {
 
         if (!result.content || result.count === 0) {
             new Notice('没有可合并的文本卡片');
-            return;
+            return false;
         }
 
         const anchor = this.resolveAnchorCard(selection);
@@ -46,9 +46,10 @@ export class MergeService implements IMergeService {
         await this.canvasAdapter.addNode(nodeData);
         await this.canvasAdapter.requestSave();
         new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
+        return true;
     }
 
-    async mergeToSidebar(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void> {
+    async mergeToSidebar(selection: any[], options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<boolean> {
         const order = options?.order || 'position';
         const result = await this.contentService.buildMergedContent({
             selection,
@@ -59,7 +60,7 @@ export class MergeService implements IMergeService {
 
         if (!result.content || result.count === 0) {
             new Notice('没有可合并的文本卡片');
-            return;
+            return false;
         }
 
         const view = await this.activateMergePreviewView();
@@ -69,9 +70,10 @@ export class MergeService implements IMergeService {
             order
         });
         new Notice(`已在侧边栏预览 ${result.count} 张卡片的合并结果`);
+        return true;
     }
 
-    async mergeToMarkdown(selection: any[], canvasFile: TFile | null, options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<void> {
+    async mergeToMarkdown(selection: any[], canvasFile: TFile | null, options?: { order?: MergeOrder; sortPriority?: SortPriority }): Promise<boolean> {
         const order = options?.order || 'position';
         const result = await this.contentService.buildMergedContent({
             selection,
@@ -82,17 +84,18 @@ export class MergeService implements IMergeService {
 
         if (!result.content || result.count === 0) {
             new Notice('没有可合并的文本卡片');
-            return;
+            return false;
         }
 
         if (!canvasFile || canvasFile.extension !== 'canvas') {
             new Notice('请在打开 Canvas 文件时使用该功能');
-            return;
+            return false;
         }
 
         const baseName = `${canvasFile.basename}-卡片合并`;
         const file = await this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName);
         new Notice(`已创建文稿：${file.path}`);
+        return true;
     }
 
     private resolveAnchorCard(selection: any[]): { x: number; y: number; width: number; height: number } {

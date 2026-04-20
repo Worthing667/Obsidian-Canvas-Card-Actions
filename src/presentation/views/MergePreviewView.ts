@@ -40,7 +40,11 @@ export class MergePreviewView extends ItemView {
             return;
         }
 
-        const orderText = payload.order === 'badge' ? '按徽章' : '按位置';
+        const orderText = payload.order === 'badge'
+            ? '按徽章'
+            : payload.order === 'manual'
+                ? '手动排序'
+                : '按位置';
         this.metaElRef.setText(`已合并 ${payload.count} 张卡片（${orderText}）`);
         this.contentElRef.setText(payload.content || '没有可预览的内容');
     }

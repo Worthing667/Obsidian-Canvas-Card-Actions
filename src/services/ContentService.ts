@@ -4,7 +4,7 @@ import { IClipboardAdapter } from "../adapters/ClipboardAdapter";
 import { IBadgeService } from "./BadgeService";
 import { Notice } from "obsidian";
 
-export type MergeOrder = 'position' | 'badge';
+export type MergeOrder = 'position' | 'badge' | 'manual';
 
 export interface BuildMergedContentOptions {
     selection?: any[];
@@ -149,6 +149,14 @@ export class ContentService implements IContentService {
             };
         }
 
+        if (options.order === 'manual') {
+            const manualCards = this.collectManualCards(selectedNodes);
+            return {
+                content: manualCards.map(card => card.text).join('\n\n'),
+                count: manualCards.length
+            };
+        }
+
         const positionCards = this.collectPositionCards(selectedNodes);
         if (positionCards.length === 0) {
             return { content: '', count: 0 };
@@ -184,6 +192,21 @@ export class ContentService implements IContentService {
                     text: nodeData.text.trim(),
                     x: nodeData.x,
                     y: nodeData.y
+                });
+            }
+        });
+
+        return cards;
+    }
+
+    private collectManualCards(selectedNodes: any[]): Array<{text: string}> {
+        const cards: Array<{text: string}> = [];
+
+        selectedNodes.forEach((node: any) => {
+            const nodeData = node.getData();
+            if (nodeData.type === 'text' && nodeData.text && nodeData.text.trim()) {
+                cards.push({
+                    text: nodeData.text.trim()
                 });
             }
         });
