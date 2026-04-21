@@ -1,6 +1,3 @@
-import { CardData } from "../models/Card";
-import { BadgeData } from "../models/Badge";
-
 export interface SortStrategy<T> {
     sort(items: T[]): T[];
 }
@@ -13,6 +10,7 @@ export interface SortableCard {
 
 export interface BadgedCard {
     text: string;
-    badge: string;
-    badgeType: 'number' | 'text' | 'emoji';
+    x: number;
+    y: number;
+    badge?: string;
 }

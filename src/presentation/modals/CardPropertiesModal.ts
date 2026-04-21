@@ -128,7 +128,7 @@ export class CardPropertiesModal extends Modal {
     headerRow.createEl("th", { text: "预览", cls: "col-preview" });
     headerRow.createEl("th", { text: "尺寸", cls: "col-size" });
     headerRow.createEl("th", { text: "位置", cls: "col-position" });
-    headerRow.createEl("th", { text: "徽章", cls: "col-badge" });
+        headerRow.createEl("th", { text: "标记", cls: "col-badge" });
     
     // 创建表体
     const tbody = table.createEl("tbody");

@@ -1,6 +1,7 @@
 import { BadgeSortStrategy, PositionSortStrategy, SortPriority } from "../domain/strategies";
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { IClipboardAdapter } from "../adapters/ClipboardAdapter";
+import { BadgeData } from "../domain/models/Badge";
 import { IBadgeService } from "./BadgeService";
 import { Notice } from "obsidian";
 import type { CardSnapshot } from "../types/WorkbenchState";
@@ -29,7 +30,7 @@ export interface IContentService {
     buildMergedContent(options: BuildMergedContentOptions): Promise<MergedContentResult>;
     createSelectionSnapshot(selection: any[]): Promise<CardSnapshot[]>;
     getOrderedCards(options: BuildMergedContentOptions): Promise<CardSnapshot[]>;
-    formatBadgedCardsContent(cards: Array<{text: string, badge: string}>): string;
+    formatBadgedCardsContent(cards: Array<{text: string, badge?: string}>): string;
 }
 
 export class ContentService implements IContentService {
@@ -58,9 +59,9 @@ export class ContentService implements IContentService {
                 selection,
                 order: 'badge',
                 includeBadgePrefix: true
-            }, '已按徽章顺序复制卡片内容');
+            }, '已按标记顺序复制卡片内容');
         } catch (error) {
-            console.error("按徽章顺序复制失败:", error);
+            console.error("按标记顺序复制失败:", error);
             new Notice("复制失败，请查看控制台了解详情");
         }
     }
@@ -92,10 +93,7 @@ export class ContentService implements IContentService {
         const result = await this.buildMergedContent(options);
 
         if (result.count === 0) {
-            const emptyMessage = options.order === 'badge'
-                ? "选中的卡片中没有找到带徽章的卡片"
-                : "没有选中任何文本卡片";
-            new Notice(emptyMessage);
+            new Notice("没有选中任何文本卡片");
             return false;
         }
 
@@ -114,9 +112,7 @@ export class ContentService implements IContentService {
         const includeBadgePrefix = options.order === 'badge' && options.includeBadgePrefix !== false;
         const content = includeBadgePrefix
             ? this.formatBadgedCardsContent(
-                orderedCards
-                    .filter(card => !!card.badge)
-                    .map(card => ({ text: card.text, badge: card.badge || '' }))
+                orderedCards.map(card => ({ text: card.text, badge: card.badge }))
             )
             : orderedCards.map(card => card.text).join('\n\n');
 
@@ -137,7 +133,7 @@ export class ContentService implements IContentService {
             }
 
             const existingBadge = nodeData.badge
-                ? { content: nodeData.badge, type: nodeData.badgeType }
+                ? BadgeData.create(nodeData.badge)
                 : await this.badgeService.getCurrentBadge(node);
 
             snapshots.push({
@@ -148,7 +144,6 @@ export class ContentService implements IContentService {
                 width: nodeData.width ?? 400,
                 height: nodeData.height ?? 400,
                 badge: existingBadge?.content,
-                badgeType: existingBadge?.type,
             });
         }
 
@@ -165,9 +160,8 @@ export class ContentService implements IContentService {
         }
 
         if (options.order === 'badge') {
-            const badgedCards = snapshots.filter(card => !!card.badge);
-            const badgeSorter = new BadgeSortStrategy();
-            return badgeSorter.sort(badgedCards as any) as CardSnapshot[];
+            const badgeSorter = new BadgeSortStrategy(options.sortPriority || 'yx');
+            return badgeSorter.sort(snapshots as any) as CardSnapshot[];
         }
 
         if (options.order === 'manual') {
@@ -178,8 +172,10 @@ export class ContentService implements IContentService {
         return positionSorter.sort(snapshots as any) as CardSnapshot[];
     }
 
-    formatBadgedCardsContent(cards: Array<{text: string, badge: string}>): string {
-        return cards.map(card => `[${card.badge}] ${card.text}`).join('\n\n');
+    formatBadgedCardsContent(cards: Array<{text: string, badge?: string}>): string {
+        return cards
+            .map(card => card.badge ? `[${card.badge}] ${card.text}` : card.text)
+            .join('\n\n');
     }
 
     private resolveSelection(selection: any[]): any[] {

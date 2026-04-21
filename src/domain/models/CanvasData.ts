@@ -11,7 +11,6 @@ export interface CanvasNodeData {
     height: number;
     color?: string;
     badge?: string;
-    badgeType?: 'number' | 'text' | 'emoji';
 }
 
 export interface CanvasEdgeData {

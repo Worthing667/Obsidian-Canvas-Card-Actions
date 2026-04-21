@@ -80,9 +80,8 @@ export class PreviewWorkbenchService {
         const cards = this.getTextCards(state.selectionSnapshot);
 
         if (state.sortMode === 'badge') {
-            const badgedCards = cards.filter(card => !!card.badge);
-            const sorter = new BadgeSortStrategy();
-            return sorter.sort(badgedCards as any) as CardSnapshot[];
+            const sorter = new BadgeSortStrategy(sortPriority);
+            return sorter.sort(cards as any) as CardSnapshot[];
         }
 
         if (state.sortMode === 'manual') {

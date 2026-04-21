@@ -47,14 +47,10 @@ var CanvasLoomSettingTab = class extends import_obsidian.PluginSettingTab {
       this.plugin.settings.sortPriority = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("启用徽章功能").setDesc("是否在画布卡片上显示徽章").addToggle((toggle) => toggle.setValue(this.plugin.settings.enableBadges).onChange(async (value) => {
-      this.plugin.settings.enableBadges = value;
-      await this.plugin.saveSettings();
-      if (value) {
-        this.plugin.loadAllCanvasBadges();
-      }
+    new import_obsidian.Setting(containerEl).setName("启用标记功能").setDesc("是否在画布卡片上显示标记").addToggle((toggle) => toggle.setValue(this.plugin.settings.enableBadges).onChange(async (value) => {
+      await this.plugin.setBadgeDisplayEnabled(value);
     }));
-    new import_obsidian.Setting(containerEl).setName("一键排序方式").setDesc("设置一键复制、一键拼合和预览工作台默认使用的位置或徽章顺序").addDropdown((dropdown) => dropdown.addOption("position", "按位置顺序").addOption("badge", "按徽章顺序").setValue(this.plugin.settings.defaultSortMode).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("一键排序方式").setDesc("设置一键复制、一键拼合和预览工作台默认使用的位置或标记顺序").addDropdown((dropdown) => dropdown.addOption("position", "按位置顺序").addOption("badge", "按标记顺序").setValue(this.plugin.settings.defaultSortMode).onChange(async (value) => {
       this.plugin.settings.defaultSortMode = value;
       await this.plugin.saveSettings();
     }));
@@ -542,48 +538,29 @@ var CardService = class {
   }
 };
 
+// src/services/BadgeService.ts
+var import_obsidian5 = require("obsidian");
+
 // src/domain/models/Badge.ts
+var BADGE_PATTERN = /^\d+(\.\d+)*$/;
 var BadgeData = class {
-  constructor(content, type) {
+  constructor(content) {
     this.content = content;
-    this.type = type;
   }
   static create(content) {
-    const type = BadgeData.determineBadgeType(content);
-    return new BadgeData(content, type);
+    return new BadgeData(BadgeData.normalize(content));
   }
-  static determineBadgeType(content) {
-    if (!content)
-      return "text";
-    if (/^\d+$/.test(content)) {
-      return "number";
-    } else if (BadgeData.isEmoji(content)) {
-      return "emoji";
-    } else {
-      return "text";
-    }
+  static normalize(content) {
+    return (content || "").trim();
   }
-  static isEmoji(str) {
-    const emojiRegex = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]+$/u;
-    return emojiRegex.test(str);
+  static isValidContent(content) {
+    return BADGE_PATTERN.test(BadgeData.normalize(content));
   }
   isEmpty() {
-    return !this.content || this.content.trim().length === 0;
+    return this.content.length === 0;
   }
-  isNumber() {
-    return this.type === "number";
-  }
-  isText() {
-    return this.type === "text";
-  }
-  isEmoji() {
-    return this.type === "emoji";
-  }
-  getNumericValue() {
-    if (this.type === "number") {
-      return parseInt(this.content) || 0;
-    }
-    return null;
+  isValid() {
+    return BadgeData.isValidContent(this.content);
   }
   toString() {
     return this.content;
@@ -591,16 +568,16 @@ var BadgeData = class {
 };
 
 // src/services/BadgeService.ts
-var import_obsidian5 = require("obsidian");
 var BadgeService = class {
-  constructor(canvasAdapter) {
+  constructor(canvasAdapter, isBadgeDisplayEnabled = () => true) {
     this.canvasAdapter = canvasAdapter;
+    this.isBadgeDisplayEnabled = isBadgeDisplayEnabled;
   }
   async getCurrentBadge(node) {
     try {
       const canvasData = this.canvasAdapter.getData();
       const nodeData = canvasData.nodes.find((n) => n.id === node.id);
-      if (nodeData && nodeData.badge) {
+      if (nodeData == null ? void 0 : nodeData.badge) {
         return BadgeData.create(nodeData.badge);
       }
     } catch (error) {
@@ -616,43 +593,91 @@ var BadgeService = class {
   async setBadge(node, badgeText) {
     try {
       const badge = BadgeData.create(badgeText);
-      this.applyBadgeToNode(node, badge);
+      if (!badge.isValid()) {
+        throw new Error("标记只支持数字序号，格式如 1、2、2.1");
+      }
+      if (this.isBadgeDisplayEnabled()) {
+        this.applyBadgeToNode(node, badge);
+      } else {
+        this.clearBadgeFromNode(node);
+      }
       await this.persistBadgeToCanvas(node, badge);
-      new import_obsidian5.Notice(`徽章已设置: ${badgeText}`);
+      new import_obsidian5.Notice(`标记已设置: ${badgeText}`);
     } catch (error) {
-      console.error("设置徽章时出错:", error);
-      new import_obsidian5.Notice("设置徽章失败，请查看控制台了解详情");
+      console.error("设置标记时出错:", error);
+      new import_obsidian5.Notice("设置标记失败，请查看控制台了解详情");
       throw error;
     }
   }
   async removeBadge(node) {
     try {
-      this.removeBadgeFromNode(node);
+      this.clearBadgeFromNode(node);
       await this.persistBadgeToCanvas(node, null);
-      new import_obsidian5.Notice("徽章已移除");
+      new import_obsidian5.Notice("标记已移除");
     } catch (error) {
-      console.error("移除徽章时出错:", error);
-      new import_obsidian5.Notice("移除徽章失败，请查看控制台了解详情");
+      console.error("移除标记时出错:", error);
+      new import_obsidian5.Notice("移除标记失败，请查看控制台了解详情");
       throw error;
     }
   }
   applyBadgeToNode(node, badge) {
+    if (!this.isBadgeDisplayEnabled()) {
+      this.clearBadgeFromNode(node);
+      return;
+    }
     this.getNodeElements(node).forEach((element) => {
       element.setAttribute("data-badge", badge.content);
-      element.setAttribute("data-badge-type", badge.type);
     });
   }
-  removeBadgeFromNode(node) {
+  clearBadgeFromNode(node) {
     this.getNodeElements(node).forEach((element) => {
       element.removeAttribute("data-badge");
       element.removeAttribute("data-badge-type");
     });
   }
+  clearCanvasBadgeDom() {
+    try {
+      const canvasData = this.canvasAdapter.getData();
+      canvasData.nodes.forEach((nodeData) => {
+        const node = this.canvasAdapter.findNodeById(nodeData.id);
+        if (node) {
+          this.clearBadgeFromNode(node);
+        }
+      });
+    } catch (error) {
+      console.error("清理 Canvas 标记显示时出错:", error);
+    }
+  }
+  async loadCanvasBadges() {
+    if (!this.isBadgeDisplayEnabled()) {
+      return;
+    }
+    try {
+      const canvasData = this.canvasAdapter.getData();
+      canvasData.nodes.forEach((nodeData) => {
+        if (!nodeData.badge) {
+          return;
+        }
+        const node = this.canvasAdapter.findNodeById(nodeData.id);
+        if (node) {
+          this.applyBadgeToNode(node, BadgeData.create(nodeData.badge));
+        }
+      });
+    } catch (error) {
+      console.error("加载画布标记时出错:", error);
+    }
+  }
+  isValidBadgeNode(node) {
+    var _a;
+    const isTextCard = node.text !== void 0;
+    const isMarkdownEmbed = ((_a = node.nodeEl) == null ? void 0 : _a.querySelector(".markdown-embed")) !== null;
+    return isTextCard || isMarkdownEmbed;
+  }
   getNodeElements(node) {
     var _a, _b;
     return [
       (_a = node.nodeEl) == null ? void 0 : _a.querySelector(".canvas-node-content"),
-      (_b = node.nodeEl) == null ? void 0 : _b.querySelector(".canvas-node-container"),
+      (_b = node.nodeEl) == null ? void 0 : _b.querySelector(".markdown-embed"),
       node.nodeEl
     ].filter(Boolean);
   }
@@ -664,35 +689,12 @@ var BadgeService = class {
     }
     if (badge && !badge.isEmpty()) {
       nodeData.badge = badge.content;
-      nodeData.badgeType = badge.type;
     } else {
       delete nodeData.badge;
-      delete nodeData.badgeType;
     }
+    delete nodeData.badgeType;
     await this.canvasAdapter.setData(canvasData);
     await this.canvasAdapter.requestSave();
-  }
-  async loadCanvasBadges() {
-    try {
-      const canvasData = this.canvasAdapter.getData();
-      canvasData.nodes.forEach((nodeData) => {
-        if (nodeData.badge) {
-          const node = this.canvasAdapter.findNodeById(nodeData.id);
-          if (node) {
-            const badge = BadgeData.create(nodeData.badge);
-            this.applyBadgeToNode(node, badge);
-          }
-        }
-      });
-    } catch (error) {
-      console.error("加载画布徽章时出错:", error);
-    }
-  }
-  isValidBadgeNode(node) {
-    var _a;
-    const isTextCard = node.text !== void 0;
-    const isMarkdownEmbed = ((_a = node.nodeEl) == null ? void 0 : _a.querySelector(".markdown-embed")) !== null;
-    return isTextCard || isMarkdownEmbed;
   }
 };
 
@@ -721,23 +723,25 @@ var PositionSortStrategy = class {
 
 // src/domain/strategies/BadgeSort.ts
 var BadgeSortStrategy = class {
+  constructor(sortPriority = "yx") {
+    this.sortPriority = sortPriority;
+  }
   sort(cards) {
-    return [...cards].sort((a, b) => {
-      const aBadge = BadgeData.create(a.badge);
-      const bBadge = BadgeData.create(b.badge);
-      const typeOrder = { "number": 1, "text": 2, "emoji": 3 };
-      const aTypeOrder = typeOrder[aBadge.type] || 4;
-      const bTypeOrder = typeOrder[bBadge.type] || 4;
-      if (aTypeOrder !== bTypeOrder) {
-        return aTypeOrder - bTypeOrder;
+    const positionSorter = new PositionSortStrategy(this.sortPriority);
+    const positionedCards = positionSorter.sort(cards);
+    return [...positionedCards].sort((a, b) => {
+      const aBadge = (a.badge || "").trim();
+      const bBadge = (b.badge || "").trim();
+      if (!aBadge && !bBadge) {
+        return 0;
       }
-      if (aBadge.type === "number") {
-        const aNum = aBadge.getNumericValue() || 0;
-        const bNum = bBadge.getNumericValue() || 0;
-        return aNum - bNum;
-      } else {
-        return aBadge.content.localeCompare(bBadge.content);
+      if (!aBadge) {
+        return 1;
       }
+      if (!bBadge) {
+        return -1;
+      }
+      return aBadge.localeCompare(bBadge, void 0, { numeric: true });
     });
   }
 };
@@ -768,9 +772,9 @@ var ContentService = class {
         selection,
         order: "badge",
         includeBadgePrefix: true
-      }, "已按徽章顺序复制卡片内容");
+      }, "已按标记顺序复制卡片内容");
     } catch (error) {
-      console.error("按徽章顺序复制失败:", error);
+      console.error("按标记顺序复制失败:", error);
       new import_obsidian6.Notice("复制失败，请查看控制台了解详情");
     }
   }
@@ -796,8 +800,7 @@ var ContentService = class {
   async copyMergedContent(options, successNotice) {
     const result = await this.buildMergedContent(options);
     if (result.count === 0) {
-      const emptyMessage = options.order === "badge" ? "选中的卡片中没有找到带徽章的卡片" : "没有选中任何文本卡片";
-      new import_obsidian6.Notice(emptyMessage);
+      new import_obsidian6.Notice("没有选中任何文本卡片");
       return false;
     }
     return this.clipboardAdapter.writeTextWithNotice(
@@ -812,7 +815,7 @@ var ContentService = class {
     }
     const includeBadgePrefix = options.order === "badge" && options.includeBadgePrefix !== false;
     const content = includeBadgePrefix ? this.formatBadgedCardsContent(
-      orderedCards.filter((card) => !!card.badge).map((card) => ({ text: card.text, badge: card.badge || "" }))
+      orderedCards.map((card) => ({ text: card.text, badge: card.badge }))
     ) : orderedCards.map((card) => card.text).join("\n\n");
     return {
       content,
@@ -828,7 +831,7 @@ var ContentService = class {
       if ((nodeData == null ? void 0 : nodeData.type) !== "text" || !nodeData.text || !nodeData.text.trim()) {
         continue;
       }
-      const existingBadge = nodeData.badge ? { content: nodeData.badge, type: nodeData.badgeType } : await this.badgeService.getCurrentBadge(node);
+      const existingBadge = nodeData.badge ? BadgeData.create(nodeData.badge) : await this.badgeService.getCurrentBadge(node);
       snapshots.push({
         id: nodeData.id,
         text: nodeData.text.trim(),
@@ -836,8 +839,7 @@ var ContentService = class {
         y: (_c = nodeData.y) != null ? _c : 0,
         width: (_d = nodeData.width) != null ? _d : 400,
         height: (_e = nodeData.height) != null ? _e : 400,
-        badge: existingBadge == null ? void 0 : existingBadge.content,
-        badgeType: existingBadge == null ? void 0 : existingBadge.type
+        badge: existingBadge == null ? void 0 : existingBadge.content
       });
     }
     return snapshots;
@@ -848,9 +850,8 @@ var ContentService = class {
       return [];
     }
     if (options.order === "badge") {
-      const badgedCards = snapshots.filter((card) => !!card.badge);
-      const badgeSorter = new BadgeSortStrategy();
-      return badgeSorter.sort(badgedCards);
+      const badgeSorter = new BadgeSortStrategy(options.sortPriority || "yx");
+      return badgeSorter.sort(snapshots);
     }
     if (options.order === "manual") {
       return this.sortManualSnapshots(snapshots, options.manualOrderIds || []);
@@ -859,7 +860,7 @@ var ContentService = class {
     return positionSorter.sort(snapshots);
   }
   formatBadgedCardsContent(cards) {
-    return cards.map((card) => `[${card.badge}] ${card.text}`).join("\n\n");
+    return cards.map((card) => card.badge ? `[${card.badge}] ${card.text}` : card.text).join("\n\n");
   }
   resolveSelection(selection) {
     if (Array.isArray(selection) && selection.length > 0) {
@@ -963,9 +964,8 @@ var PreviewWorkbenchService = class {
   getOrderedCards(state, sortPriority) {
     const cards = this.getTextCards(state.selectionSnapshot);
     if (state.sortMode === "badge") {
-      const badgedCards = cards.filter((card) => !!card.badge);
-      const sorter2 = new BadgeSortStrategy();
-      return sorter2.sort(badgedCards);
+      const sorter2 = new BadgeSortStrategy(sortPriority);
+      return sorter2.sort(cards);
     }
     if (state.sortMode === "manual") {
       return this.sortByManualOrder(cards, state.manualOrderIds);
@@ -1058,7 +1058,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
     const modeGroup = toolbar.createDiv({ cls: "canvas-loom-workbench-modes" });
     const meta = toolbar.createDiv({ cls: "canvas-loom-workbench-meta" });
     this.createPositionModeButton(modeGroup);
-    this.createModeButton(modeGroup, "badge", "徽章");
+    this.createModeButton(modeGroup, "badge", "标记");
     const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
     meta.createEl("div", { text: `${this.context.state.canvasFileBasename} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
     meta.createEl("div", { text: `当前模式 ${this.getModeLabel(this.context.state.sortMode)} · 可输出 ${currentCards.length} 张` });
@@ -1068,12 +1068,12 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
       return;
     }
     const section = container.createDiv({ cls: "canvas-loom-workbench-list-section" });
-    section.createEl("h4", { text: this.context.state.sortMode === "badge" ? "按徽章排序" : "按位置排序" });
+    section.createEl("h4", { text: this.context.state.sortMode === "badge" ? "按标记排序" : "按位置排序" });
     const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
     const list = section.createDiv({ cls: "canvas-loom-workbench-list" });
     if (cards.length === 0) {
       const empty = list.createDiv({ cls: "canvas-loom-workbench-list-empty" });
-      empty.setText(this.context.state.sortMode === "badge" ? "当前没有带徽章的卡片可排序。" : "当前没有可处理的文本卡片。");
+      empty.setText(this.context.state.sortMode === "badge" ? "当前没有可按标记排序的卡片。" : "当前没有可处理的文本卡片。");
       return;
     }
     cards.forEach((card, index) => {
@@ -1266,7 +1266,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
   }
   getModeLabel(mode) {
     if (mode === "badge") {
-      return "徽章";
+      return "标记";
     }
     return "位置";
   }
@@ -2435,7 +2435,7 @@ var OpenBadgeModalCommand = class {
     return true;
   }
   getDescription() {
-    return "打开徽章设置";
+    return "编辑标记";
   }
 };
 
@@ -2630,13 +2630,13 @@ var BadgeModal = class extends import_obsidian11.Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h2", { text: "设置卡片徽章" });
+    contentEl.createEl("h2", { text: "设置排序标记" });
     const inputContainer = contentEl.createDiv();
-    inputContainer.createEl("label", { text: "徽章内容（数字、文字或表情）：" });
+    inputContainer.createEl("label", { text: "排序标记（仅支持数字）：" });
     const input = inputContainer.createEl("input", {
       type: "text",
       value: this.currentBadge,
-      placeholder: "例如：1、完成、✅"
+      placeholder: "例如：1、2.1、10.3.2"
     });
     input.style.width = "100%";
     input.style.marginTop = "10px";
@@ -2644,13 +2644,16 @@ var BadgeModal = class extends import_obsidian11.Modal {
     hint.style.fontSize = "0.9em";
     hint.style.color = "var(--text-muted)";
     hint.style.marginTop = "10px";
-    hint.setText("提示：徽章会自动保存在画布文件中");
+    hint.setText("提示：排序标记会自动保存在画布文件中");
+    const validation = contentEl.createDiv();
+    validation.style.fontSize = "0.9em";
+    validation.style.marginTop = "8px";
     const buttonContainer = contentEl.createDiv();
     buttonContainer.style.marginTop = "20px";
     buttonContainer.style.display = "flex";
     buttonContainer.style.justifyContent = "flex-end";
     buttonContainer.style.gap = "10px";
-    const removeButton = buttonContainer.createEl("button", { text: "移除徽章" });
+    const removeButton = buttonContainer.createEl("button", { text: "移除标记" });
     removeButton.addEventListener("click", async () => {
       await this.setBadge("");
       this.close();
@@ -2662,17 +2665,46 @@ var BadgeModal = class extends import_obsidian11.Modal {
     const confirmButton = buttonContainer.createEl("button", { text: "确定" });
     confirmButton.addClass("mod-cta");
     confirmButton.addEventListener("click", async () => {
+      if (!this.validateInput(input.value, validation, confirmButton)) {
+        return;
+      }
       await this.setBadge(input.value.trim());
       this.close();
     });
+    input.addEventListener("input", () => {
+      this.validateInput(input.value, validation, confirmButton);
+    });
     input.addEventListener("keypress", async (e) => {
       if (e.key === "Enter") {
+        if (!this.validateInput(input.value, validation, confirmButton)) {
+          return;
+        }
         await this.setBadge(input.value.trim());
         this.close();
       }
     });
+    this.validateInput(input.value, validation, confirmButton);
     input.focus();
     input.select();
+  }
+  validateInput(inputValue, validationEl, confirmButton) {
+    const value = inputValue.trim();
+    if (!value) {
+      validationEl.style.color = "var(--text-muted)";
+      validationEl.setText("留空可移除，或直接使用“移除标记”。");
+      confirmButton.disabled = false;
+      return true;
+    }
+    if (BadgeData.isValidContent(value)) {
+      validationEl.style.color = "var(--text-muted)";
+      validationEl.setText("支持层级序号，例如 1、2.1、10.3.2。");
+      confirmButton.disabled = false;
+      return true;
+    }
+    validationEl.style.color = "var(--text-error)";
+    validationEl.setText("只支持数字序号，格式如 1、2、2.1。");
+    confirmButton.disabled = true;
+    return false;
   }
   async setBadge(badgeText) {
     try {
@@ -2682,7 +2714,7 @@ var BadgeModal = class extends import_obsidian11.Modal {
         await this.badgeService.removeBadge(this.node);
       }
     } catch (error) {
-      console.error("设置徽章时出错:", error);
+      console.error("设置标记时出错:", error);
     }
   }
   onClose() {
@@ -2703,69 +2735,41 @@ var BadgeStyleManager = class {
     this.styleEl = document.createElement("style");
     this.styleEl.id = "canvas-badge-styles";
     this.styleEl.textContent = `
-            /* 确保 Canvas 节点内容有相对定位 */
-            .canvas-node .canvas-node-content {
-                position: relative !important;
+            .canvas-node .canvas-node-content[data-badge],
+            .markdown-embed[data-badge] {
+                position: relative;
+                overflow: visible;
             }
-            
-            /* 主要徽章样式 */
+
             .canvas-node .canvas-node-content[data-badge]::after,
             .canvas-node-content[data-badge]::after,
             .markdown-embed[data-badge]::after {
-                content: attr(data-badge) !important;
-                position: absolute !important;
-                top: -10px !important;
-                right: -10px !important;
-                min-width: 24px !important;
-                height: 24px !important;
-                padding: 3px 7px !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                font-size: 12px !important;
-                font-weight: bold !important;
-                color: white !important;
-                background-color: #5865F2 !important;
-                border-radius: 12px !important;
-                z-index: 1000 !important;
-                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
-                white-space: nowrap !important;
-                pointer-events: none !important;
-                line-height: 1 !important;
-                font-family: var(--font-interface) !important;
-                border: 2px solid var(--background-primary) !important;
-                animation: badge-appear 0.2s ease-out !important;
+                content: attr(data-badge);
+                position: absolute;
+                top: -10px;
+                right: -10px;
+                min-width: 24px;
+                height: 24px;
+                padding: 3px 7px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                font-weight: 600;
+                line-height: 1;
+                color: var(--text-on-accent);
+                background: var(--interactive-accent);
+                border: 1px solid var(--background-primary);
+                border-radius: 999px;
+                z-index: 1000;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+                white-space: nowrap;
+                pointer-events: none;
+                font-family: var(--font-interface);
+                font-variant-numeric: tabular-nums;
+                animation: badge-appear 0.2s ease-out;
             }
-            
-            /* 数字徽章 - 完美圆形 */
-            .canvas-node-content[data-badge-type="number"]::after {
-                background-color: #5865F2 !important;
-                border-radius: 50% !important;
-                padding: 0 !important;
-                min-width: 26px !important;
-                height: 26px !important;
-            }
-            
-            /* 文字徽章 - 药丸形状 */
-            .canvas-node-content[data-badge-type="text"]::after {
-                background-color: #6c757d !important;
-                border-radius: 13px !important;
-                padding: 3px 10px !important;
-                min-width: auto !important;
-            }
-            
-            /* Emoji 徽章 - 无背景 */
-            .canvas-node-content[data-badge-type="emoji"]::after {
-                background-color: transparent !important;
-                box-shadow: none !important;
-                border: none !important;
-                font-size: 20px !important;
-                min-width: auto !important;
-                height: auto !important;
-                padding: 0 !important;
-            }
-            
-            /* 动画效果 */
+
             @keyframes badge-appear {
                 from {
                     transform: scale(0);
@@ -2776,15 +2780,9 @@ var BadgeStyleManager = class {
                     opacity: 1;
                 }
             }
-            
-            /* 确保徽章在节点被选中时仍然可见 */
+
             .canvas-node.is-selected .canvas-node-content[data-badge]::after {
-                z-index: 1001 !important;
-            }
-            
-            /* 暗色主题优化 */
-            .theme-dark .canvas-node-content[data-badge]::after {
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+                z-index: 1001;
             }
         `;
     document.head.appendChild(this.styleEl);
@@ -2798,6 +2796,7 @@ var BadgeStyleManager = class {
     if (this.styleEl && this.styleEl.parentNode) {
       this.styleEl.remove();
     }
+    this.styleEl = null;
   }
 };
 
@@ -2883,7 +2882,7 @@ var CardPropertiesModal = class extends import_obsidian12.Modal {
     headerRow.createEl("th", { text: "预览", cls: "col-preview" });
     headerRow.createEl("th", { text: "尺寸", cls: "col-size" });
     headerRow.createEl("th", { text: "位置", cls: "col-position" });
-    headerRow.createEl("th", { text: "徽章", cls: "col-badge" });
+    headerRow.createEl("th", { text: "标记", cls: "col-badge" });
     const tbody = table.createEl("tbody");
     this.cardInfos.forEach((info, index) => {
       const row = tbody.createEl("tr");
@@ -3732,7 +3731,9 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
     this.addSettingTab(new CanvasLoomSettingTab(this.app, this));
   }
   setupUI() {
-    this.badgeStyleManager.injectStyles();
+    if (this.settings.enableBadges) {
+      this.badgeStyleManager.injectStyles();
+    }
     this.registerMergePreviewView();
   }
   registerMergePreviewView() {
@@ -3744,7 +3745,11 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
   }
   initializeBadges() {
     this.app.workspace.onLayoutReady(() => {
-      this.loadAllCanvasBadges();
+      if (this.settings.enableBadges) {
+        this.loadAllCanvasBadges();
+      } else {
+        this.clearAllCanvasBadgeDom();
+      }
     });
   }
   registerCanvasMenus() {
@@ -3767,7 +3772,7 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
     }
     const canvasAdapter = new CanvasAdapter(canvas);
     this.cardService = new CardService(canvasAdapter);
-    this.badgeService = new BadgeService(canvasAdapter);
+    this.badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
     this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
     this.mergeService = new MergeService(this.app, canvasAdapter, this.contentService, this.vaultAdapter);
   }
@@ -3782,7 +3787,7 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
         node
       );
       this.commandRegistry.registerCommand("open-badge-modal", badgeCommand);
-      this.commandRegistry.addCommandToMenu(menu, "open-badge-modal", "添加/编辑徽章", "tag");
+      this.commandRegistry.addCommandToMenu(menu, "open-badge-modal", "编辑标记", "tag");
     }
     const nodeText = (_b = (_a = node == null ? void 0 : node.getData) == null ? void 0 : _a.call(node)) == null ? void 0 : _b.text;
     if (typeof nodeText === "string" && nodeText.trim() && this.cardService) {
@@ -3856,7 +3861,7 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
   registerCanvasEvents() {
     this.registerEvent(
       this.app.workspace.on("file-open", (file) => {
-        if (file && file.extension === "canvas") {
+        if (this.settings.enableBadges && file && file.extension === "canvas") {
           setTimeout(() => {
             this.loadCanvasBadges(file);
           }, 100);
@@ -3865,12 +3870,18 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
     );
     this.registerEvent(
       this.app.workspace.on("layout-change", () => {
+        if (!this.settings.enableBadges) {
+          return;
+        }
         this.badgeStyleManager.ensureStylesExist();
       })
     );
   }
   async loadCanvasBadges(file) {
     var _a;
+    if (!this.settings.enableBadges) {
+      return;
+    }
     const leaves = this.app.workspace.getLeavesOfType("canvas");
     for (const leaf of leaves) {
       const view = leaf.view;
@@ -3881,16 +3892,19 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
         }
         try {
           const canvasAdapter = new CanvasAdapter(canvas);
-          const badgeService = new BadgeService(canvasAdapter);
+          const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
           await badgeService.loadCanvasBadges();
-          console.log(`已加载 ${file.name} 的所有徽章`);
+          console.log(`已加载 ${file.name} 的所有标记`);
         } catch (error) {
-          console.error("加载 Canvas 徽章时出错:", error);
+          console.error("加载 Canvas 标记时出错:", error);
         }
       }
     }
   }
   loadAllCanvasBadges() {
+    if (!this.settings.enableBadges) {
+      return;
+    }
     const canvasLeaves = this.app.workspace.getLeavesOfType("canvas");
     canvasLeaves.forEach((leaf) => {
       const view = leaf.view;
@@ -3899,11 +3913,39 @@ var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
       }
     });
   }
+  clearAllCanvasBadgeDom() {
+    const canvasLeaves = this.app.workspace.getLeavesOfType("canvas");
+    canvasLeaves.forEach((leaf) => {
+      const view = leaf.view;
+      const canvas = view == null ? void 0 : view.canvas;
+      if (!canvas) {
+        return;
+      }
+      try {
+        const canvasAdapter = new CanvasAdapter(canvas);
+        const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
+        badgeService.clearCanvasBadgeDom();
+      } catch (error) {
+        console.error("清理 Canvas 标记显示时出错:", error);
+      }
+    });
+  }
   async loadSettings() {
     this.settings = await this.storageAdapter.loadSettings();
   }
   async saveSettings() {
     await this.storageAdapter.saveSettings(this.settings);
+  }
+  async setBadgeDisplayEnabled(enabled) {
+    this.settings.enableBadges = enabled;
+    await this.saveSettings();
+    if (enabled) {
+      this.badgeStyleManager.injectStyles();
+      this.loadAllCanvasBadges();
+      return;
+    }
+    this.badgeStyleManager.removeStyles();
+    this.clearAllCanvasBadgeDom();
   }
   onunload() {
     this.badgeStyleManager.removeStyles();

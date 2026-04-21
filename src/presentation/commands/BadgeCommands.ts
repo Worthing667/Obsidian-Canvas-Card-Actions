@@ -15,6 +15,6 @@ export class OpenBadgeModalCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "打开徽章设置";
+        return "编辑标记";
     }
 }

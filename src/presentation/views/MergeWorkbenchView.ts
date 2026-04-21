@@ -77,7 +77,7 @@ export class MergeWorkbenchView extends ItemView {
         const meta = toolbar.createDiv({ cls: 'canvas-loom-workbench-meta' });
 
         this.createPositionModeButton(modeGroup);
-        this.createModeButton(modeGroup, 'badge', '徽章');
+        this.createModeButton(modeGroup, 'badge', '标记');
 
         const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         meta.createEl('div', { text: `${this.context.state.canvasFileBasename} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
@@ -90,14 +90,14 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         const section = container.createDiv({ cls: 'canvas-loom-workbench-list-section' });
-        section.createEl('h4', { text: this.context.state.sortMode === 'badge' ? '按徽章排序' : '按位置排序' });
+        section.createEl('h4', { text: this.context.state.sortMode === 'badge' ? '按标记排序' : '按位置排序' });
 
         const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const list = section.createDiv({ cls: 'canvas-loom-workbench-list' });
 
         if (cards.length === 0) {
         const empty = list.createDiv({ cls: 'canvas-loom-workbench-list-empty' });
-            empty.setText(this.context.state.sortMode === 'badge' ? '当前没有带徽章的卡片可排序。' : '当前没有可处理的文本卡片。');
+            empty.setText(this.context.state.sortMode === 'badge' ? '当前没有可按标记排序的卡片。' : '当前没有可处理的文本卡片。');
             return;
         }
 
@@ -330,7 +330,7 @@ export class MergeWorkbenchView extends ItemView {
 
     private getModeLabel(mode: MergeOrder): string {
         if (mode === 'badge') {
-            return '徽章';
+            return '标记';
         }
 
         return '位置';

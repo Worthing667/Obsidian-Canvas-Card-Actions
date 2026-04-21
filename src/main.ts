@@ -69,7 +69,10 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private setupUI(): void {
-        this.badgeStyleManager.injectStyles();
+        if (this.settings.enableBadges) {
+            this.badgeStyleManager.injectStyles();
+        }
+
         this.registerMergePreviewView();
     }
 
@@ -84,7 +87,11 @@ export default class CanvasLoomPlugin extends Plugin {
 
     private initializeBadges(): void {
         this.app.workspace.onLayoutReady(() => {
-            this.loadAllCanvasBadges();
+            if (this.settings.enableBadges) {
+                this.loadAllCanvasBadges();
+            } else {
+                this.clearAllCanvasBadgeDom();
+            }
         });
     }
 
@@ -114,7 +121,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
         const canvasAdapter = new CanvasAdapter(canvas);
         this.cardService = new CardService(canvasAdapter);
-        this.badgeService = new BadgeService(canvasAdapter);
+        this.badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
         this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
         this.mergeService = new MergeService(this.app, canvasAdapter, this.contentService, this.vaultAdapter);
     }
@@ -129,7 +136,7 @@ export default class CanvasLoomPlugin extends Plugin {
                 node
             );
             this.commandRegistry.registerCommand('open-badge-modal', badgeCommand);
-            this.commandRegistry.addCommandToMenu(menu, 'open-badge-modal', '添加/编辑徽章', 'tag');
+            this.commandRegistry.addCommandToMenu(menu, 'open-badge-modal', '编辑标记', 'tag');
         }
 
         const nodeText = node?.getData?.()?.text;
@@ -216,7 +223,7 @@ export default class CanvasLoomPlugin extends Plugin {
     registerCanvasEvents() {
         this.registerEvent(
             this.app.workspace.on("file-open", (file: TFile) => {
-                if (file && file.extension === "canvas") {
+                if (this.settings.enableBadges && file && file.extension === "canvas") {
                     setTimeout(() => {
                         this.loadCanvasBadges(file);
                     }, 100);
@@ -226,12 +233,20 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.registerEvent(
             this.app.workspace.on("layout-change", () => {
+                if (!this.settings.enableBadges) {
+                    return;
+                }
+
                 this.badgeStyleManager.ensureStylesExist();
             })
         );
     }
 
     async loadCanvasBadges(file: TFile) {
+        if (!this.settings.enableBadges) {
+            return;
+        }
+
         const leaves = this.app.workspace.getLeavesOfType("canvas");
 
         for (const leaf of leaves) {
@@ -244,17 +259,21 @@ export default class CanvasLoomPlugin extends Plugin {
 
                 try {
                     const canvasAdapter = new CanvasAdapter(canvas);
-                    const badgeService = new BadgeService(canvasAdapter);
+                    const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
                     await badgeService.loadCanvasBadges();
-                    console.log(`已加载 ${file.name} 的所有徽章`);
+                    console.log(`已加载 ${file.name} 的所有标记`);
                 } catch (error) {
-                    console.error("加载 Canvas 徽章时出错:", error);
+                    console.error("加载 Canvas 标记时出错:", error);
                 }
             }
         }
     }
 
     loadAllCanvasBadges() {
+        if (!this.settings.enableBadges) {
+            return;
+        }
+
         const canvasLeaves = this.app.workspace.getLeavesOfType("canvas");
 
         canvasLeaves.forEach((leaf) => {
@@ -265,12 +284,46 @@ export default class CanvasLoomPlugin extends Plugin {
         });
     }
 
+    clearAllCanvasBadgeDom() {
+        const canvasLeaves = this.app.workspace.getLeavesOfType("canvas");
+
+        canvasLeaves.forEach((leaf) => {
+            const view = leaf.view as any;
+            const canvas = view?.canvas;
+            if (!canvas) {
+                return;
+            }
+
+            try {
+                const canvasAdapter = new CanvasAdapter(canvas);
+                const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
+                badgeService.clearCanvasBadgeDom();
+            } catch (error) {
+                console.error("清理 Canvas 标记显示时出错:", error);
+            }
+        });
+    }
+
     async loadSettings() {
         this.settings = await this.storageAdapter.loadSettings();
     }
 
     async saveSettings() {
         await this.storageAdapter.saveSettings(this.settings);
+    }
+
+    async setBadgeDisplayEnabled(enabled: boolean) {
+        this.settings.enableBadges = enabled;
+        await this.saveSettings();
+
+        if (enabled) {
+            this.badgeStyleManager.injectStyles();
+            this.loadAllCanvasBadges();
+            return;
+        }
+
+        this.badgeStyleManager.removeStyles();
+        this.clearAllCanvasBadgeDom();
     }
 
     onunload() {

@@ -1,31 +1,30 @@
+import { PositionSortStrategy, SortPriority } from "./PositionSort";
 import { SortStrategy, BadgedCard } from "./SortStrategy";
-import { BadgeData } from "../models/Badge";
 
 export class BadgeSortStrategy implements SortStrategy<BadgedCard> {
+    constructor(private readonly sortPriority: SortPriority = 'yx') {}
+
     sort(cards: BadgedCard[]): BadgedCard[] {
-        return [...cards].sort((a, b) => {
-            const aBadge = BadgeData.create(a.badge);
-            const bBadge = BadgeData.create(b.badge);
-            
-            // 按类型优先级排序：number < text < emoji
-            const typeOrder = { 'number': 1, 'text': 2, 'emoji': 3 };
-            const aTypeOrder = typeOrder[aBadge.type] || 4;
-            const bTypeOrder = typeOrder[bBadge.type] || 4;
-            
-            if (aTypeOrder !== bTypeOrder) {
-                return aTypeOrder - bTypeOrder;
+        const positionSorter = new PositionSortStrategy(this.sortPriority);
+        const positionedCards = positionSorter.sort(cards as any) as BadgedCard[];
+
+        return [...positionedCards].sort((a, b) => {
+            const aBadge = (a.badge || "").trim();
+            const bBadge = (b.badge || "").trim();
+
+            if (!aBadge && !bBadge) {
+                return 0;
             }
-            
-            // 相同类型内部排序
-            if (aBadge.type === 'number') {
-                // 数字徽章按数值排序
-                const aNum = aBadge.getNumericValue() || 0;
-                const bNum = bBadge.getNumericValue() || 0;
-                return aNum - bNum;
-            } else {
-                // 文字和emoji按字典序排序
-                return aBadge.content.localeCompare(bBadge.content);
+
+            if (!aBadge) {
+                return 1;
             }
+
+            if (!bBadge) {
+                return -1;
+            }
+
+            return aBadge.localeCompare(bBadge, undefined, { numeric: true });
         });
     }
 }

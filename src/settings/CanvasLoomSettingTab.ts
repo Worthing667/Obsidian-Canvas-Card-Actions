@@ -38,26 +38,20 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('启用徽章功能')
-			.setDesc('是否在画布卡片上显示徽章')
+			.setName('启用标记功能')
+			.setDesc('是否在画布卡片上显示标记')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enableBadges)
 				.onChange(async (value) => {
-					this.plugin.settings.enableBadges = value;
-					await this.plugin.saveSettings();
-
-					// 如果启用了徽章功能，初始化所有徽章显示
-					if (value) {
-						this.plugin.loadAllCanvasBadges();
-					}
+					await this.plugin.setBadgeDisplayEnabled(value);
 				}));
 
 		new Setting(containerEl)
 			.setName('一键排序方式')
-			.setDesc('设置一键复制、一键拼合和预览工作台默认使用的位置或徽章顺序')
+			.setDesc('设置一键复制、一键拼合和预览工作台默认使用的位置或标记顺序')
 			.addDropdown(dropdown => dropdown
 				.addOption('position', '按位置顺序')
-				.addOption('badge', '按徽章顺序')
+				.addOption('badge', '按标记顺序')
 				.setValue(this.plugin.settings.defaultSortMode)
 				.onChange(async (value: 'position' | 'badge') => {
 					this.plugin.settings.defaultSortMode = value;

@@ -57,7 +57,7 @@ export class CopyByBadgeOrderCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "按徽章顺序复制内容";
+        return "按标记顺序复制内容";
     }
 }
 

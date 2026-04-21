@@ -15,7 +15,6 @@ export interface Card {
     dimensions: CardDimensions;
     color?: string;
     badge?: string;
-    badgeType?: 'number' | 'text' | 'emoji';
 }
 
 export class CardData {
@@ -25,8 +24,7 @@ export class CardData {
         public readonly position: Position,
         public readonly dimensions: CardDimensions,
         public readonly color?: string,
-        public readonly badge?: string,
-        public readonly badgeType?: 'number' | 'text' | 'emoji'
+        public readonly badge?: string
     ) {}
 
     static fromCanvasNodeData(nodeData: any): CardData {
@@ -36,8 +34,7 @@ export class CardData {
             { x: nodeData.x, y: nodeData.y },
             { width: nodeData.width, height: nodeData.height },
             nodeData.color,
-            nodeData.badge,
-            nodeData.badgeType
+            nodeData.badge
         );
     }
 }

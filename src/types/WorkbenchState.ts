@@ -1,7 +1,5 @@
 import type { MergeOrder } from "../services/ContentService";
 
-export type SnapshotBadgeType = 'number' | 'text' | 'emoji';
-
 export interface CardSnapshot {
     id: string;
     text: string;
@@ -10,7 +8,6 @@ export interface CardSnapshot {
     width: number;
     height: number;
     badge?: string;
-    badgeType?: SnapshotBadgeType;
 }
 
 export interface WorkbenchState {
