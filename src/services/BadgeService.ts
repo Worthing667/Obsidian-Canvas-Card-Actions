@@ -16,7 +16,7 @@ export class BadgeService implements IBadgeService {
 
     async getCurrentBadge(node: any): Promise<BadgeData | null> {
         try {
-            // 首先尝试从 Canvas 数据中获取
+            // 首先尝试从画布数据中获取
             const canvasData = this.canvasAdapter.getData();
             const nodeData = canvasData.nodes.find(n => n.id === node.id);
             if (nodeData && nodeData.badge) {
@@ -43,7 +43,7 @@ export class BadgeService implements IBadgeService {
             // 第一步：更新 DOM（立即显示效果）
             this.applyBadgeToNode(node, badge);
             
-            // 第二步：持久化到 Canvas 文件
+            // 第二步：持久化到画布文件
             await this.persistBadgeToCanvas(node, badge);
             
             new Notice(`徽章已设置: ${badgeText}`);
@@ -59,7 +59,7 @@ export class BadgeService implements IBadgeService {
             // 第一步：更新 DOM
             this.removeBadgeFromNode(node);
             
-            // 第二步：从 Canvas 文件移除
+            // 第二步：从画布文件移除
             await this.persistBadgeToCanvas(node, null);
             
             new Notice("徽章已移除");
@@ -97,7 +97,7 @@ export class BadgeService implements IBadgeService {
         const nodeData = canvasData.nodes.find(n => n.id === node.id);
         
         if (!nodeData) {
-            throw new Error("在 Canvas 数据中找不到节点");
+            throw new Error("在画布数据中找不到节点");
         }
 
         if (badge && !badge.isEmpty()) {
@@ -127,7 +127,7 @@ export class BadgeService implements IBadgeService {
             });
             
         } catch (error) {
-            console.error("加载 Canvas 徽章时出错:", error);
+            console.error("加载画布徽章时出错:", error);
         }
     }
 

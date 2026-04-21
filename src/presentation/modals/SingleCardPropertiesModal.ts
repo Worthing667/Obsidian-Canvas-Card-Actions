@@ -60,7 +60,7 @@ export class SingleCardPropertiesModal extends Modal {
         positionItem.innerHTML = `
             <div class="cca-stat-label">位置坐标</div>
             <div class="cca-stat-value">X: ${this.cardData.x}, Y: ${this.cardData.y}</div>
-            <div class="cca-stat-detail">Canvas坐标</div>
+            <div class="cca-stat-detail">画布坐标</div>
         `;
 
     }

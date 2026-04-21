@@ -1,14 +1,14 @@
 import { TFile } from "obsidian";
 import { ICommand } from "./ICommand";
 import { IMergeService } from "../../services/MergeService";
-import CanvasCardActionsSettings from "../../settings/ICanvasCardActionsSettings";
+import CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
 import { DragSortModal } from "../modals/DragSortModal";
 
 export class MergeToCanvasCardCommand implements ICommand {
     constructor(
         private mergeService: IMergeService,
         private selection: any[],
-        private settings: CanvasCardActionsSettings
+        private settings: CanvasLoomSettings
     ) {}
 
     async execute(): Promise<void> {
@@ -33,7 +33,7 @@ export class MergeToSidebarPreviewCommand implements ICommand {
         private mergeService: IMergeService,
         private selection: any[],
         private canvasFile: TFile | null,
-        private settings: CanvasCardActionsSettings
+        private settings: CanvasLoomSettings
     ) {}
 
     async execute(): Promise<void> {
@@ -58,7 +58,7 @@ export class MergeToMarkdownCommand implements ICommand {
         private mergeService: IMergeService,
         private selection: any[],
         private canvasFile: TFile | null,
-        private settings: CanvasCardActionsSettings
+        private settings: CanvasLoomSettings
     ) {}
 
     async execute(): Promise<void> {

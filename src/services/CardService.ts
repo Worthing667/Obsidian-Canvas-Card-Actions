@@ -298,7 +298,7 @@ export class CardService implements ICardService {
             console.error("尺寸调整操作失败:", error);
             
             if (error.message.includes("Canvas")) {
-                throw new Error("Canvas操作失败，请刷新页面后重试");
+                throw new Error("画布操作失败，请刷新页面后重试");
             } else if (error.message.includes("save")) {
                 throw new Error("保存失败，请检查文件权限");
             } else {

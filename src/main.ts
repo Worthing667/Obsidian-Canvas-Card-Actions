@@ -1,6 +1,6 @@
 import { Plugin, TFile } from 'obsidian';
-import CanvasCardActionsSettings from "./settings/ICanvasCardActionsSettings";
-import CanvasCardActionsSettingTab from "./settings/CanvasCardActionsSettingTab";
+import CanvasLoomSettings from "./settings/ICanvasLoomSettings";
+import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
 
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
 import { CardService, BadgeService, ContentService, MergeService } from './services';
@@ -23,15 +23,15 @@ import { BadgeStyleManager } from './presentation/styles';
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 
-const DEFAULT_SETTINGS: CanvasCardActionsSettings = {
+const DEFAULT_SETTINGS: CanvasLoomSettings = {
     canvasCardDelimiter: '---',
     sortPriority: 'yx',
     enableBadges: true,
     defaultSortMode: 'position',
 };
 
-export default class CanvasCardActionsPlugin extends Plugin {
-    settings: CanvasCardActionsSettings;
+export default class CanvasLoomPlugin extends Plugin {
+    settings: CanvasLoomSettings;
 
     private clipboardAdapter: ClipboardAdapter;
     private storageAdapter: StorageAdapter;
@@ -65,7 +65,7 @@ export default class CanvasCardActionsPlugin extends Plugin {
     }
 
     private registerSettingTab(): void {
-        this.addSettingTab(new CanvasCardActionsSettingTab(this.app, this));
+        this.addSettingTab(new CanvasLoomSettingTab(this.app, this));
     }
 
     private setupUI(): void {
@@ -276,7 +276,7 @@ export default class CanvasCardActionsPlugin extends Plugin {
     onunload() {
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
-        console.log("Canvas Card Actions plugin unloaded");
+        console.log("Canvas Loom plugin unloaded");
     }
 
     private registerHotkeys() {

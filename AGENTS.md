@@ -9,7 +9,7 @@
 ## 常用开发命令
 
 - `npm run dev` - 启动开发模式，包含文件监控和自动重新构建
-- `cd "D:\Code\Canvas Card Actions" && npm run build ` - 为生产环境构建插件 (输出至 `build/main.js`)
+- `cd "D:\Code\Canvas Loom" && npm run build` - 为生产环境构建插件 (输出至 `build/main.js`)
 - `npm run version` - 更新 `manifest.json` 和 `versions.json` 中的版本号
 
 ## 代码架构

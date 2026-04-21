@@ -1,6 +1,6 @@
-# Canvas Card Actions
+# Canvas Loom
 
-`Canvas Card Actions` 是一个 Obsidian Canvas 增强插件，聚焦四类高频操作：
+`Canvas Loom` 是一个 Obsidian Canvas 增强插件，聚焦四类高频操作：
 
 - 拆分单张文本卡片
 - 复制、拼合和预览多张卡片内容
@@ -18,9 +18,9 @@
 - `一键复制` / `一键拼合`
   按设置中的默认排序方式处理多张卡片。
 - `打开预览...`
-  在工作台中切换排序、预览结果，并输出为剪贴板、Canvas 卡片或 Markdown 文稿。
+  在工作台中切换排序、预览结果，并输出为剪贴板、画布卡片或 Markdown 文稿。
 - `添加/编辑徽章`
-  支持数字、文字和 emoji 徽章。
+  支持数字、文字和表情徽章。
 - `管理卡片属性`
   统一处理单卡片查看和多卡片批量尺寸调整。
 
@@ -32,7 +32,7 @@
 
 <p align="center">
   <img src="Demo/按标题_拆分卡片_选择器.png" alt="拆分卡片方式选择器" width="48%" />
-  <img src="Demo/按标题_拆分卡片.png" alt="按标题层级拆分后的 Canvas 卡片" width="48%" />
+  <img src="Demo/按标题_拆分卡片.png" alt="按标题层级拆分后的画布卡片" width="48%" />
 </p>
 
 单张长文本卡片可以先选择拆分方式，再按分隔符或 Markdown 标题层级拆成多张新卡片。
@@ -44,7 +44,7 @@
   <img src="Demo/侧边栏工作台.png" alt="侧边栏工作台预览与导出" width="48%" />
 </p>
 
-选中多张卡片后，可以直接一键拼合，也可以进入侧边栏工作台切换排序模式、预览结果，并输出到剪贴板、Canvas 卡片或 Markdown 文稿。
+选中多张卡片后，可以直接一键拼合，也可以进入侧边栏工作台切换排序模式、预览结果，并输出到剪贴板、画布卡片或 Markdown 文稿。
 
 ### 3. 右键菜单入口
 
@@ -54,7 +54,7 @@
   <img src="Demo/一键统一卡片尺寸_3后.png" alt="统一尺寸后的多卡片效果" width="31%" />
 </p>
 
-单卡片和多卡片场景分别提供不同的右键操作入口，批量整理后的画布效果也能直接在 Canvas 中看到。
+单卡片和多卡片场景分别提供不同的右键操作入口，批量整理后的画布效果也能直接在画布中看到。
 
 ### 4. 卡片属性管理
 
@@ -67,18 +67,18 @@
 
 ## 插件设置
 
-- `设置Canvas卡片分隔符`：控制分隔符拆分使用的文本
+- `设置画布卡片分隔符`：控制分隔符拆分使用的文本
 - `设置卡片排序优先级`：控制位置排序优先按纵向还是横向
 - `一键排序方式`：控制一键复制、一键拼合和工作台默认排序模式
 - `启用徽章功能`：控制是否显示卡片徽章
 
 ## 安装
 
-### 从 GitHub Releases 安装
+### 从 GitHub 发布页安装
 
-1. 打开本仓库的 [Releases](https://github.com/Worthing667/Obsidian-Canvas-Card-Actions/releases)
-2. 下载 `obsidian-canvas-card-actions-x.y.z.zip`
-3. 将 `main.js`、`manifest.json`、`styles.css` 放入 `.obsidian/plugins/obsidian-canvas-card-actions/`
+1. 打开本仓库的 [发布页](https://github.com/woxin667/Canvas-Loom/releases)
+2. 下载 `obsidian-canvas-loom-x.y.z.zip`
+3. 将 `main.js`、`manifest.json`、`styles.css` 放入 `.obsidian/plugins/obsidian-canvas-loom/`
 4. 在 Obsidian 中启用插件
 
 ### 本地构建

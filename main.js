@@ -24,14 +24,14 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/main.ts
 var main_exports = {};
 __export(main_exports, {
-  default: () => CanvasCardActionsPlugin
+  default: () => CanvasLoomPlugin
 });
 module.exports = __toCommonJS(main_exports);
 var import_obsidian15 = require("obsidian");
 
-// src/settings/CanvasCardActionsSettingTab.ts
+// src/settings/CanvasLoomSettingTab.ts
 var import_obsidian = require("obsidian");
-var CanvasCardActionsSettingTab = class extends import_obsidian.PluginSettingTab {
+var CanvasLoomSettingTab = class extends import_obsidian.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -39,7 +39,7 @@ var CanvasCardActionsSettingTab = class extends import_obsidian.PluginSettingTab
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    new import_obsidian.Setting(containerEl).setName("设置Canvas卡片分隔符").setDesc("输入用于拆分单个Canvas卡片的分隔符").addText((text) => text.setPlaceholder("---").setValue(this.plugin.settings.canvasCardDelimiter).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("设置画布卡片分隔符").setDesc("输入用于拆分单个画布卡片的分隔符").addText((text) => text.setPlaceholder("---").setValue(this.plugin.settings.canvasCardDelimiter).onChange(async (value) => {
       this.plugin.settings.canvasCardDelimiter = value;
       await this.plugin.saveSettings();
     }));
@@ -47,7 +47,7 @@ var CanvasCardActionsSettingTab = class extends import_obsidian.PluginSettingTab
       this.plugin.settings.sortPriority = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("启用徽章功能").setDesc("是否在Canvas卡片上显示徽章").addToggle((toggle) => toggle.setValue(this.plugin.settings.enableBadges).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("启用徽章功能").setDesc("是否在画布卡片上显示徽章").addToggle((toggle) => toggle.setValue(this.plugin.settings.enableBadges).onChange(async (value) => {
       this.plugin.settings.enableBadges = value;
       await this.plugin.saveSettings();
       if (value) {
@@ -112,7 +112,7 @@ var CanvasAdapter = class {
       return data || { nodes: [], edges: [] };
     } catch (error) {
       console.error("Failed to get canvas data:", error);
-      throw new Error("无法获取Canvas数据");
+      throw new Error("无法获取画布数据");
     }
   }
   async setData(data) {
@@ -120,7 +120,7 @@ var CanvasAdapter = class {
       await this.canvas.setData(data);
     } catch (error) {
       console.error("Failed to set canvas data:", error);
-      throw new Error("无法设置Canvas数据");
+      throw new Error("无法设置画布数据");
     }
   }
   getSelectedNodes() {
@@ -148,7 +148,7 @@ var CanvasAdapter = class {
       await this.canvas.requestSave();
     } catch (error) {
       console.error("Failed to request save:", error);
-      throw new Error("保存Canvas失败");
+      throw new Error("保存画布失败");
     }
   }
   getDataModel() {
@@ -497,7 +497,7 @@ var CardService = class {
     } catch (error) {
       console.error("尺寸调整操作失败:", error);
       if (error.message.includes("Canvas")) {
-        throw new Error("Canvas操作失败，请刷新页面后重试");
+        throw new Error("画布操作失败，请刷新页面后重试");
       } else if (error.message.includes("save")) {
         throw new Error("保存失败，请检查文件权限");
       } else {
@@ -660,7 +660,7 @@ var BadgeService = class {
     const canvasData = this.canvasAdapter.getData();
     const nodeData = canvasData.nodes.find((n) => n.id === node.id);
     if (!nodeData) {
-      throw new Error("在 Canvas 数据中找不到节点");
+      throw new Error("在画布数据中找不到节点");
     }
     if (badge && !badge.isEmpty()) {
       nodeData.badge = badge.content;
@@ -685,7 +685,7 @@ var BadgeService = class {
         }
       });
     } catch (error) {
-      console.error("加载 Canvas 徽章时出错:", error);
+      console.error("加载画布徽章时出错:", error);
     }
   }
   isValidBadgeNode(node) {
@@ -1006,7 +1006,7 @@ var PreviewWorkbenchService = class {
 };
 
 // src/presentation/views/MergeWorkbenchView.ts
-var MERGE_PREVIEW_VIEW_TYPE = "canvas-card-actions-merge-preview";
+var MERGE_PREVIEW_VIEW_TYPE = "canvas-loom-merge-preview";
 var MergeWorkbenchView = class extends import_obsidian7.ItemView {
   constructor(leaf) {
     super(leaf);
@@ -1038,14 +1038,14 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
   render() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.addClass("canvas-card-actions-workbench");
+    contentEl.addClass("canvas-loom-workbench");
     if (!this.context) {
-      const emptyState = contentEl.createDiv({ cls: "canvas-card-actions-workbench-empty" });
+      const emptyState = contentEl.createDiv({ cls: "canvas-loom-workbench-empty" });
       emptyState.createEl("h3", { text: "暂无工作台内容" });
-      emptyState.createEl("p", { text: "请先在 Canvas 中多选卡片，再执行“打开预览...”或相关命令。" });
+      emptyState.createEl("p", { text: "请先在画布中多选卡片，再执行“打开预览...”或相关命令。" });
       return;
     }
-    const container = contentEl.createDiv({ cls: "canvas-card-actions-workbench-container" });
+    const container = contentEl.createDiv({ cls: "canvas-loom-workbench-container" });
     this.renderToolbar(container);
     this.renderList(container);
     this.renderPreviewArea(container);
@@ -1054,9 +1054,9 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
     if (!this.context) {
       return;
     }
-    const toolbar = container.createDiv({ cls: "canvas-card-actions-workbench-toolbar" });
-    const modeGroup = toolbar.createDiv({ cls: "canvas-card-actions-workbench-modes" });
-    const meta = toolbar.createDiv({ cls: "canvas-card-actions-workbench-meta" });
+    const toolbar = container.createDiv({ cls: "canvas-loom-workbench-toolbar" });
+    const modeGroup = toolbar.createDiv({ cls: "canvas-loom-workbench-modes" });
+    const meta = toolbar.createDiv({ cls: "canvas-loom-workbench-meta" });
     this.createModeButton(modeGroup, "position", "位置");
     this.createModeButton(modeGroup, "badge", "徽章");
     this.createModeButton(modeGroup, "manual", "手动");
@@ -1068,18 +1068,18 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
     if (!this.context) {
       return;
     }
-    const section = container.createDiv({ cls: "canvas-card-actions-workbench-list-section" });
+    const section = container.createDiv({ cls: "canvas-loom-workbench-list-section" });
     section.createEl("h4", { text: "当前顺序" });
     const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
-    const list = section.createDiv({ cls: "canvas-card-actions-workbench-list" });
+    const list = section.createDiv({ cls: "canvas-loom-workbench-list" });
     if (cards.length === 0) {
-      const empty = list.createDiv({ cls: "canvas-card-actions-workbench-list-empty" });
+      const empty = list.createDiv({ cls: "canvas-loom-workbench-list-empty" });
       empty.setText(this.context.state.sortMode === "badge" ? "当前没有带徽章的卡片可排序。" : "当前没有可处理的文本卡片。");
       return;
     }
     cards.forEach((card, index) => {
       var _a, _b, _c;
-      const row = list.createDiv({ cls: "canvas-card-actions-workbench-row" });
+      const row = list.createDiv({ cls: "canvas-loom-workbench-row" });
       row.dataset.index = index.toString();
       row.setAttribute("draggable", String(((_a = this.context) == null ? void 0 : _a.state.sortMode) === "manual"));
       if (((_b = this.context) == null ? void 0 : _b.state.sortMode) === "manual") {
@@ -1089,17 +1089,17 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
         row.addEventListener("drop", (event) => this.onDrop(event, index));
         row.addEventListener("dragend", () => this.onDragEnd());
       }
-      const indexEl = row.createDiv({ cls: "canvas-card-actions-workbench-index" });
+      const indexEl = row.createDiv({ cls: "canvas-loom-workbench-index" });
       indexEl.setText(String(index + 1));
-      const textEl = row.createDiv({ cls: "canvas-card-actions-workbench-text" });
+      const textEl = row.createDiv({ cls: "canvas-loom-workbench-text" });
       textEl.setText(this.toPreviewText(card.text));
       textEl.title = card.text;
       if (card.badge) {
-        const badgeEl = row.createDiv({ cls: "canvas-card-actions-workbench-badge" });
+        const badgeEl = row.createDiv({ cls: "canvas-loom-workbench-badge" });
         badgeEl.setText(card.badge);
       }
       if (((_c = this.context) == null ? void 0 : _c.state.sortMode) === "manual") {
-        const handle = row.createDiv({ cls: "canvas-card-actions-workbench-handle" });
+        const handle = row.createDiv({ cls: "canvas-loom-workbench-handle" });
         handle.setText("⠿");
       }
     });
@@ -1108,8 +1108,8 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
     if (!this.context) {
       return;
     }
-    const section = container.createDiv({ cls: "canvas-card-actions-workbench-preview-section" });
-    const header = section.createDiv({ cls: "canvas-card-actions-workbench-preview-header" });
+    const section = container.createDiv({ cls: "canvas-loom-workbench-preview-section" });
+    const header = section.createDiv({ cls: "canvas-loom-workbench-preview-header" });
     const toggle = header.createEl("button", {
       text: this.context.state.previewExpanded ? "收起结果预览" : "展开结果预览",
       cls: "mod-cta"
@@ -1125,13 +1125,13 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
       this.render();
     });
     const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
-    const hint = header.createDiv({ cls: "canvas-card-actions-workbench-preview-hint" });
+    const hint = header.createDiv({ cls: "canvas-loom-workbench-preview-hint" });
     if (!this.context.state.previewExpanded) {
       hint.setText(
         orderedCards.length >= this.workbenchService.previewCollapseThreshold ? "内容较多，展开后再渲染预览。" : "预览默认折叠，展开后生成合并结果。"
       );
     }
-    const preview = section.createEl("pre", { cls: "canvas-card-actions-workbench-preview-content" });
+    const preview = section.createEl("pre", { cls: "canvas-loom-workbench-preview-content" });
     if (this.context.state.previewExpanded) {
       preview.setText(this.context.state.lastComputedContent || "正在生成预览...");
       this.schedulePreviewRender(preview);
@@ -1139,7 +1139,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
       preview.addClass("is-collapsed");
       preview.setText("预览已折叠。");
     }
-    const actions = section.createDiv({ cls: "canvas-card-actions-workbench-actions" });
+    const actions = section.createDiv({ cls: "canvas-loom-workbench-actions" });
     const hasCards = orderedCards.length > 0;
     this.createActionButton(actions, "复制", async () => {
       if (this.context) {
@@ -1238,7 +1238,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
   }
   onDragEnd() {
     this.draggedIndex = null;
-    this.contentEl.querySelectorAll(".canvas-card-actions-workbench-row").forEach((row) => {
+    this.contentEl.querySelectorAll(".canvas-loom-workbench-row").forEach((row) => {
       row.classList.remove("is-dragging");
       row.classList.remove("is-drop-target");
     });
@@ -1256,25 +1256,25 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
     return text.length > 60 ? `${text.slice(0, 60)}...` : text;
   }
   ensureStyles() {
-    if (document.getElementById("canvas-card-actions-workbench-style")) {
+    if (document.getElementById("canvas-loom-workbench-style")) {
       return;
     }
     const style = document.createElement("style");
-    style.id = "canvas-card-actions-workbench-style";
+    style.id = "canvas-loom-workbench-style";
     style.textContent = `
-            .canvas-card-actions-workbench-container {
+        .canvas-loom-workbench-container {
                 display: flex;
                 flex-direction: column;
                 gap: 16px;
                 padding: 12px;
             }
 
-            .canvas-card-actions-workbench-empty {
+        .canvas-loom-workbench-empty {
                 padding: 20px;
                 color: var(--text-muted);
             }
 
-            .canvas-card-actions-workbench-toolbar {
+        .canvas-loom-workbench-toolbar {
                 display: flex;
                 justify-content: space-between;
                 gap: 12px;
@@ -1282,14 +1282,14 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
                 flex-wrap: wrap;
             }
 
-            .canvas-card-actions-workbench-modes,
-            .canvas-card-actions-workbench-actions {
+        .canvas-loom-workbench-modes,
+        .canvas-loom-workbench-actions {
                 display: flex;
                 gap: 8px;
                 flex-wrap: wrap;
             }
 
-            .canvas-card-actions-workbench-meta {
+        .canvas-loom-workbench-meta {
                 color: var(--text-muted);
                 font-size: 12px;
                 display: flex;
@@ -1297,14 +1297,14 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
                 gap: 4px;
             }
 
-            .canvas-card-actions-workbench-list {
+        .canvas-loom-workbench-list {
                 border: 1px solid var(--background-modifier-border);
                 border-radius: 8px;
                 overflow: hidden;
                 background: var(--background-secondary);
             }
 
-            .canvas-card-actions-workbench-row {
+        .canvas-loom-workbench-row {
                 display: flex;
                 align-items: center;
                 gap: 10px;
@@ -1313,36 +1313,36 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
                 user-select: none;
             }
 
-            .canvas-card-actions-workbench-row:last-child {
+        .canvas-loom-workbench-row:last-child {
                 border-bottom: none;
             }
 
-            .canvas-card-actions-workbench-row[draggable="true"] {
+        .canvas-loom-workbench-row[draggable="true"] {
                 cursor: grab;
             }
 
-            .canvas-card-actions-workbench-row.is-dragging {
+        .canvas-loom-workbench-row.is-dragging {
                 opacity: 0.45;
             }
 
-            .canvas-card-actions-workbench-row.is-drop-target {
+        .canvas-loom-workbench-row.is-drop-target {
                 background: var(--background-modifier-hover);
             }
 
-            .canvas-card-actions-workbench-index {
+        .canvas-loom-workbench-index {
                 min-width: 24px;
                 color: var(--text-faint);
                 font-variant-numeric: tabular-nums;
             }
 
-            .canvas-card-actions-workbench-text {
+        .canvas-loom-workbench-text {
                 flex: 1;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
 
-            .canvas-card-actions-workbench-badge {
+        .canvas-loom-workbench-badge {
                 padding: 2px 8px;
                 border-radius: 999px;
                 background: var(--background-modifier-hover);
@@ -1350,17 +1350,17 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
                 font-size: 12px;
             }
 
-            .canvas-card-actions-workbench-handle {
+        .canvas-loom-workbench-handle {
                 color: var(--text-faint);
                 font-size: 16px;
             }
 
-            .canvas-card-actions-workbench-list-empty {
+        .canvas-loom-workbench-list-empty {
                 padding: 16px 12px;
                 color: var(--text-muted);
             }
 
-            .canvas-card-actions-workbench-preview-section {
+        .canvas-loom-workbench-preview-section {
                 border-top: 1px solid var(--background-modifier-border);
                 padding-top: 12px;
                 display: flex;
@@ -1368,7 +1368,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
                 gap: 12px;
             }
 
-            .canvas-card-actions-workbench-preview-header {
+        .canvas-loom-workbench-preview-header {
                 display: flex;
                 justify-content: space-between;
                 gap: 12px;
@@ -1376,12 +1376,12 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
                 flex-wrap: wrap;
             }
 
-            .canvas-card-actions-workbench-preview-hint {
+        .canvas-loom-workbench-preview-hint {
                 color: var(--text-muted);
                 font-size: 12px;
             }
 
-            .canvas-card-actions-workbench-preview-content {
+        .canvas-loom-workbench-preview-content {
                 margin: 0;
                 padding: 12px;
                 background: var(--background-secondary);
@@ -1392,7 +1392,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
                 overflow: auto;
             }
 
-            .canvas-card-actions-workbench-preview-content.is-collapsed {
+        .canvas-loom-workbench-preview-content.is-collapsed {
                 color: var(--text-muted);
             }
         `;
@@ -1457,7 +1457,7 @@ var MergeService = class {
       return false;
     }
     if (!canvasFile || canvasFile.extension !== "canvas") {
-      new import_obsidian8.Notice("请在打开 Canvas 文件时使用该功能");
+      new import_obsidian8.Notice("请在打开画布文件时使用该功能");
       return false;
     }
     const baseName = `${canvasFile.basename}-卡片合并`;
@@ -1476,7 +1476,7 @@ var MergeService = class {
     const sortPriority = (options == null ? void 0 : options.sortPriority) || "yx";
     const state = this.workbenchService.createState({
       canvasFilePath: (canvasFile == null ? void 0 : canvasFile.path) || null,
-      canvasFileBasename: (canvasFile == null ? void 0 : canvasFile.basename) || "当前 Canvas",
+      canvasFileBasename: (canvasFile == null ? void 0 : canvasFile.basename) || "当前画布",
       selectionSnapshot: snapshots,
       defaultSortMode: (options == null ? void 0 : options.order) || "position",
       previewExpanded: (_a = options == null ? void 0 : options.previewExpanded) != null ? _a : false
@@ -1535,7 +1535,7 @@ var MergeService = class {
     };
     const adapter = canvasFilePath ? await this.resolveCanvasAdapterByPath(canvasFilePath) : this.canvasAdapter;
     if (!adapter) {
-      new import_obsidian8.Notice("无法定位原始 Canvas，未能创建新卡片");
+      new import_obsidian8.Notice("无法定位原始画布，未能创建新卡片");
       return false;
     }
     await adapter.addNode(nodeData);
@@ -1557,7 +1557,7 @@ var MergeService = class {
     }
     const canvasFile = this.resolveCanvasFile(canvasFilePath);
     if (!canvasFile) {
-      new import_obsidian8.Notice("找不到原始 Canvas 文件，无法创建文稿");
+      new import_obsidian8.Notice("找不到原始画布文件，无法创建文稿");
       return false;
     }
     const baseName = `${canvasFile.basename}-卡片合并`;
@@ -1699,10 +1699,10 @@ var import_obsidian9 = require("obsidian");
 // src/presentation/styles/ModalStyles.ts
 var ModalStyleManager = class {
   static injectSharedStyles() {
-    if (document.getElementById("canvas-card-actions-modal-styles"))
+    if (document.getElementById("canvas-loom-modal-styles"))
       return;
     const style = document.createElement("style");
-    style.id = "canvas-card-actions-modal-styles";
+    style.id = "canvas-loom-modal-styles";
     style.textContent = `
             /* 统计信息与布局共享 */
             .cca-stats-section {
@@ -1845,7 +1845,7 @@ var ModalStyleManager = class {
     document.head.appendChild(style);
   }
   static removeSharedStyles() {
-    const style = document.getElementById("canvas-card-actions-modal-styles");
+    const style = document.getElementById("canvas-loom-modal-styles");
     if (style) {
       style.remove();
     }
@@ -2614,11 +2614,11 @@ var BadgeModal = class extends import_obsidian11.Modal {
     contentEl.empty();
     contentEl.createEl("h2", { text: "设置卡片徽章" });
     const inputContainer = contentEl.createDiv();
-    inputContainer.createEl("label", { text: "徽章内容（数字、文字或emoji）：" });
+    inputContainer.createEl("label", { text: "徽章内容（数字、文字或表情）：" });
     const input = inputContainer.createEl("input", {
       type: "text",
       value: this.currentBadge,
-      placeholder: "例如: 1, Done, ✅"
+      placeholder: "例如：1、完成、✅"
     });
     input.style.width = "100%";
     input.style.marginTop = "10px";
@@ -2626,7 +2626,7 @@ var BadgeModal = class extends import_obsidian11.Modal {
     hint.style.fontSize = "0.9em";
     hint.style.color = "var(--text-muted)";
     hint.style.marginTop = "10px";
-    hint.setText("提示：徽章会自动保存在 Canvas 文件中");
+    hint.setText("提示：徽章会自动保存在画布文件中");
     const buttonContainer = contentEl.createDiv();
     buttonContainer.style.marginTop = "20px";
     buttonContainer.style.display = "flex";
@@ -3434,7 +3434,7 @@ var SingleCardPropertiesModal = class extends import_obsidian13.Modal {
     positionItem.innerHTML = `
             <div class="cca-stat-label">位置坐标</div>
             <div class="cca-stat-value">X: ${this.cardData.x}, Y: ${this.cardData.y}</div>
-            <div class="cca-stat-detail">Canvas坐标</div>
+            <div class="cca-stat-detail">画布坐标</div>
         `;
   }
   createDimensionEditor(container) {
@@ -3692,7 +3692,7 @@ var DEFAULT_SETTINGS = {
   enableBadges: true,
   defaultSortMode: "position"
 };
-var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
+var CanvasLoomPlugin = class extends import_obsidian15.Plugin {
   async onload() {
     await this.initializeServices();
     this.registerSettingTab();
@@ -3711,7 +3711,7 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
     this.badgeStyleManager = new BadgeStyleManager();
   }
   registerSettingTab() {
-    this.addSettingTab(new CanvasCardActionsSettingTab(this.app, this));
+    this.addSettingTab(new CanvasLoomSettingTab(this.app, this));
   }
   setupUI() {
     this.badgeStyleManager.injectStyles();
@@ -3890,7 +3890,7 @@ var CanvasCardActionsPlugin = class extends import_obsidian15.Plugin {
   onunload() {
     this.badgeStyleManager.removeStyles();
     this.commandRegistry.clear();
-    console.log("Canvas Card Actions plugin unloaded");
+    console.log("Canvas Loom plugin unloaded");
   }
   registerHotkeys() {
     this.addCommand({

@@ -87,7 +87,7 @@ export class MergeService implements IMergeService {
         }
 
         if (!canvasFile || canvasFile.extension !== 'canvas') {
-            new Notice('请在打开 Canvas 文件时使用该功能');
+            new Notice('请在打开画布文件时使用该功能');
             return false;
         }
 
@@ -108,7 +108,7 @@ export class MergeService implements IMergeService {
         const sortPriority = options?.sortPriority || 'yx';
         const state = this.workbenchService.createState({
             canvasFilePath: canvasFile?.path || null,
-            canvasFileBasename: canvasFile?.basename || '当前 Canvas',
+            canvasFileBasename: canvasFile?.basename || '当前画布',
             selectionSnapshot: snapshots,
             defaultSortMode: options?.order || 'position',
             previewExpanded: options?.previewExpanded ?? false
@@ -176,7 +176,7 @@ export class MergeService implements IMergeService {
             : this.canvasAdapter;
 
         if (!adapter) {
-            new Notice('无法定位原始 Canvas，未能创建新卡片');
+            new Notice('无法定位原始画布，未能创建新卡片');
             return false;
         }
 
@@ -202,7 +202,7 @@ export class MergeService implements IMergeService {
 
         const canvasFile = this.resolveCanvasFile(canvasFilePath);
         if (!canvasFile) {
-            new Notice('找不到原始 Canvas 文件，无法创建文稿');
+            new Notice('找不到原始画布文件，无法创建文稿');
             return false;
         }
 

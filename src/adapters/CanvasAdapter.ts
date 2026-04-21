@@ -25,7 +25,7 @@ export class CanvasAdapter implements ICanvasAdapter {
             return data || { nodes: [], edges: [] };
         } catch (error) {
             console.error("Failed to get canvas data:", error);
-            throw new Error("无法获取Canvas数据");
+            throw new Error("无法获取画布数据");
         }
     }
 
@@ -34,7 +34,7 @@ export class CanvasAdapter implements ICanvasAdapter {
             await this.canvas.setData(data);
         } catch (error) {
             console.error("Failed to set canvas data:", error);
-            throw new Error("无法设置Canvas数据");
+            throw new Error("无法设置画布数据");
         }
     }
 
@@ -64,7 +64,7 @@ export class CanvasAdapter implements ICanvasAdapter {
             await this.canvas.requestSave();
         } catch (error) {
             console.error("Failed to request save:", error);
-            throw new Error("保存Canvas失败");
+            throw new Error("保存画布失败");
         }
     }
 

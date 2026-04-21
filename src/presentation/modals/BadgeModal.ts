@@ -20,12 +20,12 @@ export class BadgeModal extends Modal {
         contentEl.createEl("h2", { text: "设置卡片徽章" });
         
         const inputContainer = contentEl.createDiv();
-        inputContainer.createEl("label", { text: "徽章内容（数字、文字或emoji）：" });
+        inputContainer.createEl("label", { text: "徽章内容（数字、文字或表情）：" });
         
         const input = inputContainer.createEl("input", {
             type: "text",
             value: this.currentBadge,
-            placeholder: "例如: 1, Done, ✅"
+            placeholder: "例如：1、完成、✅"
         });
         input.style.width = "100%";
         input.style.marginTop = "10px";
@@ -34,7 +34,7 @@ export class BadgeModal extends Modal {
         hint.style.fontSize = "0.9em";
         hint.style.color = "var(--text-muted)";
         hint.style.marginTop = "10px";
-        hint.setText("提示：徽章会自动保存在 Canvas 文件中");
+        hint.setText("提示：徽章会自动保存在画布文件中");
         
         const buttonContainer = contentEl.createDiv();
         buttonContainer.style.marginTop = "20px";

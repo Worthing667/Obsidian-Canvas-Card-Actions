@@ -1,10 +1,10 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import CanvasCardActionsPlugin from "../main";
+import CanvasLoomPlugin from "../main";
 
-export default class CanvasCardActionsSettingTab extends PluginSettingTab {
-	plugin: CanvasCardActionsPlugin;
+export default class CanvasLoomSettingTab extends PluginSettingTab {
+	plugin: CanvasLoomPlugin;
 
-	constructor(app: App, plugin: CanvasCardActionsPlugin) {
+	constructor(app: App, plugin: CanvasLoomPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -15,8 +15,8 @@ export default class CanvasCardActionsSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('设置Canvas卡片分隔符')
-			.setDesc('输入用于拆分单个Canvas卡片的分隔符')
+			.setName('设置画布卡片分隔符')
+			.setDesc('输入用于拆分单个画布卡片的分隔符')
 			.addText(text => text
 				.setPlaceholder('---')
 				.setValue(this.plugin.settings.canvasCardDelimiter)
@@ -39,7 +39,7 @@ export default class CanvasCardActionsSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('启用徽章功能')
-			.setDesc('是否在Canvas卡片上显示徽章')
+			.setDesc('是否在画布卡片上显示徽章')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enableBadges)
 				.onChange(async (value) => {

@@ -4,7 +4,7 @@ import { PreviewWorkbenchService } from "../../services/PreviewWorkbenchService"
 import { MergeOrder } from "../../services/ContentService";
 import type { WorkbenchState } from "../../types/WorkbenchState";
 
-export const MERGE_PREVIEW_VIEW_TYPE = 'canvas-card-actions-merge-preview';
+export const MERGE_PREVIEW_VIEW_TYPE = 'canvas-loom-merge-preview';
 
 export interface MergeWorkbenchContext {
     state: WorkbenchState;
@@ -52,16 +52,16 @@ export class MergeWorkbenchView extends ItemView {
     private render(): void {
         const { contentEl } = this;
         contentEl.empty();
-        contentEl.addClass('canvas-card-actions-workbench');
+        contentEl.addClass('canvas-loom-workbench');
 
         if (!this.context) {
-            const emptyState = contentEl.createDiv({ cls: 'canvas-card-actions-workbench-empty' });
+        const emptyState = contentEl.createDiv({ cls: 'canvas-loom-workbench-empty' });
             emptyState.createEl('h3', { text: '暂无工作台内容' });
-            emptyState.createEl('p', { text: '请先在 Canvas 中多选卡片，再执行“打开预览...”或相关命令。' });
+            emptyState.createEl('p', { text: '请先在画布中多选卡片，再执行“打开预览...”或相关命令。' });
             return;
         }
 
-        const container = contentEl.createDiv({ cls: 'canvas-card-actions-workbench-container' });
+        const container = contentEl.createDiv({ cls: 'canvas-loom-workbench-container' });
         this.renderToolbar(container);
         this.renderList(container);
         this.renderPreviewArea(container);
@@ -72,9 +72,9 @@ export class MergeWorkbenchView extends ItemView {
             return;
         }
 
-        const toolbar = container.createDiv({ cls: 'canvas-card-actions-workbench-toolbar' });
-        const modeGroup = toolbar.createDiv({ cls: 'canvas-card-actions-workbench-modes' });
-        const meta = toolbar.createDiv({ cls: 'canvas-card-actions-workbench-meta' });
+        const toolbar = container.createDiv({ cls: 'canvas-loom-workbench-toolbar' });
+        const modeGroup = toolbar.createDiv({ cls: 'canvas-loom-workbench-modes' });
+        const meta = toolbar.createDiv({ cls: 'canvas-loom-workbench-meta' });
 
         this.createModeButton(modeGroup, 'position', '位置');
         this.createModeButton(modeGroup, 'badge', '徽章');
@@ -90,20 +90,20 @@ export class MergeWorkbenchView extends ItemView {
             return;
         }
 
-        const section = container.createDiv({ cls: 'canvas-card-actions-workbench-list-section' });
+        const section = container.createDiv({ cls: 'canvas-loom-workbench-list-section' });
         section.createEl('h4', { text: '当前顺序' });
 
         const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
-        const list = section.createDiv({ cls: 'canvas-card-actions-workbench-list' });
+        const list = section.createDiv({ cls: 'canvas-loom-workbench-list' });
 
         if (cards.length === 0) {
-            const empty = list.createDiv({ cls: 'canvas-card-actions-workbench-list-empty' });
+        const empty = list.createDiv({ cls: 'canvas-loom-workbench-list-empty' });
             empty.setText(this.context.state.sortMode === 'badge' ? '当前没有带徽章的卡片可排序。' : '当前没有可处理的文本卡片。');
             return;
         }
 
         cards.forEach((card, index) => {
-            const row = list.createDiv({ cls: 'canvas-card-actions-workbench-row' });
+            const row = list.createDiv({ cls: 'canvas-loom-workbench-row' });
             row.dataset.index = index.toString();
             row.setAttribute('draggable', String(this.context?.state.sortMode === 'manual'));
 
@@ -115,20 +115,20 @@ export class MergeWorkbenchView extends ItemView {
                 row.addEventListener('dragend', () => this.onDragEnd());
             }
 
-            const indexEl = row.createDiv({ cls: 'canvas-card-actions-workbench-index' });
+            const indexEl = row.createDiv({ cls: 'canvas-loom-workbench-index' });
             indexEl.setText(String(index + 1));
 
-            const textEl = row.createDiv({ cls: 'canvas-card-actions-workbench-text' });
+            const textEl = row.createDiv({ cls: 'canvas-loom-workbench-text' });
             textEl.setText(this.toPreviewText(card.text));
             textEl.title = card.text;
 
             if (card.badge) {
-                const badgeEl = row.createDiv({ cls: 'canvas-card-actions-workbench-badge' });
+            const badgeEl = row.createDiv({ cls: 'canvas-loom-workbench-badge' });
                 badgeEl.setText(card.badge);
             }
 
             if (this.context?.state.sortMode === 'manual') {
-                const handle = row.createDiv({ cls: 'canvas-card-actions-workbench-handle' });
+            const handle = row.createDiv({ cls: 'canvas-loom-workbench-handle' });
                 handle.setText('⠿');
             }
         });
@@ -139,8 +139,8 @@ export class MergeWorkbenchView extends ItemView {
             return;
         }
 
-        const section = container.createDiv({ cls: 'canvas-card-actions-workbench-preview-section' });
-        const header = section.createDiv({ cls: 'canvas-card-actions-workbench-preview-header' });
+        const section = container.createDiv({ cls: 'canvas-loom-workbench-preview-section' });
+        const header = section.createDiv({ cls: 'canvas-loom-workbench-preview-header' });
         const toggle = header.createEl('button', {
             text: this.context.state.previewExpanded ? '收起结果预览' : '展开结果预览',
             cls: 'mod-cta'
@@ -159,7 +159,7 @@ export class MergeWorkbenchView extends ItemView {
         });
 
         const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
-        const hint = header.createDiv({ cls: 'canvas-card-actions-workbench-preview-hint' });
+        const hint = header.createDiv({ cls: 'canvas-loom-workbench-preview-hint' });
 
         if (!this.context.state.previewExpanded) {
             hint.setText(
@@ -169,7 +169,7 @@ export class MergeWorkbenchView extends ItemView {
             );
         }
 
-        const preview = section.createEl('pre', { cls: 'canvas-card-actions-workbench-preview-content' });
+        const preview = section.createEl('pre', { cls: 'canvas-loom-workbench-preview-content' });
         if (this.context.state.previewExpanded) {
             preview.setText(this.context.state.lastComputedContent || '正在生成预览...');
             this.schedulePreviewRender(preview);
@@ -178,7 +178,7 @@ export class MergeWorkbenchView extends ItemView {
             preview.setText('预览已折叠。');
         }
 
-        const actions = section.createDiv({ cls: 'canvas-card-actions-workbench-actions' });
+        const actions = section.createDiv({ cls: 'canvas-loom-workbench-actions' });
         const hasCards = orderedCards.length > 0;
         this.createActionButton(actions, '复制', async () => {
             if (this.context) {
@@ -295,7 +295,7 @@ export class MergeWorkbenchView extends ItemView {
 
     private onDragEnd(): void {
         this.draggedIndex = null;
-        this.contentEl.querySelectorAll('.canvas-card-actions-workbench-row').forEach((row) => {
+        this.contentEl.querySelectorAll('.canvas-loom-workbench-row').forEach((row) => {
             row.classList.remove('is-dragging');
             row.classList.remove('is-drop-target');
         });
@@ -318,26 +318,26 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private ensureStyles(): void {
-        if (document.getElementById('canvas-card-actions-workbench-style')) {
+        if (document.getElementById('canvas-loom-workbench-style')) {
             return;
         }
 
         const style = document.createElement('style');
-        style.id = 'canvas-card-actions-workbench-style';
+        style.id = 'canvas-loom-workbench-style';
         style.textContent = `
-            .canvas-card-actions-workbench-container {
+        .canvas-loom-workbench-container {
                 display: flex;
                 flex-direction: column;
                 gap: 16px;
                 padding: 12px;
             }
 
-            .canvas-card-actions-workbench-empty {
+        .canvas-loom-workbench-empty {
                 padding: 20px;
                 color: var(--text-muted);
             }
 
-            .canvas-card-actions-workbench-toolbar {
+        .canvas-loom-workbench-toolbar {
                 display: flex;
                 justify-content: space-between;
                 gap: 12px;
@@ -345,14 +345,14 @@ export class MergeWorkbenchView extends ItemView {
                 flex-wrap: wrap;
             }
 
-            .canvas-card-actions-workbench-modes,
-            .canvas-card-actions-workbench-actions {
+        .canvas-loom-workbench-modes,
+        .canvas-loom-workbench-actions {
                 display: flex;
                 gap: 8px;
                 flex-wrap: wrap;
             }
 
-            .canvas-card-actions-workbench-meta {
+        .canvas-loom-workbench-meta {
                 color: var(--text-muted);
                 font-size: 12px;
                 display: flex;
@@ -360,14 +360,14 @@ export class MergeWorkbenchView extends ItemView {
                 gap: 4px;
             }
 
-            .canvas-card-actions-workbench-list {
+        .canvas-loom-workbench-list {
                 border: 1px solid var(--background-modifier-border);
                 border-radius: 8px;
                 overflow: hidden;
                 background: var(--background-secondary);
             }
 
-            .canvas-card-actions-workbench-row {
+        .canvas-loom-workbench-row {
                 display: flex;
                 align-items: center;
                 gap: 10px;
@@ -376,36 +376,36 @@ export class MergeWorkbenchView extends ItemView {
                 user-select: none;
             }
 
-            .canvas-card-actions-workbench-row:last-child {
+        .canvas-loom-workbench-row:last-child {
                 border-bottom: none;
             }
 
-            .canvas-card-actions-workbench-row[draggable="true"] {
+        .canvas-loom-workbench-row[draggable="true"] {
                 cursor: grab;
             }
 
-            .canvas-card-actions-workbench-row.is-dragging {
+        .canvas-loom-workbench-row.is-dragging {
                 opacity: 0.45;
             }
 
-            .canvas-card-actions-workbench-row.is-drop-target {
+        .canvas-loom-workbench-row.is-drop-target {
                 background: var(--background-modifier-hover);
             }
 
-            .canvas-card-actions-workbench-index {
+        .canvas-loom-workbench-index {
                 min-width: 24px;
                 color: var(--text-faint);
                 font-variant-numeric: tabular-nums;
             }
 
-            .canvas-card-actions-workbench-text {
+        .canvas-loom-workbench-text {
                 flex: 1;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
 
-            .canvas-card-actions-workbench-badge {
+        .canvas-loom-workbench-badge {
                 padding: 2px 8px;
                 border-radius: 999px;
                 background: var(--background-modifier-hover);
@@ -413,17 +413,17 @@ export class MergeWorkbenchView extends ItemView {
                 font-size: 12px;
             }
 
-            .canvas-card-actions-workbench-handle {
+        .canvas-loom-workbench-handle {
                 color: var(--text-faint);
                 font-size: 16px;
             }
 
-            .canvas-card-actions-workbench-list-empty {
+        .canvas-loom-workbench-list-empty {
                 padding: 16px 12px;
                 color: var(--text-muted);
             }
 
-            .canvas-card-actions-workbench-preview-section {
+        .canvas-loom-workbench-preview-section {
                 border-top: 1px solid var(--background-modifier-border);
                 padding-top: 12px;
                 display: flex;
@@ -431,7 +431,7 @@ export class MergeWorkbenchView extends ItemView {
                 gap: 12px;
             }
 
-            .canvas-card-actions-workbench-preview-header {
+        .canvas-loom-workbench-preview-header {
                 display: flex;
                 justify-content: space-between;
                 gap: 12px;
@@ -439,12 +439,12 @@ export class MergeWorkbenchView extends ItemView {
                 flex-wrap: wrap;
             }
 
-            .canvas-card-actions-workbench-preview-hint {
+        .canvas-loom-workbench-preview-hint {
                 color: var(--text-muted);
                 font-size: 12px;
             }
 
-            .canvas-card-actions-workbench-preview-content {
+        .canvas-loom-workbench-preview-content {
                 margin: 0;
                 padding: 12px;
                 background: var(--background-secondary);
@@ -455,7 +455,7 @@ export class MergeWorkbenchView extends ItemView {
                 overflow: auto;
             }
 
-            .canvas-card-actions-workbench-preview-content.is-collapsed {
+        .canvas-loom-workbench-preview-content.is-collapsed {
                 color: var(--text-muted);
             }
         `;

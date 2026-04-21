@@ -1,9 +1,9 @@
 export class ModalStyleManager {
     static injectSharedStyles(): void {
-        if (document.getElementById("canvas-card-actions-modal-styles")) return;
+if (document.getElementById("canvas-loom-modal-styles")) return;
 
         const style = document.createElement("style");
-        style.id = "canvas-card-actions-modal-styles";
+    style.id = "canvas-loom-modal-styles";
 
         style.textContent = `
             /* 统计信息与布局共享 */
@@ -148,7 +148,7 @@ export class ModalStyleManager {
     }
 
     static removeSharedStyles(): void {
-        const style = document.getElementById("canvas-card-actions-modal-styles");
+    const style = document.getElementById("canvas-loom-modal-styles");
         if (style) {
             style.remove();
         }

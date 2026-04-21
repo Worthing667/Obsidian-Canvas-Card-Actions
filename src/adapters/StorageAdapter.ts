@@ -1,17 +1,17 @@
-import CanvasCardActionsSettings from "../settings/ICanvasCardActionsSettings";
+import CanvasLoomSettings from "../settings/ICanvasLoomSettings";
 
 export interface IStorageAdapter {
-    loadSettings(): Promise<CanvasCardActionsSettings>;
-    saveSettings(settings: CanvasCardActionsSettings): Promise<void>;
+    loadSettings(): Promise<CanvasLoomSettings>;
+    saveSettings(settings: CanvasLoomSettings): Promise<void>;
 }
 
 export class StorageAdapter implements IStorageAdapter {
     constructor(
         private plugin: any,
-        private defaultSettings: CanvasCardActionsSettings
+        private defaultSettings: CanvasLoomSettings
     ) {}
 
-    async loadSettings(): Promise<CanvasCardActionsSettings> {
+    async loadSettings(): Promise<CanvasLoomSettings> {
         try {
             const data = await this.plugin.loadData();
             const normalizedData = { ...(data || {}) };
@@ -28,7 +28,7 @@ export class StorageAdapter implements IStorageAdapter {
         }
     }
 
-    async saveSettings(settings: CanvasCardActionsSettings): Promise<void> {
+    async saveSettings(settings: CanvasLoomSettings): Promise<void> {
         try {
             await this.plugin.saveData({ ...settings });
         } catch (error) {

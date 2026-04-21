@@ -1,5 +1,5 @@
 /**
- * Canvas Card Actions 插件通用工具函数
+ * Canvas Loom 插件通用工具函数
  */
 
 /**

@@ -2,13 +2,13 @@ import { TFile } from "obsidian";
 import { ICommand } from "./ICommand";
 import { IContentService } from "../../services/ContentService";
 import { IMergeService } from "../../services/MergeService";
-import CanvasCardActionsSettings from "../../settings/ICanvasCardActionsSettings";
+import CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
 
 export class QuickCopyCommand implements ICommand {
     constructor(
         private contentService: IContentService,
         private selection: any[],
-        private settings: CanvasCardActionsSettings
+        private settings: CanvasLoomSettings
     ) {}
 
     async execute(): Promise<void> {
@@ -34,7 +34,7 @@ export class QuickMergeCommand implements ICommand {
     constructor(
         private mergeService: IMergeService,
         private selection: any[],
-        private settings: CanvasCardActionsSettings
+        private settings: CanvasLoomSettings
     ) {}
 
     async execute(): Promise<void> {
@@ -58,7 +58,7 @@ export class OpenPreviewWorkbenchCommand implements ICommand {
         private mergeService: IMergeService,
         private selection: any[],
         private canvasFile: TFile | null,
-        private settings: CanvasCardActionsSettings
+        private settings: CanvasLoomSettings
     ) {}
 
     async execute(): Promise<void> {
