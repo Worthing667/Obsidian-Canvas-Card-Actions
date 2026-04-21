@@ -3,7 +3,7 @@
 	"name": "Canvas Loom",
 	"version": "1.4.1",
 	"minAppVersion": "0.15.0",
-	"description": "为 Obsidian Canvas 添加卡片拼合、拆分、内容复制和添加徽章的功能",
+	"description": "为 Obsidian Canvas 添加卡片拼合、拆分、内容复制和添加标记的功能",
 	"author": "沃辛",
 	"authorUrl": "",
 	"isDesktopOnly": false
