@@ -17,6 +17,7 @@
 - 插件名称：`Canvas Loom`
 - 仓库地址：`https://github.com/woxin667/Canvas-Loom`
 - 默认分支：`main`
+- 发布 tag 格式：`v主版本.次版本.修订版本`
 
 ### 版本文件
 
@@ -72,7 +73,7 @@ npm run build
 
 触发条件：
 
-- 推送符合 `*.*.*` 格式的 Git tag，例如 `1.4.0`
+- 推送符合 `v*.*.*` 的 Git tag，例如 `v1.4.1`
 
 工作流行为：
 
@@ -92,7 +93,7 @@ npm run build
 4. `README.md` 已包含功能说明、安装方式和权限与隐私说明
 5. 仓库中不存在明显无意义的调试日志或演示性质的提交内容
 6. GitHub Release 已包含 `manifest.json`、`main.js`、`styles.css`
-7. Release 版本号与 Git tag 完全一致
+7. GitHub Release 的 tag 与当前仓库约定一致，例如 `v1.4.1`
 
 ## 提交到官方插件市场
 

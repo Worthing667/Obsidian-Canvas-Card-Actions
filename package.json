@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-canvas-loom",
-	"version": "1.4.0",
+	"version": "1.4.1",
 	"description": "为 Obsidian Canvas 添加卡片拼合、拆分、内容复制和添加徽章的功能",
 	"main": "main.js",
 	"scripts": {
