@@ -1057,9 +1057,8 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
     const toolbar = container.createDiv({ cls: "canvas-loom-workbench-toolbar" });
     const modeGroup = toolbar.createDiv({ cls: "canvas-loom-workbench-modes" });
     const meta = toolbar.createDiv({ cls: "canvas-loom-workbench-meta" });
-    this.createModeButton(modeGroup, "position", "位置");
+    this.createPositionModeButton(modeGroup);
     this.createModeButton(modeGroup, "badge", "徽章");
-    this.createModeButton(modeGroup, "manual", "手动");
     const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
     meta.createEl("div", { text: `${this.context.state.canvasFileBasename} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
     meta.createEl("div", { text: `当前模式 ${this.getModeLabel(this.context.state.sortMode)} · 可输出 ${currentCards.length} 张` });
@@ -1069,7 +1068,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
       return;
     }
     const section = container.createDiv({ cls: "canvas-loom-workbench-list-section" });
-    section.createEl("h4", { text: "当前顺序" });
+    section.createEl("h4", { text: this.context.state.sortMode === "badge" ? "按徽章排序" : "按位置排序" });
     const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
     const list = section.createDiv({ cls: "canvas-loom-workbench-list" });
     if (cards.length === 0) {
@@ -1078,11 +1077,10 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
       return;
     }
     cards.forEach((card, index) => {
-      var _a, _b, _c;
       const row = list.createDiv({ cls: "canvas-loom-workbench-row" });
       row.dataset.index = index.toString();
-      row.setAttribute("draggable", String(((_a = this.context) == null ? void 0 : _a.state.sortMode) === "manual"));
-      if (((_b = this.context) == null ? void 0 : _b.state.sortMode) === "manual") {
+      row.setAttribute("draggable", String(this.isPositionModeActive()));
+      if (this.isPositionModeActive()) {
         row.addEventListener("dragstart", (event) => this.onDragStart(event, index));
         row.addEventListener("dragover", (event) => this.onDragOver(event));
         row.addEventListener("dragleave", () => row.classList.remove("is-drop-target"));
@@ -1098,7 +1096,7 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
         const badgeEl = row.createDiv({ cls: "canvas-loom-workbench-badge" });
         badgeEl.setText(card.badge);
       }
-      if (((_c = this.context) == null ? void 0 : _c.state.sortMode) === "manual") {
+      if (this.isPositionModeActive()) {
         const handle = row.createDiv({ cls: "canvas-loom-workbench-handle" });
         handle.setText("⠿");
       }
@@ -1173,6 +1171,26 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
       previewEl.setText(content || "没有可预览的内容");
     }, 200);
   }
+  createPositionModeButton(container) {
+    if (!this.context) {
+      return;
+    }
+    const button = container.createEl("button", {
+      text: "位置",
+      cls: this.isPositionModeActive() ? "mod-cta" : ""
+    });
+    button.addEventListener("click", () => {
+      if (!this.context) {
+        return;
+      }
+      this.context.state = this.workbenchService.setSortMode(
+        this.context.state,
+        "position",
+        this.context.sortPriority
+      );
+      this.render();
+    });
+  }
   createModeButton(container, mode, label) {
     if (!this.context) {
       return;
@@ -1192,6 +1210,9 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
       );
       this.render();
     });
+  }
+  isPositionModeActive() {
+    return !!this.context && this.context.state.sortMode !== "badge";
   }
   createActionButton(container, label, handler, disabled) {
     const button = container.createEl("button", {
@@ -1246,9 +1267,6 @@ var MergeWorkbenchView = class extends import_obsidian7.ItemView {
   getModeLabel(mode) {
     if (mode === "badge") {
       return "徽章";
-    }
-    if (mode === "manual") {
-      return "手动";
     }
     return "位置";
   }

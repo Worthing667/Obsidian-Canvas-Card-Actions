@@ -76,9 +76,8 @@ export class MergeWorkbenchView extends ItemView {
         const modeGroup = toolbar.createDiv({ cls: 'canvas-loom-workbench-modes' });
         const meta = toolbar.createDiv({ cls: 'canvas-loom-workbench-meta' });
 
-        this.createModeButton(modeGroup, 'position', '位置');
+        this.createPositionModeButton(modeGroup);
         this.createModeButton(modeGroup, 'badge', '徽章');
-        this.createModeButton(modeGroup, 'manual', '手动');
 
         const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         meta.createEl('div', { text: `${this.context.state.canvasFileBasename} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
@@ -91,7 +90,7 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         const section = container.createDiv({ cls: 'canvas-loom-workbench-list-section' });
-        section.createEl('h4', { text: '当前顺序' });
+        section.createEl('h4', { text: this.context.state.sortMode === 'badge' ? '按徽章排序' : '按位置排序' });
 
         const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const list = section.createDiv({ cls: 'canvas-loom-workbench-list' });
@@ -105,9 +104,9 @@ export class MergeWorkbenchView extends ItemView {
         cards.forEach((card, index) => {
             const row = list.createDiv({ cls: 'canvas-loom-workbench-row' });
             row.dataset.index = index.toString();
-            row.setAttribute('draggable', String(this.context?.state.sortMode === 'manual'));
+            row.setAttribute('draggable', String(this.isPositionModeActive()));
 
-            if (this.context?.state.sortMode === 'manual') {
+            if (this.isPositionModeActive()) {
                 row.addEventListener('dragstart', (event) => this.onDragStart(event, index));
                 row.addEventListener('dragover', (event) => this.onDragOver(event));
                 row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
@@ -127,7 +126,7 @@ export class MergeWorkbenchView extends ItemView {
                 badgeEl.setText(card.badge);
             }
 
-            if (this.context?.state.sortMode === 'manual') {
+            if (this.isPositionModeActive()) {
             const handle = row.createDiv({ cls: 'canvas-loom-workbench-handle' });
                 handle.setText('⠿');
             }
@@ -217,6 +216,30 @@ export class MergeWorkbenchView extends ItemView {
         }, 200);
     }
 
+    private createPositionModeButton(container: HTMLElement): void {
+        if (!this.context) {
+            return;
+        }
+
+        const button = container.createEl('button', {
+            text: '位置',
+            cls: this.isPositionModeActive() ? 'mod-cta' : ''
+        });
+
+        button.addEventListener('click', () => {
+            if (!this.context) {
+                return;
+            }
+
+            this.context.state = this.workbenchService.setSortMode(
+                this.context.state,
+                'position',
+                this.context.sortPriority
+            );
+            this.render();
+        });
+    }
+
     private createModeButton(container: HTMLElement, mode: MergeOrder, label: string): void {
         if (!this.context) {
             return;
@@ -239,6 +262,10 @@ export class MergeWorkbenchView extends ItemView {
             );
             this.render();
         });
+    }
+
+    private isPositionModeActive(): boolean {
+        return !!this.context && this.context.state.sortMode !== 'badge';
     }
 
     private createActionButton(container: HTMLElement, label: string, handler: () => Promise<void>, disabled: boolean): void {
@@ -304,10 +331,6 @@ export class MergeWorkbenchView extends ItemView {
     private getModeLabel(mode: MergeOrder): string {
         if (mode === 'badge') {
             return '徽章';
-        }
-
-        if (mode === 'manual') {
-            return '手动';
         }
 
         return '位置';
