@@ -1,5 +1,6 @@
 node_modules/
 build/
+main.js
 *.log
 .env
 .DS_Store

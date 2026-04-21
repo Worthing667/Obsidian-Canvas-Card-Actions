@@ -11,6 +11,7 @@
 - [功能-按标记顺序复制内容.md](./功能-按标记顺序复制内容.md)：标记排序输出的单独说明
 - [功能-Canvas卡片尺寸调整.md](./功能-Canvas卡片尺寸调整.md)：拆分和拼合后新卡片的尺寸规则
 - [技术实现-卡片合并.md](./技术实现-卡片合并.md)：多卡片复制、拼合和工作台的实现细节
+- [技术实现-Obsidian官方上架与发布流程.md](./技术实现-Obsidian官方上架与发布流程.md)：官方插件市场提交流程、GitHub Release 约定和仓库提审清单
 
 ## 历史资料
 
@@ -18,4 +19,4 @@
 - [archive/README.md](./archive/README.md)：历史归档索引
 - [archive/版本与重构演进.md](./archive/版本与重构演进.md)
 - [archive/徽章功能设计归档.md](./archive/徽章功能设计归档.md)
-- [archive/交互探索与问题记录.md](./archive/交互探索与问题记录.md)
+- [archive/交互逻辑优化方案.md](./archive/交互逻辑优化方案.md)

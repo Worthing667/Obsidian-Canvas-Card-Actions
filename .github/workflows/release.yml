@@ -1,0 +1,48 @@
+name: 发布插件
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建插件
+        run: npm run build
+
+      - name: 打包发布文件
+        shell: bash
+        run: |
+          mkdir -p release
+          cp manifest.json release/
+          cp main.js release/
+          if [ -f styles.css ]; then
+            cp styles.css release/
+          fi
+          cd release
+          zip -r "../obsidian-canvas-loom-${{ github.ref_name }}.zip" .
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            manifest.json
+            main.js
+            styles.css
+            obsidian-canvas-loom-${{ github.ref_name }}.zip

@@ -261,7 +261,6 @@ export default class CanvasLoomPlugin extends Plugin {
                     const canvasAdapter = new CanvasAdapter(canvas);
                     const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
                     await badgeService.loadCanvasBadges();
-                    console.log(`已加载 ${file.name} 的所有标记`);
                 } catch (error) {
                     console.error("加载 Canvas 标记时出错:", error);
                 }
@@ -329,7 +328,6 @@ export default class CanvasLoomPlugin extends Plugin {
     onunload() {
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
-        console.log("Canvas Loom plugin unloaded");
     }
 
     private registerHotkeys() {
