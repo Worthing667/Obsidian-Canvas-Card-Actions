@@ -14,10 +14,11 @@ export class OpenCardPropertiesCommand {
   ) {}
 
   execute(): Promise<void> {
-    return this.openModal();
+    this.openModal();
+    return Promise.resolve();
   }
 
-  private async openModal(): Promise<void> {
+  private openModal(): void {
     try {
       // 过滤出文本卡片
       const textCards = this.selection.filter(node => {

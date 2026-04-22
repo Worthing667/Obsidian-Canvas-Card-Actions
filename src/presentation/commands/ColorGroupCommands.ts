@@ -11,14 +11,15 @@ export class SelectSameColorCardsCommand implements ICommand {
         private selection: CanvasNode[]
     ) {}
 
-    async execute(): Promise<void> {
+    execute(): Promise<void> {
         const group = this.colorGroupService.selectColorGroup(this.selection);
         if (group.matchedNodes.length === 0) {
             new Notice("没有找到匹配颜色的文本卡片");
-            return;
+            return Promise.resolve();
         }
 
         new Notice(`已选中 ${group.matchedNodes.length} 张匹配颜色的卡片`);
+        return Promise.resolve();
     }
 
     canExecute(): boolean {
