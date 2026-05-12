@@ -5,6 +5,7 @@ import { IContentService, MergeOrder } from "./ContentService";
 import { SortPriority } from "../domain/strategies";
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
+import type { MergeCleanupMode } from "../settings/ICanvasLoomSettings";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
 import type { CanvasNode, CanvasNodeData } from "../types/canvas";
 
@@ -12,6 +13,7 @@ export interface MergeExecutionOptions {
     order?: MergeOrder;
     sortPriority?: SortPriority;
     manualOrderIds?: string[];
+    cleanupMode?: MergeCleanupMode;
 }
 
 export interface OpenWorkbenchOptions {
@@ -19,6 +21,7 @@ export interface OpenWorkbenchOptions {
     sortPriority?: SortPriority;
     previewExpanded?: boolean;
     scopeLabel?: string;
+    cleanupMode?: MergeCleanupMode;
 }
 
 export interface IMergeService {
@@ -61,13 +64,19 @@ export class MergeService implements IMergeService {
             id: `${Math.random().toString(36).slice(2, 11)}`,
             type: 'text',
             text: result.content,
-            x: anchor.x + anchor.width + 40,
+            x: anchor.x,
             y: anchor.y,
             width: anchor.width,
             height: anchor.height
         };
 
         await this.canvasAdapter.addNode(nodeData);
+
+        if (options?.cleanupMode === 'delete-source') {
+            const ids = new Set(selection.map(n => n.id));
+            await this.canvasAdapter.removeNodes(ids);
+        }
+
         await this.canvasAdapter.requestSave();
         new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
         return true;
@@ -144,7 +153,8 @@ export class MergeService implements IMergeService {
                 await this.mergeSnapshotsToCanvasCard(currentState.selectionSnapshot, currentState.canvasFilePath, {
                     order: currentState.sortMode,
                     sortPriority,
-                    manualOrderIds: currentState.manualOrderIds
+                    manualOrderIds: currentState.manualOrderIds,
+                    cleanupMode: options?.cleanupMode
                 });
             },
             onCreateMarkdown: async (currentState: WorkbenchState) => {
@@ -179,7 +189,7 @@ export class MergeService implements IMergeService {
             id: `${Math.random().toString(36).slice(2, 11)}`,
             type: 'text',
             text: result.content,
-            x: anchor.x + anchor.width + 40,
+            x: anchor.x,
             y: anchor.y,
             width: anchor.width,
             height: anchor.height
@@ -195,6 +205,12 @@ export class MergeService implements IMergeService {
         }
 
         await adapter.addNode(nodeData);
+
+        if (options?.cleanupMode === 'delete-source') {
+            const ids = new Set(snapshots.map(s => s.id));
+            await adapter.removeNodes(ids);
+        }
+
         await adapter.requestSave();
         new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
         return true;

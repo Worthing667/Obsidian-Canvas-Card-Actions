@@ -37,6 +37,11 @@ export class CanvasDataModel {
         return new CanvasDataModel(newNodes, this.edges);
     }
 
+    removeNodes(ids: Set<string>): CanvasDataModel {
+        const newNodes = this.nodes.filter(node => !ids.has(node.id));
+        return new CanvasDataModel(newNodes, this.edges);
+    }
+
     toRawData(): CanvasData {
         return {
             nodes: this.nodes,

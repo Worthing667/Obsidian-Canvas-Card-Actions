@@ -17,7 +17,8 @@ export class MergeToCanvasCardCommand implements ICommand {
         const order = this.settings.defaultSortMode === 'badge' ? 'badge' : 'position';
         await this.mergeService.mergeToCanvasCard(this.selection, {
             order,
-            sortPriority: this.settings.sortPriority
+            sortPriority: this.settings.sortPriority,
+            cleanupMode: this.settings.mergeCleanupMode
         });
     }
 
@@ -85,7 +86,8 @@ export class ManualMergeCommand implements ICommand {
         private app: App,
         private mergeService: IMergeService,
         private selection: CanvasNode[],
-        private canvasFile: TFile | null
+        private canvasFile: TFile | null,
+        private settings: CanvasLoomSettings
     ) {}
 
     execute(): Promise<void> {
@@ -97,7 +99,10 @@ export class ManualMergeCommand implements ICommand {
                     text: "新建卡片",
                     cls: "drag-sort-btn drag-sort-btn-primary",
                     onClick: async ({ nodes, modal }) => {
-                        const success = await this.mergeService.mergeToCanvasCard(nodes, { order: 'manual' });
+                        const success = await this.mergeService.mergeToCanvasCard(nodes, {
+                            order: 'manual',
+                            cleanupMode: this.settings.mergeCleanupMode
+                        });
                         if (success) {
                             modal.close();
                         }

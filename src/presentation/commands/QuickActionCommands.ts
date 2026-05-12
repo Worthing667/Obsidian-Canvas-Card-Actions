@@ -41,7 +41,8 @@ export class QuickMergeCommand implements ICommand {
     async execute(): Promise<void> {
         await this.mergeService.mergeToCanvasCard(this.selection, {
             order: this.settings.defaultSortMode,
-            sortPriority: this.settings.sortPriority
+            sortPriority: this.settings.sortPriority,
+            cleanupMode: this.settings.mergeCleanupMode
         });
     }
 
@@ -65,7 +66,8 @@ export class OpenPreviewWorkbenchCommand implements ICommand {
     async execute(): Promise<void> {
         await this.mergeService.openWorkbench(this.selection, this.canvasFile, {
             order: this.settings.defaultSortMode,
-            sortPriority: this.settings.sortPriority
+            sortPriority: this.settings.sortPriority,
+            cleanupMode: this.settings.mergeCleanupMode
         });
     }
 

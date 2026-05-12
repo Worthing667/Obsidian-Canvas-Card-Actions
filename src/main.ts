@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     sortPriority: 'yx',
     enableBadges: true,
     defaultSortMode: 'position',
+    mergeCleanupMode: 'keep-source',
 };
 
 export default class CanvasLoomPlugin extends Plugin {
@@ -449,7 +450,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.registerCanvasSelectionCommand(
             'manual-merge-selected-cards',
             '手动排序拼合选区',
-            ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file)
+            ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file, this.settings)
         );
     }
 

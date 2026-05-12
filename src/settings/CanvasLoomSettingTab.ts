@@ -1,5 +1,6 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import CanvasLoomPlugin from "../main";
+import type { MergeCleanupMode } from "./ICanvasLoomSettings";
 
 export default class CanvasLoomSettingTab extends PluginSettingTab {
 	plugin: CanvasLoomPlugin;
@@ -55,6 +56,18 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.defaultSortMode)
 				.onChange(async (value: 'position' | 'badge') => {
 					this.plugin.settings.defaultSortMode = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('拼合后处理方式')
+			.setDesc('控制拼合完成后对原始卡片的处理方式')
+			.addDropdown(dropdown => dropdown
+				.addOption('keep-source', '拼合后新建卡片（保留原卡片）')
+				.addOption('delete-source', '拼合后新建并删除原卡片')
+				.setValue(this.plugin.settings.mergeCleanupMode)
+				.onChange(async (value: MergeCleanupMode) => {
+					this.plugin.settings.mergeCleanupMode = value;
 					await this.plugin.saveSettings();
 				}));
 	}

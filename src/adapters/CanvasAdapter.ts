@@ -11,6 +11,7 @@ export interface ICanvasAdapter {
     updateNode(nodeData: CanvasNodeData): Promise<void>;
     addNode(nodeData: CanvasNodeData): Promise<void>;
     addNodes(nodes: CanvasNodeData[]): Promise<void>;
+    removeNodes(ids: Set<string>): Promise<void>;
 }
 
 export class CanvasAdapter implements ICanvasAdapter {
@@ -113,6 +114,12 @@ export class CanvasAdapter implements ICanvasAdapter {
     async addNodes(nodes: CanvasNodeData[]): Promise<void> {
         const model = this.getDataModel();
         const updatedModel = model.addNodes(nodes);
+        await this.setDataModel(updatedModel);
+    }
+
+    async removeNodes(ids: Set<string>): Promise<void> {
+        const model = this.getDataModel();
+        const updatedModel = model.removeNodes(ids);
         await this.setDataModel(updatedModel);
     }
 }

@@ -47,6 +47,7 @@ export class OpenSameColorGroupWorkbenchCommand implements ICommand {
             sortPriority: this.settings.sortPriority,
             previewExpanded: true,
             scopeLabel: group.scopeLabel,
+            cleanupMode: this.settings.mergeCleanupMode,
         });
     }
 
