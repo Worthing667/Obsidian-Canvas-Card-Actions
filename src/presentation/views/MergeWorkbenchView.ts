@@ -83,7 +83,7 @@ export class MergeWorkbenchView extends ItemView {
 
         const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         meta.createEl('div', { text: `${this.context.state.canvasFileBasename} · ${this.context.state.scopeLabel} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
-        meta.createEl('div', { text: `当前顺序 ${this.getModeLabel(this.context.state.sortMode)} · 可输出 ${currentCards.length} 张` });
+        meta.createEl('div', { text: `当前顺序 ${this.getCurrentOrderLabel()} · 可输出 ${currentCards.length} 张` });
     }
 
     private renderList(container: HTMLElement): void {
@@ -92,7 +92,7 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         const section = container.createDiv({ cls: 'canvas-loom-workbench-list-section' });
-        section.createEl('h4', { text: this.getListTitle(this.context.state.sortMode) });
+        section.createEl('h4', { text: this.getListTitle() });
 
         const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const list = section.createDiv({ cls: 'canvas-loom-workbench-list' });
@@ -106,15 +106,13 @@ export class MergeWorkbenchView extends ItemView {
         cards.forEach((card, index) => {
             const row = list.createDiv({ cls: 'canvas-loom-workbench-row' });
             row.dataset.index = index.toString();
-            row.setAttribute('draggable', String(this.isPositionModeActive()));
+            row.setAttribute('draggable', 'true');
 
-            if (this.isPositionModeActive()) {
-                row.addEventListener('dragstart', (event) => this.onDragStart(event, index));
-                row.addEventListener('dragover', (event) => this.onDragOver(event));
-                row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
-                row.addEventListener('drop', (event) => this.onDrop(event, index));
-                row.addEventListener('dragend', () => this.onDragEnd());
-            }
+            row.addEventListener('dragstart', (event) => this.onDragStart(event, index));
+            row.addEventListener('dragover', (event) => this.onDragOver(event));
+            row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
+            row.addEventListener('drop', (event) => this.onDrop(event, index));
+            row.addEventListener('dragend', () => this.onDragEnd());
 
             const indexEl = row.createDiv({ cls: 'canvas-loom-workbench-index' });
             indexEl.setText(String(index + 1));
@@ -128,10 +126,8 @@ export class MergeWorkbenchView extends ItemView {
                 badgeEl.setText(card.badge);
             }
 
-            if (this.isPositionModeActive()) {
-                const handle = row.createDiv({ cls: 'canvas-loom-workbench-handle' });
-                handle.setText('⠿');
-            }
+            const handle = row.createDiv({ cls: 'canvas-loom-workbench-handle' });
+            handle.setText('⠿');
         });
     }
 
@@ -242,17 +238,9 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
-    private isPositionModeActive(): boolean {
-        return !!this.context && this.context.state.sortMode !== 'badge';
-    }
-
     private isModeButtonActive(mode: MergeOrder): boolean {
         if (!this.context) {
             return false;
-        }
-
-        if (mode === 'position') {
-            return this.context.state.sortMode !== 'badge';
         }
 
         return this.context.state.sortMode === mode;
@@ -318,6 +306,17 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
+    private getCurrentOrderLabel(): string {
+        if (!this.context) {
+            return '位置';
+        }
+
+        const baseLabel = this.getModeLabel(this.context.state.sortMode);
+        return this.context.state.isManualAdjusted
+            ? `${baseLabel} + 手动调整`
+            : baseLabel;
+    }
+
     private getModeLabel(mode: MergeOrder): string {
         if (mode === 'badge') {
             return '标记';
@@ -326,12 +325,20 @@ export class MergeWorkbenchView extends ItemView {
         return '位置';
     }
 
-    private getListTitle(mode: MergeOrder): string {
-        if (mode === 'badge') {
-            return '按标记排序';
+    private getListTitle(): string {
+        if (!this.context) {
+            return '当前顺序';
         }
 
-        return '按位置排序';
+        if (this.context.state.sortMode === 'badge') {
+            return this.context.state.isManualAdjusted
+                ? '按标记排序并手动调整'
+                : '按标记排序';
+        }
+
+        return this.context.state.isManualAdjusted
+            ? '按位置排序并手动调整'
+            : '按位置排序';
     }
 
     private toPreviewText(text: string): string {

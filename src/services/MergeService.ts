@@ -13,6 +13,7 @@ export interface MergeExecutionOptions {
     order?: MergeOrder;
     sortPriority?: SortPriority;
     manualOrderIds?: string[];
+    includeBadgePrefix?: boolean;
     cleanupMode?: MergeCleanupMode;
 }
 
@@ -50,7 +51,7 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true
         });
 
         if (!result.content || result.count === 0) {
@@ -96,7 +97,7 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true
         });
 
         if (!result.content || result.count === 0) {
@@ -142,27 +143,32 @@ export class MergeService implements IMergeService {
             state,
             sortPriority,
             onCopy: async (currentState: WorkbenchState) => {
+                const order = currentState.isManualAdjusted ? 'manual' : currentState.sortMode;
                 await this.contentService.copyMergedContent({
                     snapshots: currentState.selectionSnapshot,
-                    order: currentState.sortMode,
+                    order,
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
                     includeBadgePrefix: currentState.sortMode === 'badge'
                 }, '已复制工作台当前顺序的内容');
             },
             onCreateCard: async (currentState: WorkbenchState) => {
+                const order = currentState.isManualAdjusted ? 'manual' : currentState.sortMode;
                 await this.mergeSnapshotsToCanvasCard(currentState.selectionSnapshot, currentState.canvasFilePath, {
-                    order: currentState.sortMode,
+                    order,
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
-                    cleanupMode: options?.cleanupMode
+                    cleanupMode: options?.cleanupMode,
+                    includeBadgePrefix: currentState.sortMode === 'badge'
                 });
             },
             onCreateMarkdown: async (currentState: WorkbenchState) => {
+                const order = currentState.isManualAdjusted ? 'manual' : currentState.sortMode;
                 await this.mergeSnapshotsToMarkdown(currentState.selectionSnapshot, currentState.canvasFilePath, {
-                    order: currentState.sortMode,
+                    order,
                     sortPriority,
-                    manualOrderIds: currentState.manualOrderIds
+                    manualOrderIds: currentState.manualOrderIds,
+                    includeBadgePrefix: currentState.sortMode === 'badge'
                 });
             }
         });
@@ -177,7 +183,7 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true
         });
 
         if (!result.content || result.count === 0) {
@@ -223,7 +229,7 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true
         });
 
         if (!result.content || result.count === 0) {

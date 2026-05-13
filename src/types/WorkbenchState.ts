@@ -18,6 +18,7 @@ export interface WorkbenchState {
     selectionSnapshot: CardSnapshot[];
     sortMode: MergeOrder;
     manualOrderIds: string[];
+    isManualAdjusted: boolean;
     previewExpanded: boolean;
     lastComputedContent: string;
 }

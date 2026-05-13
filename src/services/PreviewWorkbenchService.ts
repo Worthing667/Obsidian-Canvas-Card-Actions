@@ -16,47 +16,41 @@ export class PreviewWorkbenchService {
     readonly previewCollapseThreshold = 30;
 
     createState(options: CreateWorkbenchStateOptions): WorkbenchState {
-        const positionSortedCards = this.getPositionSortedTextCards(
-            options.selectionSnapshot,
-            options.sortPriority || 'yx'
-        );
-        const initialManualOrderIds = options.defaultSortMode === 'manual'
-            ? this.getTextCards(options.selectionSnapshot).map(card => card.id)
-            : positionSortedCards.map(card => card.id);
+        const sortPriority = options.sortPriority || 'yx';
+        const initialSortMode = options.defaultSortMode === 'badge' ? 'badge' : 'position';
+        const initialCards = options.defaultSortMode === 'manual'
+            ? this.getTextCards(options.selectionSnapshot)
+            : this.getAutoSortedCards(options.selectionSnapshot, initialSortMode, sortPriority);
 
         return {
             canvasFilePath: options.canvasFilePath,
             canvasFileBasename: options.canvasFileBasename,
             scopeLabel: options.scopeLabel || "当前选区",
             selectionSnapshot: [...options.selectionSnapshot],
-            sortMode: options.defaultSortMode === 'badge' ? 'badge' : 'manual',
-            manualOrderIds: initialManualOrderIds,
+            sortMode: initialSortMode,
+            manualOrderIds: initialCards.map(card => card.id),
+            isManualAdjusted: options.defaultSortMode === 'manual',
             previewExpanded: options.previewExpanded ?? false,
             lastComputedContent: '',
         };
     }
 
     setSortMode(state: WorkbenchState, sortMode: MergeOrder, sortPriority: SortPriority): WorkbenchState {
-        if (state.sortMode === sortMode) {
+        if (sortMode === 'manual') {
             return state;
         }
 
-        if (sortMode === 'position') {
-            const positionCards = this.getPositionSortedTextCards(state.selectionSnapshot, sortPriority);
-            const manualOrderIds = state.manualOrderIds.length > 0
-                ? state.manualOrderIds
-                : positionCards.map(card => card.id);
-
-            return {
-                ...state,
-                sortMode: 'manual',
-                manualOrderIds,
-            };
+        if (state.sortMode === sortMode && !state.isManualAdjusted) {
+            return state;
         }
+
+        const sortedCards = this.getAutoSortedCards(state.selectionSnapshot, sortMode, sortPriority);
 
         return {
             ...state,
             sortMode,
+            manualOrderIds: sortedCards.map(card => card.id),
+            isManualAdjusted: false,
         };
     }
 
@@ -86,25 +80,14 @@ export class PreviewWorkbenchService {
 
         return {
             ...state,
-            sortMode: 'manual',
             manualOrderIds: ids,
+            isManualAdjusted: true,
         };
     }
 
     getOrderedCards(state: WorkbenchState, sortPriority: SortPriority): CardSnapshot[] {
-        const cards = this.getTextCards(state.selectionSnapshot);
-
-        if (state.sortMode === 'badge') {
-            const sorter = new BadgeSortStrategy(sortPriority);
-            return sorter.sort(cards);
-        }
-
-        if (state.sortMode === 'manual') {
-            return this.sortByManualOrder(cards, state.manualOrderIds);
-        }
-
-        const sorter = new PositionSortStrategy(sortPriority);
-        return sorter.sort(cards);
+        const baseCards = this.getAutoSortedCards(state.selectionSnapshot, state.sortMode, sortPriority);
+        return this.sortByManualOrder(baseCards, state.manualOrderIds);
     }
 
     buildPreviewContent(state: WorkbenchState, sortPriority: SortPriority): string {
@@ -122,9 +105,16 @@ export class PreviewWorkbenchService {
         }));
     }
 
-    private getPositionSortedTextCards(cards: CardSnapshot[], sortPriority: SortPriority): CardSnapshot[] {
+    private getAutoSortedCards(cards: CardSnapshot[], sortMode: MergeOrder, sortPriority: SortPriority): CardSnapshot[] {
+        const textCards = this.getTextCards(cards);
+
+        if (sortMode === 'badge') {
+            const sorter = new BadgeSortStrategy(sortPriority);
+            return sorter.sort(textCards);
+        }
+
         const sorter = new PositionSortStrategy(sortPriority);
-        return sorter.sort(this.getTextCards(cards));
+        return sorter.sort(textCards);
     }
 
     private sortByManualOrder(cards: CardSnapshot[], manualOrderIds: string[]): CardSnapshot[] {

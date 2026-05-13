@@ -110,7 +110,7 @@ export class ContentService implements IContentService {
             return { content: '', count: 0 };
         }
 
-        const includeBadgePrefix = options.order === 'badge' && options.includeBadgePrefix !== false;
+        const includeBadgePrefix = options.includeBadgePrefix ?? options.order === 'badge';
         const content = includeBadgePrefix
             ? this.formatBadgedCardsContent(
                 orderedCards.map(card => ({ text: card.text, badge: card.badge }))
