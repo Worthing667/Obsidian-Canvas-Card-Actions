@@ -60,8 +60,12 @@ export class CardPropertiesModal extends Modal {
     contentEl.addClass("canvas-loom-card-properties-modal");
     
     // 标题
-    contentEl.createEl("h2", { text: "管理卡片属性" });
-    
+    contentEl.createEl("h2", { text: "卡片属性" });
+    contentEl.createDiv({
+      cls: "cl-subtitle",
+      text: `已选中 ${this.cardInfos.length} 张卡片，可批量查看与调整尺寸。`
+    });
+
     // 统计信息
     this.createStatisticsSection(contentEl);
     
@@ -80,37 +84,35 @@ export class CardPropertiesModal extends Modal {
 
   private createStatisticsSection(container: HTMLElement): void {
     const stats = this.calculateStatistics();
-    
-    // 创建统计信息区域
-    const statsSection = container.createDiv({ cls: "cca-stats-section" });
-    const statsGrid = statsSection.createDiv({ cls: "cca-grid-cols-3" });
-    
-    // 选中卡片数量
-    const countItem = statsGrid.createDiv({ cls: "cca-stat-item" });
-    countItem.createDiv({ cls: "cca-stat-label", text: "选中卡片" });
-    countItem.createDiv({ cls: "cca-stat-value highlight", text: String(stats.count) });
-    countItem.createDiv({ cls: "cca-stat-detail", text: "张卡片" });
-    
-    // 尺寸范围
-    const sizeItem = statsGrid.createDiv({ cls: "cca-stat-item" });
-    sizeItem.createDiv({ cls: "cca-stat-label", text: "尺寸范围" });
-    sizeItem.createDiv({ cls: "cca-stat-value", text: `${stats.avgWidth}×${stats.avgHeight}` });
-    const sizeDetail = sizeItem.createDiv({ cls: "cca-stat-detail" });
-    sizeDetail.createDiv({ text: `宽 ${stats.minWidth}-${stats.maxWidth}px` });
-    sizeDetail.createDiv({ text: `高 ${stats.minHeight}-${stats.maxHeight}px` });
-    
-    // 位置范围
-    const positionItem = statsGrid.createDiv({ cls: "cca-stat-item" });
-    positionItem.createDiv({ cls: "cca-stat-label", text: "位置范围" });
-    positionItem.createDiv({ cls: "cca-stat-value", text: `X: ${stats.minX}-${stats.maxX}` });
-    positionItem.createDiv({ cls: "cca-stat-detail", text: `Y: ${stats.minY}-${stats.maxY}` });
+
+    const statsSection = container.createDiv({ cls: "cl-section cl-summary" });
+
+    // 已选中
+    const countItem = statsSection.createDiv({ cls: "summary-item" });
+    countItem.createDiv({ cls: "summary-label", text: "已选中" });
+    countItem.createDiv({ cls: "summary-value", text: `${stats.count} 张卡片` });
+    countItem.createDiv({ cls: "summary-note", text: "按位置排序" });
+
+    // 尺寸
+    const sizeItem = statsSection.createDiv({ cls: "summary-item" });
+    sizeItem.createDiv({ cls: "summary-label", text: "尺寸" });
+    sizeItem.createDiv({ cls: "summary-value", text: `宽 ${stats.minWidth}–${stats.maxWidth} px` });
+    sizeItem.createDiv({ cls: "summary-note", text: `高 ${stats.minHeight}–${stats.maxHeight}，平均 ${stats.avgWidth} × ${stats.avgHeight}` });
+
+    // 位置
+    const positionItem = statsSection.createDiv({ cls: "summary-item" });
+    positionItem.createDiv({ cls: "summary-label", text: "位置" });
+    positionItem.createDiv({ cls: "summary-value", text: `X ${stats.minX}–${stats.maxX}` });
+    positionItem.createDiv({ cls: "summary-note", text: `Y ${stats.minY}–${stats.maxY}` });
   }
 
   private createCardList(container: HTMLElement): void {
-    // 删除了"预览"标题，直接创建表格
-    
-    // 创建表格容器
-    const tableContainer = container.createDiv({ cls: "table-container" });
+    const tableContainer = container.createDiv({ cls: "cl-section cl-table-wrap" });
+
+    // Section header
+    const sectionHeader = tableContainer.createDiv({ cls: "cl-section-header" });
+    sectionHeader.createEl("h3", { cls: "cl-section-title", text: "卡片列表" });
+    sectionHeader.createDiv({ cls: "cl-section-meta", text: `${this.cardInfos.length} items` });
     
     // 创建表格
     const table = tableContainer.createEl("table");
@@ -153,94 +155,93 @@ export class CardPropertiesModal extends Modal {
       const badgeCell = row.createEl("td", { cls: "col-badge" });
       if (info.hasBadge) {
         badgeCell.createEl("span", { 
-          cls: "layer-badge",
+          cls: "badge",
           text: info.badgeContent || ""
         });
       } else {
-        badgeCell.createEl("span", { text: "-" });
+        badgeCell.createEl("span", { cls: "empty-text", text: "—" });
       }
     });
   }
 
   private createBatchActions(container: HTMLElement): void {
-    // 创建操作区域容器 - 改为双栏布局
-    const operationsContainer = container.createDiv({ cls: "operations-container" });
-    
-    // 批量操作组 - 左栏
-    const operationGroup = operationsContainer.createDiv({ cls: "cca-stats-section" });
-    operationGroup.createEl("h3", { cls: "cca-section-title", text: "批量操作" });
-    
-    // 创建按钮组容器
-    const buttonGroup = operationGroup.createDiv({ cls: "button-group" });
-    
-    // 统一为最小尺寸按钮
-    const minSizeBtn = buttonGroup.createEl("button", { 
-      text: "统一为最小尺寸", 
-      cls: "btn-option active" 
-    });
-    minSizeBtn.addEventListener("click", () => {
-      this.updateButtonStates(minSizeBtn, buttonGroup);
-      void this.unifyToSize("min");
-    });
-    
-    // 统一为最大尺寸按钮
-    const maxSizeBtn = buttonGroup.createEl("button", { 
-      text: "统一为最大尺寸", 
-      cls: "btn-option" 
-    });
-    maxSizeBtn.addEventListener("click", () => {
-      this.updateButtonStates(maxSizeBtn, buttonGroup);
-      void this.unifyToSize("max");
-    });
-    
-    // 统一为平均尺寸按钮
-    const avgSizeBtn = buttonGroup.createEl("button", { 
-      text: "统一为平均尺寸", 
-      cls: "btn-option" 
-    });
-    avgSizeBtn.addEventListener("click", () => {
-      this.updateButtonStates(avgSizeBtn, buttonGroup);
-      const stats = this.calculateStatistics();
-      void this.unifyToCustomSize(stats.avgWidth, stats.avgHeight);
-    });
-    
-    // 自定义尺寸操作组 - 右栏
-    const customSizeGroup = operationsContainer.createDiv({ cls: "cca-stats-section" });
-    customSizeGroup.createEl("h3", { cls: "cca-section-title", text: "自定义尺寸" });
-    
-    // 创建紧凑的自定义输入区域
-    const sizeInputs = customSizeGroup.createDiv({ cls: "size-inputs-compact" });
-    
-    // 宽度输入组
-    const widthGroup = sizeInputs.createDiv({ cls: "input-compact" });
-    widthGroup.createEl("label", { text: "宽", cls: "input-label-compact" });
-    this.widthInput = widthGroup.createEl("input", {
+    const operationsSection = container.createDiv({ cls: "cl-section" });
+
+    // Section header
+    const sectionHeader = operationsSection.createDiv({ cls: "cl-section-header" });
+    sectionHeader.createEl("h3", { cls: "cl-section-title", text: "批量调整" });
+    sectionHeader.createDiv({ cls: "cl-section-meta", text: "预设会填入下方尺寸" });
+
+    // 尺寸预设
+    operationsSection.createDiv({ cls: "editor-label", text: "尺寸预设" });
+    const presetRow = operationsSection.createDiv({ cls: "preset-row" });
+
+    const minSizeBtn = presetRow.createEl("button", { text: "最小尺寸", cls: "preset-btn" });
+    const maxSizeBtn = presetRow.createEl("button", { text: "最大尺寸", cls: "preset-btn" });
+    const avgSizeBtn = presetRow.createEl("button", { text: "平均尺寸", cls: "preset-btn" });
+
+    // 自定义尺寸
+    operationsSection.createDiv({ cls: "editor-label", text: "自定义尺寸" });
+    const dimensionRow = operationsSection.createDiv({ cls: "dimension-row" });
+
+    // 宽度
+    const widthField = dimensionRow.createDiv({ cls: "field" });
+    widthField.createEl("label", { text: "宽度" });
+    const widthInputWrap = widthField.createDiv({ cls: "input-with-unit" });
+    this.widthInput = widthInputWrap.createEl("input", {
       type: "number",
       value: "",
-      attr: { min: "50", max: "2000", placeholder: "留空不变" }
+      attr: { min: "50", max: "2000", placeholder: "不修改" }
     });
-    
-    // 高度输入组
-    const heightGroup = sizeInputs.createDiv({ cls: "input-compact" });
-    heightGroup.createEl("label", { text: "高", cls: "input-label-compact" });
-    this.heightInput = heightGroup.createEl("input", {
-      type: "number", 
+    widthInputWrap.createSpan({ cls: "unit", text: "px" });
+
+    // 高度
+    const heightField = dimensionRow.createDiv({ cls: "field" });
+    heightField.createEl("label", { text: "高度" });
+    const heightInputWrap = heightField.createDiv({ cls: "input-with-unit" });
+    this.heightInput = heightInputWrap.createEl("input", {
+      type: "number",
       value: "",
-      attr: { min: "50", max: "2000", placeholder: "留空不变" }
+      attr: { min: "50", max: "2000", placeholder: "不修改" }
+    });
+    heightInputWrap.createSpan({ cls: "unit", text: "px" });
+
+    // 锁定比例（与宽高同行）
+    const aspectToggleLabel = dimensionRow.createEl("label", { cls: "ratio-toggle" });
+    this.aspectToggle = aspectToggleLabel.createEl("input", { type: "checkbox" });
+    aspectToggleLabel.createSpan({ cls: "ratio-icon", text: "🔗" });
+    aspectToggleLabel.createSpan({ text: "锁定比例" });
+
+    // Hint
+    operationsSection.createDiv({
+      cls: "editor-hint",
+      text: "留空表示不修改该维度。有效范围：50–2000 px。"
     });
 
-    // 锁定宽高比控制
-    const aspectToggleDiv = customSizeGroup.createDiv({ cls: "aspect-ratio-toggle" });
-    this.aspectToggle = aspectToggleDiv.createEl("input", {
-      type: "checkbox"
-    });
-    aspectToggleDiv.createSpan({ text: "锁定宽高比（等比例调整）" });
+    // 预设按钮：只填输入框，不立即执行
+    const fillInputs = (width: number, height: number) => {
+      this.widthInput.value = width.toString();
+      this.heightInput.value = height.toString();
+    };
 
-    // 初始化宽高比（使用当前选中卡片的平均宽高比）
+    minSizeBtn.addEventListener("click", () => {
+      const stats = this.calculateStatistics();
+      fillInputs(stats.minWidth, stats.minHeight);
+    });
+
+    maxSizeBtn.addEventListener("click", () => {
+      const stats = this.calculateStatistics();
+      fillInputs(stats.maxWidth, stats.maxHeight);
+    });
+
+    avgSizeBtn.addEventListener("click", () => {
+      const stats = this.calculateStatistics();
+      fillInputs(stats.avgWidth, stats.avgHeight);
+    });
+
+    // 宽高比逻辑
     const stats = this.calculateStatistics();
     const aspectRatio = stats.avgWidth / stats.avgHeight;
-
-    // 设置初始输入框状态
     this.setupAspectRatioLogic(aspectRatio);
 
     // 回车键支持
@@ -250,25 +251,6 @@ export class CardPropertiesModal extends Modal {
           void this.applyCustomSize();
         }
       });
-    });
-    
-    // 添加事件监听器，根据按钮选择自动填充自定义尺寸
-    minSizeBtn.addEventListener("click", () => {
-      const stats = this.calculateStatistics();
-      this.widthInput.value = stats.minWidth.toString();
-      this.heightInput.value = stats.minHeight.toString();
-    });
-    
-    maxSizeBtn.addEventListener("click", () => {
-      const stats = this.calculateStatistics();
-      this.widthInput.value = stats.maxWidth.toString();
-      this.heightInput.value = stats.maxHeight.toString();
-    });
-    
-    avgSizeBtn.addEventListener("click", () => {
-      const stats = this.calculateStatistics();
-      this.widthInput.value = stats.avgWidth.toString();
-      this.heightInput.value = stats.avgHeight.toString();
     });
   }
 
@@ -320,62 +302,51 @@ export class CardPropertiesModal extends Modal {
     });
   }
   
-  // 辅助方法：更新按钮状态
-  private updateButtonStates(activeButton: HTMLElement, container: HTMLElement): void {
-    // 移除同组其他按钮的active类
-    const buttons = container.querySelectorAll('.btn-option');
-    buttons.forEach(button => {
-      button.classList.remove('active');
-    });
-    
-    // 为点击的按钮添加active类
-    activeButton.classList.add('active');
-  }
-
   private createCopySection(container: HTMLElement): void {
-    // 创建底部操作
-    const actionFooter = container.createDiv({ cls: "cca-action-footer" });
-    
-    // 复制所有卡片的尺寸信息
-    const copyAllSizesBtn = actionFooter.createEl("button", {
-      text: "复制所有卡片尺寸",
-      cls: "cca-btn cca-btn-secondary"
+    const actionFooter = container.createDiv({ cls: "cl-footer" });
+
+    const footerLeft = actionFooter.createDiv({ cls: "footer-left" });
+
+    const copyAllSizesBtn = footerLeft.createEl("button", {
+      text: "复制尺寸",
+      cls: "cl-btn cl-btn-secondary"
     });
-    
     copyAllSizesBtn.addEventListener("click", () => {
-      const sizeList = this.cardInfos.map((card, index) => 
+      const sizeList = this.cardInfos.map((card, index) =>
         `${index + 1}. ${card.width} × ${card.height} px`
       ).join('\n');
-      
       const sizeInfo = `批量卡片尺寸 (${this.cardInfos.length}张):\n${sizeList}`;
       const clipboardAdapter = new ClipboardAdapter();
       void clipboardAdapter.writeTextWithNotice(sizeInfo, "所有卡片尺寸已复制到剪贴板");
     });
 
-    // 复制统计信息
-    const copyStatsBtn = actionFooter.createEl("button", {
-      text: "复制统计信息",
-      cls: "cca-btn cca-btn-info"
+    const copyStatsBtn = footerLeft.createEl("button", {
+      text: "复制摘要",
+      cls: "cl-btn cl-btn-secondary"
     });
-    
     copyStatsBtn.addEventListener("click", () => {
       const stats = this.calculateStatistics();
       const statsInfo = `卡片统计信息:
-数量: ${stats.count}张   
-尺寸范围: 宽 ${stats.minWidth}-${stats.maxWidth}px, 高 ${stats.minHeight}-${stats.maxHeight}px  
+数量: ${stats.count}张
+尺寸范围: 宽 ${stats.minWidth}-${stats.maxWidth}px, 高 ${stats.minHeight}-${stats.maxHeight}px
 平均尺寸: ${stats.avgWidth} × ${stats.avgHeight}px
 位置范围: X: ${stats.minX}-${stats.maxX}, Y: ${stats.minY}-${stats.maxY}`;
-
       const clipboardAdapter = new ClipboardAdapter();
       void clipboardAdapter.writeTextWithNotice(statsInfo, "统计信息已复制到剪贴板");
     });
 
-    // 应用更改按钮
-    const applyBtn = actionFooter.createEl("button", {
-      text: "应用更改",
-      cls: "cca-btn cca-btn-primary"
+    const footerRight = actionFooter.createDiv({ cls: "footer-right" });
+
+    const cancelBtn = footerRight.createEl("button", {
+      text: "取消",
+      cls: "cl-btn cl-btn-ghost"
     });
-    
+    cancelBtn.addEventListener("click", () => this.close());
+
+    const applyBtn = footerRight.createEl("button", {
+      text: "应用更改",
+      cls: "cl-btn cl-btn-primary"
+    });
     applyBtn.addEventListener("click", () => {
       void this.applyCustomSize();
     });

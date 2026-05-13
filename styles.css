@@ -145,6 +145,7 @@
     padding-top: 20px;
     border-top: 1px solid var(--background-modifier-border);
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .cca-btn {
@@ -184,6 +185,25 @@
 
 .cca-btn-info:hover {
     background: var(--background-modifier-hover);
+}
+
+.cca-footer-secondary {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+}
+
+.cca-footer-secondary .cca-btn {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    font-size: 13px;
+}
+
+.cca-action-footer .cca-btn-primary {
+    flex: 0 0 auto;
+    min-width: 140px;
+    padding: 12px 28px;
+    font-weight: 600;
 }
 
 .canvas-loom-badge-input-container {
@@ -226,18 +246,11 @@
     gap: 10px;
 }
 
-.canvas-loom-card-properties-modal .table-container {
-    background: var(--background-secondary-alt);
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid var(--background-modifier-border);
-    margin-bottom: 24px;
-}
-
 .canvas-loom-card-properties-modal table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    font-size: 13px;
 }
 
 .canvas-loom-card-properties-modal thead {
@@ -245,54 +258,59 @@
 }
 
 .canvas-loom-card-properties-modal th {
-    text-align: left;
-    padding: 10px 8px;
-    font-weight: 500;
+    height: 36px;
+    padding: 0 10px;
     color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 12px;
+    font-weight: 650;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.018);
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .canvas-loom-card-properties-modal td {
-    padding: 10px 8px;
+    height: 42px;
+    padding: 0 10px;
     color: var(--text-muted);
-    border-bottom: 1px solid rgba(var(--mono-rgb-100), 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.045);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .canvas-loom-card-properties-modal .col-index {
-    width: 8%;
+    width: 42px;
+    color: var(--text-faint);
 }
 
 .canvas-loom-card-properties-modal .col-preview {
-    width: 40%;
+    width: auto;
 }
 
 .canvas-loom-card-properties-modal .col-size {
-    width: 18%;
+    width: 104px;
 }
 
 .canvas-loom-card-properties-modal .col-position {
-    width: 20%;
+    width: 118px;
 }
 
 .canvas-loom-card-properties-modal .col-badge {
-    width: 14%;
+    width: 58px;
+    text-align: center;
 }
 
-.canvas-loom-card-properties-modal tbody tr {
-    transition: background 0.2s;
-}
-
-.canvas-loom-card-properties-modal tbody tr:hover {
+.canvas-loom-card-properties-modal tbody tr:hover td {
     background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.canvas-loom-card-properties-modal tbody tr:last-child td {
+    border-bottom: none;
 }
 
 .preview-text {
-    color: var(--text-faint);
+    color: var(--text-normal);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -320,6 +338,18 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.cca-batch-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.cca-batch-btn-row .btn-option {
+    flex: 1;
+    min-width: 120px;
 }
 
 .btn-option {
@@ -759,11 +789,367 @@
     color: var(--text-muted);
 }
 
+/* === Card Properties Panel (redesigned) === */
+
+.cl-section {
+    background: var(--background-secondary-alt);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m, 10px);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.cl-subtitle {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* Summary grid */
+
+.cl-summary {
+    display: grid;
+    grid-template-columns: 0.8fr 1.35fr 1.05fr;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.summary-item {
+    padding: 14px 16px;
+    min-width: 0;
+}
+
+.summary-item + .summary-item {
+    border-left: 1px solid var(--background-modifier-border);
+}
+
+.summary-label {
+    margin-bottom: 7px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.summary-value {
+    font-size: 16px;
+    line-height: 1.35;
+    font-weight: 650;
+    color: var(--text-normal);
+    white-space: nowrap;
+}
+
+.summary-note {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-faint);
+    white-space: nowrap;
+}
+
+/* Section header */
+
+.cl-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cl-section-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--text-normal);
+}
+
+.cl-section-meta {
+    font-size: 12px;
+    color: var(--text-faint);
+}
+
+/* Table wrap */
+
+.cl-table-wrap {
+    overflow: hidden;
+    padding: 0;
+}
+
+.cl-table-wrap .cl-section-header {
+    padding: 14px 16px 10px;
+    margin-bottom: 0;
+}
+
+/* Badge pill */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: rgba(124, 109, 242, 0.18);
+    color: #bfb7ff;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+/* Editor */
+
+.editor-label {
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.editor-hint {
+    margin-top: 9px;
+    font-size: 12px;
+    color: var(--text-faint);
+}
+
+/* Preset buttons */
+
+.preset-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.preset-btn {
+    height: 34px;
+    border-radius: var(--radius-s, 6px);
+    border: 1px solid var(--background-modifier-border);
+    background: var(--interactive-normal);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 550;
+    cursor: pointer;
+}
+
+.preset-btn:hover {
+    background: var(--interactive-hover);
+    color: var(--text-normal);
+    border-color: #4a5362;
+}
+
+/* Dimension row */
+
+.dimension-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.field {
+    min-width: 0;
+}
+
+.field label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Input with unit */
+
+.input-with-unit {
+    position: relative;
+}
+
+.input-with-unit input {
+    width: 100%;
+    height: 36px;
+    padding: 0 34px 0 10px;
+    border-radius: var(--radius-s, 6px);
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 13px;
+    outline: none;
+}
+
+.input-with-unit input::placeholder {
+    color: var(--text-faint);
+}
+
+.input-with-unit input:focus {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px rgba(124, 109, 242, 0.22);
+}
+
+.unit {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-faint);
+    font-size: 12px;
+    pointer-events: none;
+}
+
+/* Aspect ratio toggle */
+
+.ratio-toggle {
+    height: 36px;
+    padding: 0 11px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s, 6px);
+    background: var(--background-primary);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.ratio-toggle:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.ratio-toggle input {
+    margin: 0;
+    cursor: pointer;
+}
+
+.ratio-icon {
+    color: var(--text-faint);
+}
+
+/* Preview box */
+
+.preview-box {
+    padding: 12px;
+    border-radius: var(--radius-s, 6px);
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.65;
+    max-height: 98px;
+    overflow: hidden;
+}
+
+/* Footer */
+
+.cl-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Buttons */
+
+.cl-btn {
+    height: 34px;
+    padding: 0 13px;
+    border-radius: var(--radius-s, 6px);
+    border: 1px solid var(--background-modifier-border);
+    font-size: 13px;
+    font-weight: 550;
+    cursor: pointer;
+}
+
+.cl-btn-secondary {
+    background: var(--interactive-normal);
+    color: var(--text-muted);
+}
+
+.cl-btn-secondary:hover {
+    background: var(--interactive-hover);
+    color: var(--text-normal);
+}
+
+.cl-btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.cl-btn-ghost:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.cl-btn-primary {
+    min-width: 108px;
+    border-color: var(--interactive-accent);
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.cl-btn-primary:hover {
+    background: var(--interactive-accent-hover);
+}
+
+/* Empty text */
+
+.empty-text {
+    color: var(--text-faint);
+}
+
+/* === End Card Properties Panel === */
+
 @media (max-width: 640px) {
     .cca-grid-cols-2,
-    .cca-grid-cols-3,
-    .operations-container {
+    .cca-grid-cols-3 {
         grid-template-columns: 1fr;
         gap: 16px;
+    }
+
+    .cca-batch-btn-row {
+        flex-direction: column;
+    }
+
+    .cl-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-item + .summary-item {
+        border-left: none;
+        border-top: 1px solid var(--background-modifier-border);
+    }
+
+    .dimension-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ratio-toggle {
+        grid-column: 1 / -1;
+        justify-content: center;
+    }
+
+    .cl-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .footer-left,
+    .footer-right {
+        width: 100%;
+    }
+
+    .cl-btn {
+        flex: 1;
     }
 }
