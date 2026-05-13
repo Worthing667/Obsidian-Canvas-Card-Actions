@@ -179,7 +179,8 @@ export default class CanvasLoomPlugin extends Plugin {
                 this.app,
                 this.cardService,
                 [node],
-                this.clipboardAdapter
+                this.clipboardAdapter,
+                this.settings.sortPriority
             );
 
             this.commandRegistry.registerCommand("open-single-card-properties", propertiesCommand);
@@ -229,7 +230,8 @@ export default class CanvasLoomPlugin extends Plugin {
             this.app,
             this.cardService,
             selectionArray,
-            this.clipboardAdapter
+            this.clipboardAdapter,
+            this.settings.sortPriority
         );
         this.commandRegistry.registerCommand("open-card-properties", propertiesCommand);
         this.commandRegistry.addCommandToMenu(menu, "open-card-properties", "管理卡片属性", "settings");
@@ -370,7 +372,8 @@ export default class CanvasLoomPlugin extends Plugin {
                         this.app,
                         this.cardService,
                         context.selection,
-                        this.clipboardAdapter
+                        this.clipboardAdapter,
+                        this.settings.sortPriority
                     );
                     void command.execute();
                 }

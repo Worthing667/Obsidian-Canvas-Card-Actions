@@ -23,11 +23,16 @@ export class CardPropertiesModal extends Modal {
   private widthInput: HTMLInputElement;
   private heightInput: HTMLInputElement;
   private aspectToggle: HTMLInputElement;
+  private directionSelect: HTMLSelectElement;
+  private spacingInput: HTMLInputElement;
+  private sortPrioritySelect: HTMLSelectElement;
+  private defaultSortPriority: 'yx' | 'xy';
 
-  constructor(app: App, cards: CanvasNode[], cardService: CardService) {
+  constructor(app: App, cards: CanvasNode[], cardService: CardService, defaultSortPriority: 'yx' | 'xy' = 'yx') {
     super(app);
     this.cards = cards;
     this.cardService = cardService;
+    this.defaultSortPriority = defaultSortPriority;
     this.processCardData();
   }
 
@@ -75,8 +80,9 @@ export class CardPropertiesModal extends Modal {
     // 批量操作区域 - 只有在多卡片时才显示
     if (this.cardInfos.length > 1) {
       this.createBatchActions(contentEl);
+      this.createArrangeSection(contentEl);
     }
-    
+
     // 复制功能区域
     this.createCopySection(contentEl);
     
@@ -302,6 +308,86 @@ export class CardPropertiesModal extends Modal {
     });
   }
   
+  private createArrangeSection(container: HTMLElement): void {
+    const arrangeSection = container.createDiv({ cls: "cl-section" });
+
+    const sectionHeader = arrangeSection.createDiv({ cls: "cl-section-header" });
+    sectionHeader.createEl("h3", { cls: "cl-section-title", text: "一键排列" });
+    sectionHeader.createDiv({ cls: "cl-section-meta", text: "按指定方向和间距重新排列卡片位置" });
+
+    // 排列方向
+    arrangeSection.createDiv({ cls: "editor-label", text: "排列方向" });
+    const directionRow = arrangeSection.createDiv({ cls: "dimension-row" });
+    this.directionSelect = directionRow.createEl("select");
+    this.directionSelect.createEl("option", { text: "水平（左→右）", value: "horizontal" });
+    this.directionSelect.createEl("option", { text: "垂直（上→下）", value: "vertical" });
+
+    // 卡片间距
+    arrangeSection.createDiv({ cls: "editor-label", text: "卡片间距" });
+    const spacingRow = arrangeSection.createDiv({ cls: "dimension-row" });
+    const spacingField = spacingRow.createDiv({ cls: "field" });
+    const spacingInputWrap = spacingField.createDiv({ cls: "input-with-unit" });
+    this.spacingInput = spacingInputWrap.createEl("input", {
+      type: "number",
+      value: this.cardService.defaultCardSpacing.toString(),
+      attr: { min: "0", max: "500", placeholder: "20" }
+    });
+    spacingInputWrap.createSpan({ cls: "unit", text: "px" });
+
+    // 排列顺序
+    arrangeSection.createDiv({ cls: "editor-label", text: "排列顺序" });
+    const sortRow = arrangeSection.createDiv({ cls: "dimension-row" });
+    this.sortPrioritySelect = sortRow.createEl("select");
+    this.sortPrioritySelect.createEl("option", {
+      text: "按位置（从上到下，从左到右）",
+      value: "yx"
+    });
+    this.sortPrioritySelect.createEl("option", {
+      text: "按位置（从左到右，从上到下）",
+      value: "xy"
+    });
+    this.sortPrioritySelect.value = this.defaultSortPriority;
+
+    // Hint
+    arrangeSection.createDiv({
+      cls: "editor-hint",
+      text: "第一张卡片位置不变，其余卡片依次排列。有效间距：0–500 px。"
+    });
+
+    // 排列按钮
+    const arrangeBtnRow = arrangeSection.createDiv({ cls: "cl-footer" });
+    const arrangeBtn = arrangeBtnRow.createEl("button", {
+      text: "排列卡片",
+      cls: "cl-btn cl-btn-primary"
+    });
+    arrangeBtn.addEventListener("click", () => {
+      void this.applyArrange();
+    });
+  }
+
+  private async applyArrange(): Promise<void> {
+    const direction = this.directionSelect.value as 'horizontal' | 'vertical';
+    const spacing = parseInt(this.spacingInput.value) || 0;
+
+    if (spacing < 0 || spacing > 500) {
+      new Notice("间距值必须在 0-500 像素范围内");
+      return;
+    }
+
+    try {
+      await this.cardService.arrangeCards(this.cards, {
+        direction,
+        spacing,
+        sortPriority: this.sortPrioritySelect.value as 'yx' | 'xy'
+      });
+      this.close();
+    } catch (error) {
+      console.error("排列卡片失败:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice("排列卡片失败: " + message);
+    }
+  }
+
   private createCopySection(container: HTMLElement): void {
     const actionFooter = container.createDiv({ cls: "cl-footer" });
 
