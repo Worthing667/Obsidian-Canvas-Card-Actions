@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canvas Loom 预览工作台 UI 原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f4;
+      --panel: #ffffff;
+      --panel-soft: #f0f3ef;
+      --ink: #20231f;
+      --muted: #6f746c;
+      --faint: #a4aaa1;
+      --line: #dfe4dc;
+      --line-strong: #cbd2c7;
+      --accent: #256f5a;
+      --accent-strong: #174d40;
+      --accent-soft: #dcece6;
+      --warning: #9a5b16;
+      --warning-soft: #f5ead9;
+      --blue: #2f5f92;
+      --blue-soft: #dfeaf6;
+      --shadow: 0 18px 50px rgba(30, 42, 32, .12);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.78), rgba(246,247,244,.94)),
+        radial-gradient(circle at 18% 12%, rgba(37,111,90,.10), transparent 32%),
+        radial-gradient(circle at 88% 4%, rgba(47,95,146,.10), transparent 29%);
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .prototype-shell {
+      width: min(1180px, 100%);
+      min-height: 760px;
+      background: #eef1eb;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: minmax(360px, 460px) minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .workbench {
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      min-width: 0;
+    }
+
+    .topbar {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 14px;
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: 0;
+      font-weight: 680;
+    }
+
+    .source {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .status-pill {
+      flex: 0 0 auto;
+      min-width: 86px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: right;
+    }
+
+    .status-pill strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 720;
+    }
+
+    .status-pill span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .mode-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+    }
+
+    .mode {
+      border: 0;
+      background: transparent;
+      min-height: 34px;
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .mode svg,
+    .icon-button svg,
+    .action svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2;
+    }
+
+    .mode.is-active {
+      background: var(--panel);
+      color: var(--accent-strong);
+      box-shadow: 0 1px 3px rgba(20, 34, 24, .12);
+      font-weight: 650;
+    }
+
+    .logic-bar {
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: #fbfcfa;
+    }
+
+    .logic-label {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      min-width: 0;
+    }
+
+    .logic-label strong {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .icon-button {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .card-list {
+      min-height: 0;
+      overflow: auto;
+      padding: 12px 12px 14px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      background:
+        linear-gradient(180deg, rgba(240,243,239,.72), rgba(255,255,255,.4)),
+        var(--panel);
+    }
+
+    .card-row {
+      min-height: 68px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 10px 10px 8px;
+      position: relative;
+    }
+
+    .card-row::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      border-radius: 8px 0 0 8px;
+      background: var(--line);
+    }
+
+    .card-row[data-color="green"]::before {
+      background: #36a06f;
+    }
+
+    .card-row[data-color="blue"]::before {
+      background: #4c79a8;
+    }
+
+    .card-row[data-color="yellow"]::before {
+      background: #d39a28;
+    }
+
+    .card-row.is-focus {
+      border-color: rgba(37,111,90,.38);
+      box-shadow: 0 0 0 2px rgba(37,111,90,.08);
+    }
+
+    .order {
+      color: var(--faint);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .card-main {
+      min-width: 0;
+      display: grid;
+      gap: 5px;
+    }
+
+    .card-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 620;
+      line-height: 1.3;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .coordinate {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .handle {
+      width: 28px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: var(--faint);
+      background: #fafbf9;
+      cursor: grab;
+    }
+
+    .handle svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .output-panel {
+      border-top: 1px solid var(--line);
+      background: #fbfcfa;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview-toggle {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      cursor: pointer;
+      text-align: left;
+      color: var(--ink);
+    }
+
+    .preview-toggle strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    .preview-toggle span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .preview-text {
+      max-height: 182px;
+      overflow: auto;
+      margin: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #2d312c;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.65;
+      display: none;
+    }
+
+    .output-panel.is-expanded .preview-text {
+      display: block;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .action {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .canvas-context {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      background: #e7ebe4;
+    }
+
+    .context-head {
+      padding: 18px 20px 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      border-bottom: 1px solid rgba(0,0,0,.06);
+    }
+
+    .context-head h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .context-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .canvas-map {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(110, 121, 106, .12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(110, 121, 106, .12) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .map-card {
+      position: absolute;
+      width: 178px;
+      min-height: 86px;
+      border-radius: 8px;
+      border: 1px solid rgba(43, 51, 42, .16);
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 10px 24px rgba(51, 62, 48, .10);
+      padding: 12px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .map-card small {
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .map-card strong {
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .map-card:nth-of-type(1) {
+      left: 8%;
+      top: 9%;
+      border-top: 4px solid #36a06f;
+    }
+
+    .map-card:nth-of-type(2) {
+      left: 39%;
+      top: 15%;
+      border-top: 4px solid #4c79a8;
+    }
+
+    .map-card:nth-of-type(3) {
+      left: 21%;
+      top: 38%;
+      border-top: 4px solid #d39a28;
+    }
+
+    .map-card:nth-of-type(4) {
+      left: 58%;
+      top: 45%;
+      border-top: 4px solid #36a06f;
+    }
+
+    .map-card:nth-of-type(5) {
+      left: 35%;
+      top: 68%;
+      border-top: 4px solid #4c79a8;
+    }
+
+    .map-card:nth-of-type(6) {
+      left: 66%;
+      top: 74%;
+      border-top: 4px solid #d39a28;
+    }
+
+    .flow-line {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .flow-line path {
+      fill: none;
+      stroke: rgba(37, 111, 90, .35);
+      stroke-width: 2;
+      stroke-dasharray: 6 6;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        padding: 0;
+        place-items: stretch;
+      }
+
+      .prototype-shell {
+        min-height: 100vh;
+        border-radius: 0;
+        grid-template-columns: 1fr;
+      }
+
+      .workbench {
+        border-right: 0;
+      }
+
+      .canvas-context {
+        display: none;
+      }
+    }
+
+    @media (max-width: 460px) {
+      .title-row,
+      .logic-bar {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .status-pill {
+        text-align: left;
+        width: 100%;
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype-shell">
+    <section class="workbench" aria-label="预览工作台">
+      <header class="topbar">
+        <div class="title-row">
+          <div>
+            <h1>卡片预览工作台</h1>
+            <div class="source">烧烤摆摊计划.canvas / 当前选区快照</div>
+          </div>
+          <div class="status-pill">
+            <strong>6</strong>
+            <span>可输出卡片</span>
+          </div>
+        </div>
+
+        <nav class="mode-strip" aria-label="排序模式">
+          <button class="mode" data-mode="position" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h10M4 18h16"/></svg>
+            位置
+          </button>
+          <button class="mode is-active" data-mode="badge" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 10v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="M4 10l8-6 8 6"/><path d="M9 14h6"/></svg>
+            标记
+          </button>
+          <button class="mode" data-mode="manual" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"/></svg>
+            手动
+          </button>
+        </nav>
+      </header>
+
+      <div class="logic-bar">
+        <div class="logic-label" id="logicLabel">
+          <strong>按标记排序</strong>，相同标记内继续按画布位置排列。
+        </div>
+        <button class="icon-button" type="button" aria-label="刷新快照" title="刷新快照">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
+      </div>
+
+      <div class="card-list" id="cardList">
+        <article class="card-row is-focus" data-color="green">
+          <div class="order">01</div>
+          <div class="card-main">
+            <div class="card-title">#### 餐饮新规 《网络餐饮服务经营者落实食品安全主体责任监督管理规定》</div>
+            <div class="card-meta"><span class="badge">A1 政策</span><span class="coordinate">x 120 / y 80</span></div>
+          </div>
+          <div class="handle" title="手动模式下拖拽排序">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+        </article>
+
+        <article class="card-row" data-color="green">
+          <div class="order">02</div>
+          <div class="card-main">
+            <div class="card-title">#### 第一：必须有真实实体门店！所有入网餐饮服务提供者需取得食品经营许可</div>
+            <div class="card-meta"><span class="badge">A2 门店</span><span class="coordinate">x 120 / y 240</span></div>
+          </div>
+          <div class="handle" title="手动模式下拖拽排序">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+        </article>
+
+        <article class="card-row" data-color="blue">
+          <div class="order">03</div>
+          <div class="card-main">
+            <div class="card-title">#### 第二：平台审核更严了！外卖平台再也不能只看个证明就放行</div>
+            <div class="card-meta"><span class="badge">B1 平台</span><span class="coordinate">x 380 / y 120</span></div>
+          </div>
+          <div class="handle" title="手动模式下拖拽排序">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+        </article>
+
+        <article class="card-row" data-color="blue">
+          <div class="order">04</div>
+          <div class="card-main">
+            <div class="card-title">#### 第三：网店名必须跟实体店招牌一致，以前有些店外卖名很夸张</div>
+            <div class="card-meta"><span class="badge">B2 展示</span><span class="coordinate">x 420 / y 310</span></div>
+          </div>
+          <div class="handle" title="手动模式下拖拽排序">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+        </article>
+
+        <article class="card-row" data-color="yellow">
+          <div class="order">05</div>
+          <div class="card-main">
+            <div class="card-title">#### 第四：“无堂食”必须标注，只做外卖、不提供堂食的店不能隐藏状态</div>
+            <div class="card-meta"><span class="badge">C1 风险</span><span class="coordinate">x 210 / y 390</span></div>
+          </div>
+          <div class="handle" title="手动模式下拖拽排序">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+        </article>
+
+        <article class="card-row" data-color="yellow">
+          <div class="order">06</div>
+          <div class="card-main">
+            <div class="card-title">#### 第五：违规罚款最高 20 万，平台和商户都需要留存完整记录</div>
+            <div class="card-meta"><span class="badge">C2 处罚</span><span class="coordinate">x 510 / y 450</span></div>
+          </div>
+          <div class="handle" title="手动模式下拖拽排序">
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+        </article>
+      </div>
+
+      <footer class="output-panel" id="outputPanel">
+        <button class="preview-toggle" id="previewToggle" type="button">
+          <span>
+            <strong>结果预览</strong>
+            <span id="previewHint">已折叠，展开后生成当前顺序的合并文本。</span>
+          </span>
+          <svg id="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <pre class="preview-text">#### 餐饮新规
+
+《网络餐饮服务经营者落实食品安全主体责任监督管理规定》将在 2026 年 6 月 1 日正式施行，新规明确要求：所有入网餐饮服务提供者必须具有实体经营门店，并依法取得食品经营许可。
+
+#### 第一：必须有真实实体门店！
+所有入网餐饮服务提供者必须具有实体经营门店，并依法取得食品经营许可。
+
+#### 第二：平台审核更严了！
+外卖平台需要核验经营资质、门店信息和展示内容，不再只依赖单一证明材料。</pre>
+        <div class="actions">
+          <button class="action" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            复制
+          </button>
+          <button class="action" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+            新建卡片
+          </button>
+          <button class="action" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>
+            新建文稿
+          </button>
+        </div>
+      </footer>
+    </section>
+
+    <aside class="canvas-context" aria-label="画布上下文">
+      <div class="context-head">
+        <div>
+          <h2>来源画布快照</h2>
+          <p>右侧只表达来源和排序关系，工作台输出始终基于左侧当前顺序。</p>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:#36a06f"></i>政策</span>
+          <span><i class="dot" style="background:#4c79a8"></i>平台</span>
+          <span><i class="dot" style="background:#d39a28"></i>风险</span>
+        </div>
+      </div>
+      <div class="canvas-map">
+        <svg class="flow-line" viewBox="0 0 720 620" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M150 96 C220 118 230 88 305 124 S395 262 270 276 S245 408 440 452 S520 522 410 570 S560 610 590 535"/>
+        </svg>
+        <div class="map-card"><small>01 / A1</small><strong>餐饮新规</strong></div>
+        <div class="map-card"><small>03 / B1</small><strong>平台审核更严了</strong></div>
+        <div class="map-card"><small>05 / C1</small><strong>无堂食必须标注</strong></div>
+        <div class="map-card"><small>04 / B2</small><strong>网店名一致</strong></div>
+        <div class="map-card"><small>02 / A2</small><strong>真实实体门店</strong></div>
+        <div class="map-card"><small>06 / C2</small><strong>违规罚款最高 20 万</strong></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const labels = {
+      position: {
+        title: "按位置排序",
+        detail: "按画布坐标从上到下、从左到右排列，适合直接整理空间布局。"
+      },
+      badge: {
+        title: "按标记排序",
+        detail: "相同标记内继续按画布位置排列，适合带编号或分组的内容。"
+      },
+      manual: {
+        title: "手动微调",
+        detail: "继承切换前的当前顺序，拖动右侧把手做最后调整。"
+      }
+    };
+
+    const modes = document.querySelectorAll(".mode");
+    const logicLabel = document.getElementById("logicLabel");
+    const cardList = document.getElementById("cardList");
+    const outputPanel = document.getElementById("outputPanel");
+    const previewToggle = document.getElementById("previewToggle");
+    const previewHint = document.getElementById("previewHint");
+    const chevron = document.getElementById("chevron");
+
+    modes.forEach((button) => {
+      button.addEventListener("click", () => {
+        modes.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        const mode = button.dataset.mode;
+        logicLabel.innerHTML = `<strong>${labels[mode].title}</strong>，${labels[mode].detail}`;
+        cardList.dataset.mode = mode;
+      });
+    });
+
+    previewToggle.addEventListener("click", () => {
+      const expanded = outputPanel.classList.toggle("is-expanded");
+      previewHint.textContent = expanded
+        ? "当前内容由左侧顺序生成，输出按钮使用同一份结果。"
+        : "已折叠，展开后生成当前顺序的合并文本。";
+      chevron.style.transform = expanded ? "rotate(180deg)" : "rotate(0deg)";
+    });
+  </script>
+</body>
+</html>

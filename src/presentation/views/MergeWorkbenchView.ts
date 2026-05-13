@@ -80,11 +80,10 @@ export class MergeWorkbenchView extends ItemView {
 
         this.createModeButton(modeGroup, 'position', '位置');
         this.createModeButton(modeGroup, 'badge', '标记');
-        this.createModeButton(modeGroup, 'manual', '手动');
 
         const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         meta.createEl('div', { text: `${this.context.state.canvasFileBasename} · ${this.context.state.scopeLabel} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
-        meta.createEl('div', { text: `当前模式 ${this.getModeLabel(this.context.state.sortMode)} · 可输出 ${currentCards.length} 张` });
+        meta.createEl('div', { text: `当前顺序 ${this.getModeLabel(this.context.state.sortMode)} · 可输出 ${currentCards.length} 张` });
     }
 
     private renderList(container: HTMLElement): void {
@@ -107,9 +106,9 @@ export class MergeWorkbenchView extends ItemView {
         cards.forEach((card, index) => {
             const row = list.createDiv({ cls: 'canvas-loom-workbench-row' });
             row.dataset.index = index.toString();
-            row.setAttribute('draggable', String(this.isManualModeActive()));
+            row.setAttribute('draggable', String(this.isPositionModeActive()));
 
-            if (this.isManualModeActive()) {
+            if (this.isPositionModeActive()) {
                 row.addEventListener('dragstart', (event) => this.onDragStart(event, index));
                 row.addEventListener('dragover', (event) => this.onDragOver(event));
                 row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
@@ -129,7 +128,7 @@ export class MergeWorkbenchView extends ItemView {
                 badgeEl.setText(card.badge);
             }
 
-            if (this.isManualModeActive()) {
+            if (this.isPositionModeActive()) {
                 const handle = row.createDiv({ cls: 'canvas-loom-workbench-handle' });
                 handle.setText('⠿');
             }
@@ -226,7 +225,7 @@ export class MergeWorkbenchView extends ItemView {
 
         const button = container.createEl('button', {
             text: label,
-            cls: this.context.state.sortMode === mode ? 'mod-cta' : ''
+            cls: this.isModeButtonActive(mode) ? 'mod-cta' : ''
         });
 
         button.addEventListener('click', () => {
@@ -243,8 +242,20 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
-    private isManualModeActive(): boolean {
-        return !!this.context && this.context.state.sortMode === 'manual';
+    private isPositionModeActive(): boolean {
+        return !!this.context && this.context.state.sortMode !== 'badge';
+    }
+
+    private isModeButtonActive(mode: MergeOrder): boolean {
+        if (!this.context) {
+            return false;
+        }
+
+        if (mode === 'position') {
+            return this.context.state.sortMode !== 'badge';
+        }
+
+        return this.context.state.sortMode === mode;
     }
 
     private createActionButton(container: HTMLElement, label: string, handler: () => Promise<void>, disabled: boolean): void {
@@ -312,20 +323,12 @@ export class MergeWorkbenchView extends ItemView {
             return '标记';
         }
 
-        if (mode === 'manual') {
-            return '手动';
-        }
-
         return '位置';
     }
 
     private getListTitle(mode: MergeOrder): string {
         if (mode === 'badge') {
             return '按标记排序';
-        }
-
-        if (mode === 'manual') {
-            return '手动排序';
         }
 
         return '按位置排序';

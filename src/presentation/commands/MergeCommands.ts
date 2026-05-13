@@ -40,9 +40,8 @@ export class MergeToSidebarPreviewCommand implements ICommand {
     ) {}
 
     async execute(): Promise<void> {
-        const order = this.settings.defaultSortMode === 'badge' ? 'badge' : 'position';
         await this.mergeService.mergeToSidebar(this.selection, this.canvasFile, {
-            order,
+            order: 'position',
             sortPriority: this.settings.sortPriority
         });
     }

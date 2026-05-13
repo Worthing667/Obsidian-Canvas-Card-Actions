@@ -8,6 +8,7 @@ export interface CreateWorkbenchStateOptions {
     scopeLabel?: string;
     selectionSnapshot: CardSnapshot[];
     defaultSortMode: MergeOrder;
+    sortPriority?: SortPriority;
     previewExpanded?: boolean;
 }
 
@@ -15,13 +16,21 @@ export class PreviewWorkbenchService {
     readonly previewCollapseThreshold = 30;
 
     createState(options: CreateWorkbenchStateOptions): WorkbenchState {
+        const positionSortedCards = this.getPositionSortedTextCards(
+            options.selectionSnapshot,
+            options.sortPriority || 'yx'
+        );
+        const initialManualOrderIds = options.defaultSortMode === 'manual'
+            ? this.getTextCards(options.selectionSnapshot).map(card => card.id)
+            : positionSortedCards.map(card => card.id);
+
         return {
             canvasFilePath: options.canvasFilePath,
             canvasFileBasename: options.canvasFileBasename,
             scopeLabel: options.scopeLabel || "当前选区",
             selectionSnapshot: [...options.selectionSnapshot],
-            sortMode: options.defaultSortMode,
-            manualOrderIds: [],
+            sortMode: options.defaultSortMode === 'badge' ? 'badge' : 'manual',
+            manualOrderIds: initialManualOrderIds,
             previewExpanded: options.previewExpanded ?? false,
             lastComputedContent: '',
         };
@@ -32,12 +41,16 @@ export class PreviewWorkbenchService {
             return state;
         }
 
-        if (sortMode === 'manual') {
-            const currentCards = this.getOrderedCards(state, sortPriority);
+        if (sortMode === 'position') {
+            const positionCards = this.getPositionSortedTextCards(state.selectionSnapshot, sortPriority);
+            const manualOrderIds = state.manualOrderIds.length > 0
+                ? state.manualOrderIds
+                : positionCards.map(card => card.id);
+
             return {
                 ...state,
-                sortMode,
-                manualOrderIds: currentCards.map(card => card.id),
+                sortMode: 'manual',
+                manualOrderIds,
             };
         }
 
@@ -107,6 +120,11 @@ export class PreviewWorkbenchService {
             ...card,
             text: card.text.trim(),
         }));
+    }
+
+    private getPositionSortedTextCards(cards: CardSnapshot[], sortPriority: SortPriority): CardSnapshot[] {
+        const sorter = new PositionSortStrategy(sortPriority);
+        return sorter.sort(this.getTextCards(cards));
     }
 
     private sortByManualOrder(cards: CardSnapshot[], manualOrderIds: string[]): CardSnapshot[] {

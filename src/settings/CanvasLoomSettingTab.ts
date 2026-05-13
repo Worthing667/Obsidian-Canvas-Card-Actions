@@ -49,7 +49,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('一键排序方式')
-			.setDesc('设置一键复制、一键拼合和预览工作台默认使用的位置或标记顺序')
+			.setDesc('设置一键复制和一键拼合默认使用的位置或标记顺序')
 			.addDropdown(dropdown => dropdown
 				.addOption('position', '按位置顺序')
 				.addOption('badge', '按标记顺序')

@@ -134,6 +134,7 @@ export class MergeService implements IMergeService {
             scopeLabel: options?.scopeLabel || '当前选区',
             selectionSnapshot: snapshots,
             defaultSortMode: options?.order || 'position',
+            sortPriority,
             previewExpanded: options?.previewExpanded ?? false
         });
 

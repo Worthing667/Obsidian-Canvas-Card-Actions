@@ -65,7 +65,7 @@ export class OpenPreviewWorkbenchCommand implements ICommand {
 
     async execute(): Promise<void> {
         await this.mergeService.openWorkbench(this.selection, this.canvasFile, {
-            order: this.settings.defaultSortMode,
+            order: 'position',
             sortPriority: this.settings.sortPriority,
             cleanupMode: this.settings.mergeCleanupMode
         });
