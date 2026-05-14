@@ -43,10 +43,11 @@ export class OpenSameColorGroupWorkbenchCommand implements ICommand {
     async execute(): Promise<void> {
         const group = this.colorGroupService.getColorGroupFromSelection(this.selection);
         await this.mergeService.openWorkbench(group.matchedNodes, this.canvasFile, {
-            order: this.settings.defaultSortMode,
+            order: 'position',
             sortPriority: this.settings.sortPriority,
             previewExpanded: true,
             scopeLabel: group.scopeLabel,
+            cleanupMode: this.settings.mergeCleanupMode,
         });
     }
 

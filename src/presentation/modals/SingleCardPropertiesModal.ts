@@ -24,77 +24,89 @@ export class SingleCardPropertiesModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
         contentEl.addClass("canvas-loom-single-card-properties-modal");
-        contentEl.createEl("h2", { text: "管理卡片属性" });
+        contentEl.createEl("h2", { text: "卡片属性" });
+        contentEl.createDiv({
+          cls: "cl-subtitle",
+          text: "查看并调整当前卡片的尺寸。"
+        });
 
         this.createInfoSection(contentEl);
-        this.createDimensionEditor(contentEl);
-        
-        // 只有当卡片有内容时才显示内容预览
+
         if (this.cardData.text) {
-            const previewSection = contentEl.createDiv({ cls: "card-preview-section" });
-            previewSection.createEl("h3", { cls: "card-section-title", text: "内容预览" });
-            const previewContent = previewSection.createDiv({ cls: "card-preview-content" });
-            const previewText = this.cardData.text.length > 150 
-                ? this.cardData.text.substring(0, 150) + "..." 
+            const previewSection = contentEl.createDiv({ cls: "cl-section" });
+            const previewHeader = previewSection.createDiv({ cls: "cl-section-header" });
+            previewHeader.createEl("h3", { cls: "cl-section-title", text: "内容预览" });
+            const previewContent = previewSection.createDiv({ cls: "preview-box" });
+            const previewText = this.cardData.text.length > 150
+                ? this.cardData.text.substring(0, 150) + "..."
                 : this.cardData.text;
             previewContent.textContent = previewText;
         }
-        
+
+        this.createDimensionEditor(contentEl);
         this.createCopySection(contentEl);
-        
+
     }
 
     private createInfoSection(container: HTMLElement) {
-        // 创建统计信息区域
-        const statsSection = container.createDiv({ cls: "cca-stats-section" });
-        const statsGrid = statsSection.createDiv({ cls: "cca-grid-cols-2" });
+        const statsSection = container.createDiv({ cls: "cl-section cl-summary" });
+        statsSection.style.gridTemplateColumns = "1fr 1fr";
 
-        // 当前尺寸统计
-        const sizeItem = statsGrid.createDiv({ cls: "cca-stat-item" });
-        sizeItem.createDiv({ cls: "cca-stat-label", text: "当前尺寸" });
-        sizeItem.createDiv({ cls: "cca-stat-value", text: `${this.cardData.width} × ${this.cardData.height}` });
+        // 当前尺寸
+        const sizeItem = statsSection.createDiv({ cls: "summary-item" });
+        sizeItem.createDiv({ cls: "summary-label", text: "当前尺寸" });
+        sizeItem.createDiv({ cls: "summary-value", text: `${this.cardData.width} × ${this.cardData.height} px` });
         sizeItem.lastElementChild?.setAttribute("id", "current-size");
-        sizeItem.createDiv({ cls: "cca-stat-detail", text: "像素" });
+        sizeItem.createDiv({ cls: "summary-note", text: "宽度 × 高度" });
 
-        // 位置坐标统计
-        const positionItem = statsGrid.createDiv({ cls: "cca-stat-item" });
-        positionItem.createDiv({ cls: "cca-stat-label", text: "位置坐标" });
-        positionItem.createDiv({ cls: "cca-stat-value", text: `X: ${this.cardData.x}, Y: ${this.cardData.y}` });
-        positionItem.createDiv({ cls: "cca-stat-detail", text: "画布坐标" });
-
+        // 位置坐标
+        const positionItem = statsSection.createDiv({ cls: "summary-item" });
+        positionItem.createDiv({ cls: "summary-label", text: "位置坐标" });
+        positionItem.createDiv({ cls: "summary-value", text: `X ${this.cardData.x}，Y ${this.cardData.y}` });
+        positionItem.createDiv({ cls: "summary-note", text: "画布坐标" });
     }
 
     private createDimensionEditor(container: HTMLElement) {
-        const editorSection = container.createDiv({ cls: "cca-stats-section" });
-        editorSection.createEl("h3", { cls: "cca-section-title", text: "尺寸调整" });
+        const editorSection = container.createDiv({ cls: "cl-section" });
 
-        // 尺寸控制区域
-        const dimensionControls = editorSection.createDiv({ cls: "cca-grid-cols-2" });
+        const sectionHeader = editorSection.createDiv({ cls: "cl-section-header" });
+        sectionHeader.createEl("h3", { cls: "cl-section-title", text: "尺寸调整" });
 
-        // 宽度控制
-        const widthGroup = dimensionControls.createDiv({ cls: "cca-control-group" });
-        widthGroup.createEl("label", { text: "宽度 (px)" });
-        this.widthInput = widthGroup.createEl("input", {
+        const dimensionRow = editorSection.createDiv({ cls: "dimension-row" });
+
+        // 宽度
+        const widthField = dimensionRow.createDiv({ cls: "field" });
+        widthField.createEl("label", { text: "宽度" });
+        const widthInputWrap = widthField.createDiv({ cls: "input-with-unit" });
+        this.widthInput = widthInputWrap.createEl("input", {
             type: "number",
             value: this.cardData.width.toString(),
             attr: { min: "50", max: "2000" }
         });
+        widthInputWrap.createSpan({ cls: "unit", text: "px" });
 
-        // 高度控制
-        const heightGroup = dimensionControls.createDiv({ cls: "cca-control-group" });
-        heightGroup.createEl("label", { text: "高度 (px)" });
-        this.heightInput = heightGroup.createEl("input", {
+        // 高度
+        const heightField = dimensionRow.createDiv({ cls: "field" });
+        heightField.createEl("label", { text: "高度" });
+        const heightInputWrap = heightField.createDiv({ cls: "input-with-unit" });
+        this.heightInput = heightInputWrap.createEl("input", {
             type: "number",
             value: this.cardData.height.toString(),
             attr: { min: "50", max: "2000" }
         });
+        heightInputWrap.createSpan({ cls: "unit", text: "px" });
 
-        // 宽高比锁定
-        const aspectToggleDiv = editorSection.createDiv({ cls: "card-aspect-ratio-toggle" });
-        const aspectToggle = aspectToggleDiv.createEl("input", {
-            type: "checkbox"
+        // 锁定比例
+        const aspectToggleLabel = dimensionRow.createEl("label", { cls: "ratio-toggle" });
+        const aspectToggle = aspectToggleLabel.createEl("input", { type: "checkbox" });
+        aspectToggleLabel.createSpan({ cls: "ratio-icon", text: "🔗" });
+        aspectToggleLabel.createSpan({ text: "锁定比例" });
+
+        // Hint
+        editorSection.createDiv({
+            cls: "editor-hint",
+            text: "调整后点击「应用更改」写入 Canvas。"
         });
-        aspectToggleDiv.createSpan({ text: "锁定宽高比" });
 
         const widthInput = this.widthInput;
         const heightInput = this.heightInput;
@@ -102,7 +114,6 @@ export class SingleCardPropertiesModal extends Modal {
             return;
         }
 
-        // 实现宽高比锁定逻辑
         let aspectRatio = this.cardData.width / this.cardData.height;
 
         aspectToggle.addEventListener("change", () => {
@@ -150,38 +161,48 @@ export class SingleCardPropertiesModal extends Modal {
     }
 
     private createCopySection(container: HTMLElement) {
-        const actionButtons = container.createDiv({ cls: "cca-action-footer" });
+        const actionFooter = container.createDiv({ cls: "cl-footer" });
 
-        const copySizeBtn = actionButtons.createEl("button", {
-            text: "复制尺寸信息",
-            cls: "cca-btn cca-btn-secondary"
+        const footerLeft = actionFooter.createDiv({ cls: "footer-left" });
+
+        const copySizeBtn = footerLeft.createEl("button", {
+            text: "复制尺寸",
+            cls: "cl-btn cl-btn-secondary"
         });
         copySizeBtn.addEventListener("click", () => {
             const sizeInfo = `卡片尺寸: ${this.cardData.width} × ${this.cardData.height} px`;
             void this.clipboardAdapter.writeTextWithNotice(sizeInfo, "尺寸信息已复制到剪贴板");
         });
 
-        const copyPosBtn = actionButtons.createEl("button", {
-            text: "复制位置信息",
-            cls: "cca-btn cca-btn-secondary"
+        const copyPosBtn = footerLeft.createEl("button", {
+            text: "复制位置",
+            cls: "cl-btn cl-btn-secondary"
         });
         copyPosBtn.addEventListener("click", () => {
             const posInfo = `卡片位置: X: ${this.cardData.x}, Y: ${this.cardData.y}`;
             void this.clipboardAdapter.writeTextWithNotice(posInfo, "位置信息已复制到剪贴板");
         });
 
-        const applyBtn = actionButtons.createEl("button", {
+        const footerRight = actionFooter.createDiv({ cls: "footer-right" });
+
+        const cancelBtn = footerRight.createEl("button", {
+            text: "取消",
+            cls: "cl-btn cl-btn-ghost"
+        });
+        cancelBtn.addEventListener("click", () => this.close());
+
+        const applyBtn = footerRight.createEl("button", {
             text: "应用更改",
-            cls: "cca-btn cca-btn-primary"
+            cls: "cl-btn cl-btn-primary"
         });
         applyBtn.addEventListener("click", () => {
             const widthInput = this.widthInput;
             const heightInput = this.heightInput;
-            
+
             if (widthInput && heightInput) {
                 const width = parseInt(widthInput.value);
                 const height = parseInt(heightInput.value);
-                
+
                 if (this.validateDimension(width) && this.validateDimension(height)) {
                     void this.updateBothDimensions(width, height);
                 }
@@ -207,7 +228,7 @@ export class SingleCardPropertiesModal extends Modal {
     private updateSizeDisplay() {
         const sizeEl = this.contentEl.querySelector("#current-size");
         if (sizeEl) {
-            sizeEl.textContent = `${this.cardData.width} × ${this.cardData.height}`;
+            sizeEl.textContent = `${this.cardData.width} × ${this.cardData.height} px`;
         }
     }
 

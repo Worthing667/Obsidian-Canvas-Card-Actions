@@ -65,6 +65,7 @@ export class MergeWorkbenchView extends ItemView {
 
         const container = contentEl.createDiv({ cls: 'canvas-loom-workbench-container' });
         this.renderToolbar(container);
+        this.renderOrderSummary(container);
         this.renderList(container);
         this.renderPreviewArea(container);
     }
@@ -74,17 +75,38 @@ export class MergeWorkbenchView extends ItemView {
             return;
         }
 
-        const toolbar = container.createDiv({ cls: 'canvas-loom-workbench-toolbar' });
-        const modeGroup = toolbar.createDiv({ cls: 'canvas-loom-workbench-modes' });
-        const meta = toolbar.createDiv({ cls: 'canvas-loom-workbench-meta' });
+        const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
 
+        const toolbar = container.createDiv({ cls: 'canvas-loom-workbench-toolbar' });
+        const heading = toolbar.createDiv({ cls: 'canvas-loom-workbench-heading' });
+        heading.createEl('h3', { text: '卡片预览工作台' });
+        heading.createDiv({
+            cls: 'canvas-loom-workbench-source',
+            text: `${this.context.state.canvasFileBasename} / ${this.context.state.scopeLabel}`
+        });
+
+        const count = toolbar.createDiv({ cls: 'canvas-loom-workbench-count' });
+        count.createEl('strong', { text: String(currentCards.length) });
+        count.createEl('span', { text: '可输出卡片' });
+
+        const modeGroup = container.createDiv({ cls: 'canvas-loom-workbench-modes' });
         this.createModeButton(modeGroup, 'position', '位置');
         this.createModeButton(modeGroup, 'badge', '标记');
-        this.createModeButton(modeGroup, 'manual', '手动');
+    }
 
-        const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
-        meta.createEl('div', { text: `${this.context.state.canvasFileBasename} · ${this.context.state.scopeLabel} · 快照 ${this.context.state.selectionSnapshot.length} 张` });
-        meta.createEl('div', { text: `当前模式 ${this.getModeLabel(this.context.state.sortMode)} · 可输出 ${currentCards.length} 张` });
+    private renderOrderSummary(container: HTMLElement): void {
+        if (!this.context) {
+            return;
+        }
+
+        const summary = container.createDiv({ cls: 'canvas-loom-workbench-order-summary' });
+        const text = summary.createDiv({ cls: 'canvas-loom-workbench-order-text' });
+        text.createEl('strong', { text: this.getListTitle() });
+        text.createSpan({ text: `，${this.getSortDescription()}` });
+
+        const snapshot = summary.createDiv({ cls: 'canvas-loom-workbench-snapshot' });
+        snapshot.createSpan({ text: `快照 ${this.context.state.selectionSnapshot.length} 张` });
+        snapshot.createSpan({ text: `当前顺序 ${this.getCurrentOrderLabel()}` });
     }
 
     private renderList(container: HTMLElement): void {
@@ -93,8 +115,6 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         const section = container.createDiv({ cls: 'canvas-loom-workbench-list-section' });
-        section.createEl('h4', { text: this.getListTitle(this.context.state.sortMode) });
-
         const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const list = section.createDiv({ cls: 'canvas-loom-workbench-list' });
 
@@ -107,32 +127,36 @@ export class MergeWorkbenchView extends ItemView {
         cards.forEach((card, index) => {
             const row = list.createDiv({ cls: 'canvas-loom-workbench-row' });
             row.dataset.index = index.toString();
-            row.setAttribute('draggable', String(this.isManualModeActive()));
+            row.setAttribute('draggable', 'true');
+            row.style.setProperty('--canvas-loom-row-accent', this.resolveCardAccent(card.color));
 
-            if (this.isManualModeActive()) {
-                row.addEventListener('dragstart', (event) => this.onDragStart(event, index));
-                row.addEventListener('dragover', (event) => this.onDragOver(event));
-                row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
-                row.addEventListener('drop', (event) => this.onDrop(event, index));
-                row.addEventListener('dragend', () => this.onDragEnd());
-            }
+            row.addEventListener('dragstart', (event) => this.onDragStart(event, index));
+            row.addEventListener('dragover', (event) => this.onDragOver(event));
+            row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
+            row.addEventListener('drop', (event) => this.onDrop(event, index));
+            row.addEventListener('dragend', () => this.onDragEnd());
 
             const indexEl = row.createDiv({ cls: 'canvas-loom-workbench-index' });
-            indexEl.setText(String(index + 1));
+            indexEl.setText(String(index + 1).padStart(2, '0'));
 
-            const textEl = row.createDiv({ cls: 'canvas-loom-workbench-text' });
+            const body = row.createDiv({ cls: 'canvas-loom-workbench-card-body' });
+            const textEl = body.createDiv({ cls: 'canvas-loom-workbench-text' });
             textEl.setText(this.toPreviewText(card.text));
             textEl.title = card.text;
 
+            const meta = body.createDiv({ cls: 'canvas-loom-workbench-card-meta' });
             if (card.badge) {
-                const badgeEl = row.createDiv({ cls: 'canvas-loom-workbench-badge' });
+                const badgeEl = meta.createSpan({ cls: 'canvas-loom-workbench-badge' });
                 badgeEl.setText(card.badge);
             }
+            meta.createSpan({
+                cls: 'canvas-loom-workbench-coordinate',
+                text: `x ${Math.round(card.x)} / y ${Math.round(card.y)}`
+            });
 
-            if (this.isManualModeActive()) {
-                const handle = row.createDiv({ cls: 'canvas-loom-workbench-handle' });
-                handle.setText('⠿');
-            }
+            const handle = row.createDiv({ cls: 'canvas-loom-workbench-handle' });
+            handle.setAttribute('aria-label', '拖拽调整顺序');
+            handle.setAttribute('title', '拖拽调整顺序');
         });
     }
 
@@ -141,12 +165,27 @@ export class MergeWorkbenchView extends ItemView {
             return;
         }
 
+        const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const section = container.createDiv({ cls: 'canvas-loom-workbench-preview-section' });
-        const header = section.createDiv({ cls: 'canvas-loom-workbench-preview-header' });
-        const toggle = header.createEl('button', {
-            text: this.context.state.previewExpanded ? '收起结果预览' : '展开结果预览',
-            cls: 'mod-cta'
+        if (this.context.state.previewExpanded) {
+            section.addClass('is-expanded');
+        }
+
+        const toggle = section.createEl('button', {
+            cls: 'canvas-loom-workbench-preview-toggle'
         });
+        toggle.setAttribute('type', 'button');
+        const toggleText = toggle.createSpan();
+        toggleText.createEl('strong', { text: '结果预览' });
+        const toggleHint = toggleText.createSpan({
+            text: this.context.state.previewExpanded
+                ? '当前内容由工作台顺序生成，输出按钮使用同一份结果。'
+                : orderedCards.length >= this.workbenchService.previewCollapseThreshold
+                    ? '内容较多，展开后再渲染合并文本。'
+                    : '已折叠，展开后生成当前顺序的合并文本。'
+        });
+        toggleHint.addClass('canvas-loom-workbench-preview-hint');
+        const chevron = toggle.createSpan({ cls: 'canvas-loom-workbench-chevron' });
 
         toggle.addEventListener('click', () => {
             if (!this.context) {
@@ -160,24 +199,13 @@ export class MergeWorkbenchView extends ItemView {
             this.render();
         });
 
-        const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
-        const hint = header.createDiv({ cls: 'canvas-loom-workbench-preview-hint' });
-
-        if (!this.context.state.previewExpanded) {
-            hint.setText(
-                orderedCards.length >= this.workbenchService.previewCollapseThreshold
-                    ? '内容较多，展开后再渲染预览。'
-                    : '预览默认折叠，展开后生成合并结果。'
-            );
-        }
-
         const preview = section.createEl('pre', { cls: 'canvas-loom-workbench-preview-content' });
         if (this.context.state.previewExpanded) {
             preview.setText(this.context.state.lastComputedContent || '正在生成预览...');
             this.schedulePreviewRender(preview);
         } else {
             preview.addClass('is-collapsed');
-            preview.setText('预览已折叠。');
+            preview.setText('');
         }
 
         const actions = section.createDiv({ cls: 'canvas-loom-workbench-actions' });
@@ -226,8 +254,9 @@ export class MergeWorkbenchView extends ItemView {
 
         const button = container.createEl('button', {
             text: label,
-            cls: this.context.state.sortMode === mode ? 'mod-cta' : ''
+            cls: this.isModeButtonActive(mode) ? 'is-active' : ''
         });
+        button.setAttribute('type', 'button');
 
         button.addEventListener('click', () => {
             if (!this.context) {
@@ -243,15 +272,19 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
-    private isManualModeActive(): boolean {
-        return !!this.context && this.context.state.sortMode === 'manual';
+    private isModeButtonActive(mode: MergeOrder): boolean {
+        if (!this.context) {
+            return false;
+        }
+
+        return this.context.state.sortMode === mode;
     }
 
     private createActionButton(container: HTMLElement, label: string, handler: () => Promise<void>, disabled: boolean): void {
         const button = container.createEl('button', {
-            text: label,
-            cls: label === '复制' ? 'mod-cta' : ''
+            text: label
         });
+        button.setAttribute('type', 'button');
 
         button.disabled = disabled;
         button.addEventListener('click', () => {
@@ -307,31 +340,79 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
+    private getCurrentOrderLabel(): string {
+        if (!this.context) {
+            return '位置';
+        }
+
+        const baseLabel = this.getModeLabel(this.context.state.sortMode);
+        return this.context.state.isManualAdjusted
+            ? `${baseLabel} + 手动调整`
+            : baseLabel;
+    }
+
     private getModeLabel(mode: MergeOrder): string {
         if (mode === 'badge') {
             return '标记';
         }
 
-        if (mode === 'manual') {
-            return '手动';
-        }
-
         return '位置';
     }
 
-    private getListTitle(mode: MergeOrder): string {
-        if (mode === 'badge') {
-            return '按标记排序';
+    private getListTitle(): string {
+        if (!this.context) {
+            return '当前顺序';
         }
 
-        if (mode === 'manual') {
-            return '手动排序';
+        if (this.context.state.sortMode === 'badge') {
+            return this.context.state.isManualAdjusted
+                ? '按标记排序并手动调整'
+                : '按标记排序';
         }
 
-        return '按位置排序';
+        return this.context.state.isManualAdjusted
+            ? '按位置排序并手动调整'
+            : '按位置排序';
+    }
+
+    private getSortDescription(): string {
+        if (!this.context) {
+            return '工作台会基于当前快照生成输出内容';
+        }
+
+        if (this.context.state.isManualAdjusted) {
+            return '拖拽后的顺序会直接用于复制、新建卡片和新建文稿';
+        }
+
+        if (this.context.state.sortMode === 'badge') {
+            return '相同标记内继续按画布位置排列';
+        }
+
+        return this.context.sortPriority === 'xy'
+            ? '按画布坐标从左到右、从上到下排列'
+            : '按画布坐标从上到下、从左到右排列';
     }
 
     private toPreviewText(text: string): string {
         return text.length > 60 ? `${text.slice(0, 60)}...` : text;
+    }
+
+    private resolveCardAccent(color?: string): string {
+        const palette: Record<string, string> = {
+            "1": "var(--color-red, #d65d5d)",
+            "2": "var(--color-orange, #d98b3a)",
+            "3": "var(--color-yellow, #c59f33)",
+            "4": "var(--color-green, #4f9f69)",
+            "5": "var(--color-cyan, #3c9aa3)",
+            "6": "var(--color-purple, #8d6fd1)",
+            red: "var(--color-red, #d65d5d)",
+            orange: "var(--color-orange, #d98b3a)",
+            yellow: "var(--color-yellow, #c59f33)",
+            green: "var(--color-green, #4f9f69)",
+            cyan: "var(--color-cyan, #3c9aa3)",
+            purple: "var(--color-purple, #8d6fd1)",
+        };
+
+        return color ? palette[color] || "var(--interactive-accent)" : "var(--background-modifier-border)";
     }
 }

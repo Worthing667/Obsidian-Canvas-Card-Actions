@@ -3,7 +3,15 @@ import CanvasLoomSettings from "./settings/ICanvasLoomSettings";
 import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
 
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
-import { CardService, BadgeService, ContentService, ColorGroupService, MergeService } from './services';
+import {
+    CardService,
+    BadgeService,
+    ContentService,
+    ColorGroupService,
+    MergeService,
+    PerformanceService,
+    BadgeRenderScheduler
+} from './services';
 import {
     CommandRegistry,
     CopySingleCardCommand,
@@ -31,6 +39,11 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     sortPriority: 'yx',
     enableBadges: true,
     defaultSortMode: 'position',
+    mergeCleanupMode: 'keep-source',
+    enablePerformanceMode: false,
+    enablePerformanceDiagnostics: false,
+    largeCanvasNodeThreshold: 80,
+    badgeUpdateDebounceMs: 150,
 };
 
 export default class CanvasLoomPlugin extends Plugin {
@@ -43,6 +56,8 @@ export default class CanvasLoomPlugin extends Plugin {
     private contentService: ContentService;
     private colorGroupService: ColorGroupService;
     private mergeService: MergeService;
+    private performanceService: PerformanceService;
+    private badgeRenderScheduler: BadgeRenderScheduler;
     private commandRegistry: CommandRegistry;
     private badgeStyleManager: BadgeStyleManager;
     private vaultAdapter: VaultAdapter;
@@ -66,6 +81,8 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.commandRegistry = new CommandRegistry();
         this.badgeStyleManager = new BadgeStyleManager();
+        this.performanceService = new PerformanceService(() => this.settings);
+        this.badgeRenderScheduler = new BadgeRenderScheduler();
     }
 
     private registerSettingTab(): void {
@@ -73,6 +90,8 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private setupUI(): void {
+        this.syncPerformanceModeClass();
+
         if (this.settings.enableBadges) {
             this.badgeStyleManager.injectStyles();
         }
@@ -123,12 +142,18 @@ export default class CanvasLoomPlugin extends Plugin {
             return;
         }
 
-        const canvasAdapter = new CanvasAdapter(canvas);
-        this.cardService = new CardService(canvasAdapter);
+        const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
+        this.cardService = new CardService(canvasAdapter, 20, 400, 400, this.performanceService);
         this.badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
         this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
         this.colorGroupService = new ColorGroupService(canvasAdapter);
-        this.mergeService = new MergeService(this.app, canvasAdapter, this.contentService, this.vaultAdapter);
+        this.mergeService = new MergeService(
+            this.app,
+            canvasAdapter,
+            this.contentService,
+            this.vaultAdapter,
+            this.performanceService
+        );
     }
 
     private addNodeMenuCommands(menu: Menu, node: CanvasNode): void {
@@ -178,7 +203,8 @@ export default class CanvasLoomPlugin extends Plugin {
                 this.app,
                 this.cardService,
                 [node],
-                this.clipboardAdapter
+                this.clipboardAdapter,
+                this.settings.sortPriority
             );
 
             this.commandRegistry.registerCommand("open-single-card-properties", propertiesCommand);
@@ -228,7 +254,8 @@ export default class CanvasLoomPlugin extends Plugin {
             this.app,
             this.cardService,
             selectionArray,
-            this.clipboardAdapter
+            this.clipboardAdapter,
+            this.settings.sortPriority
         );
         this.commandRegistry.registerCommand("open-card-properties", propertiesCommand);
         this.commandRegistry.addCommandToMenu(menu, "open-card-properties", "管理卡片属性", "settings");
@@ -281,9 +308,23 @@ export default class CanvasLoomPlugin extends Plugin {
                 }
 
                 try {
-                    const canvasAdapter = new CanvasAdapter(canvas);
+                    const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
                     const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
-                    await badgeService.loadCanvasBadges();
+                    const canvasData = canvasAdapter.getData();
+                    const stats = this.performanceService.getStats(canvasData);
+
+                    this.performanceService.log("canvas.stats", {
+                        filePath: file.path,
+                        ...stats
+                    });
+
+                    this.badgeRenderScheduler.schedule({
+                        key: file.path,
+                        badgeService,
+                        debounceMs: this.settings.badgeUpdateDebounceMs,
+                        batchSize: stats.isLargeCanvas ? 30 : Math.max(1, stats.badgeNodeCount),
+                        performanceService: this.performanceService
+                    });
                 } catch (error) {
                     console.error("加载 Canvas 标记时出错:", error);
                 }
@@ -317,7 +358,7 @@ export default class CanvasLoomPlugin extends Plugin {
             }
 
             try {
-                const canvasAdapter = new CanvasAdapter(canvas);
+                const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
                 const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
                 badgeService.clearCanvasBadgeDom();
             } catch (error) {
@@ -344,13 +385,45 @@ export default class CanvasLoomPlugin extends Plugin {
             return;
         }
 
+        this.badgeRenderScheduler.cancelAll();
         this.badgeStyleManager.removeStyles();
         this.clearAllCanvasBadgeDom();
     }
 
+    async setPerformanceModeEnabled(enabled: boolean) {
+        this.settings.enablePerformanceMode = enabled;
+        await this.saveSettings();
+        this.syncPerformanceModeClass();
+    }
+
+    private syncPerformanceModeClass(): void {
+        activeDocument.body.classList.toggle(
+            "canvas-loom-performance-mode",
+            this.settings.enablePerformanceMode
+        );
+    }
+
     onunload() {
+        this.badgeRenderScheduler.cancelAll();
+        this.detachMergePreviewLeaves();
+        activeDocument.body.classList.remove("canvas-loom-performance-mode");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
+    }
+
+    private detachMergePreviewLeaves(): void {
+        const leaves: WorkspaceLeaf[] = [];
+
+        this.app.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
+            const stateType = leaf.getViewState().type;
+            const viewType = leaf.view?.getViewType?.();
+
+            if (stateType === MERGE_PREVIEW_VIEW_TYPE || viewType === MERGE_PREVIEW_VIEW_TYPE) {
+                leaves.push(leaf);
+            }
+        });
+
+        leaves.forEach((leaf) => leaf.detach());
     }
 
     private registerHotkeys() {
@@ -369,7 +442,8 @@ export default class CanvasLoomPlugin extends Plugin {
                         this.app,
                         this.cardService,
                         context.selection,
-                        this.clipboardAdapter
+                        this.clipboardAdapter,
+                        this.settings.sortPriority
                     );
                     void command.execute();
                 }
@@ -449,7 +523,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.registerCanvasSelectionCommand(
             'manual-merge-selected-cards',
             '手动排序拼合选区',
-            ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file)
+            ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file, this.settings)
         );
     }
 

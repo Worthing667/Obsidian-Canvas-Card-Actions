@@ -3,6 +3,11 @@ import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { BadgeData } from "../domain/models/Badge";
 import type { CanvasNode } from "../types/canvas";
 
+export interface BadgeRenderEntry {
+    id: string;
+    badge: string;
+}
+
 export interface IBadgeService {
     getCurrentBadge(node: CanvasNode): Promise<BadgeData | null>;
     setBadge(node: CanvasNode, badgeText: string): Promise<void>;
@@ -11,10 +16,15 @@ export interface IBadgeService {
     clearBadgeFromNode(node: CanvasNode): void;
     clearCanvasBadgeDom(): void;
     loadCanvasBadges(): Promise<void>;
+    getBadgeRenderEntries(): BadgeRenderEntry[];
+    applyBadgeByNodeId(nodeId: string, badgeText: string): boolean;
+    clearStaleBadgeDom(activeBadgeNodeIds: Set<string>): void;
     isValidBadgeNode(node: CanvasNode): boolean;
 }
 
 export class BadgeService implements IBadgeService {
+    private appliedBadgesByNodeId = new Map<string, string>();
+
     constructor(
         private canvasAdapter: ICanvasAdapter,
         private isBadgeDisplayEnabled: () => boolean = () => true
@@ -81,9 +91,15 @@ export class BadgeService implements IBadgeService {
             return;
         }
 
+        const currentBadge = this.appliedBadgesByNodeId.get(node.id);
+        if (currentBadge === badge.content) {
+            return;
+        }
+
         this.getNodeElements(node).forEach(element => {
             element.setAttribute("data-badge", badge.content);
         });
+        this.appliedBadgesByNodeId.set(node.id, badge.content);
     }
 
     clearBadgeFromNode(node: CanvasNode): void {
@@ -91,6 +107,7 @@ export class BadgeService implements IBadgeService {
             element.removeAttribute("data-badge");
             element.removeAttribute("data-badge-type");
         });
+        this.appliedBadgesByNodeId.delete(node.id);
     }
 
     clearCanvasBadgeDom(): void {
@@ -102,6 +119,7 @@ export class BadgeService implements IBadgeService {
                     this.clearBadgeFromNode(node);
                 }
             });
+            this.appliedBadgesByNodeId.clear();
         } catch (error) {
             console.error("清理 Canvas 标记显示时出错:", error);
         }
@@ -113,23 +131,51 @@ export class BadgeService implements IBadgeService {
         }
 
         try {
-            const canvasData = this.canvasAdapter.getData();
-
-            canvasData.nodes.forEach(nodeData => {
-                if (!nodeData.badge) {
-                    return;
-                }
-
-                const node = this.canvasAdapter.findNodeById(nodeData.id);
-                if (node) {
-                    this.applyBadgeToNode(node, BadgeData.create(nodeData.badge));
-                }
-            });
+            const entries = this.getBadgeRenderEntries();
+            entries.forEach((entry) => this.applyBadgeByNodeId(entry.id, entry.badge));
+            this.clearStaleBadgeDom(new Set(entries.map((entry) => entry.id)));
         } catch (error) {
             console.error("加载画布标记时出错:", error);
         }
 
         return Promise.resolve();
+    }
+
+    getBadgeRenderEntries(): BadgeRenderEntry[] {
+        const canvasData = this.canvasAdapter.getData();
+
+        return canvasData.nodes
+            .filter((nodeData) => typeof nodeData.badge === "string" && nodeData.badge.trim())
+            .map((nodeData) => ({
+                id: nodeData.id,
+                badge: String(nodeData.badge)
+            }));
+    }
+
+    applyBadgeByNodeId(nodeId: string, badgeText: string): boolean {
+        const node = this.canvasAdapter.findNodeById(nodeId);
+        if (!node) {
+            return false;
+        }
+
+        this.applyBadgeToNode(node, BadgeData.create(badgeText));
+        return true;
+    }
+
+    clearStaleBadgeDom(activeBadgeNodeIds: Set<string>): void {
+        Array.from(this.appliedBadgesByNodeId.keys()).forEach((nodeId) => {
+            if (activeBadgeNodeIds.has(nodeId)) {
+                return;
+            }
+
+            const node = this.canvasAdapter.findNodeById(nodeId);
+            if (node) {
+                this.clearBadgeFromNode(node);
+                return;
+            }
+
+            this.appliedBadgesByNodeId.delete(nodeId);
+        });
     }
 
     isValidBadgeNode(node: CanvasNode): boolean {
@@ -139,11 +185,17 @@ export class BadgeService implements IBadgeService {
     }
 
     private getNodeElements(node: CanvasNode): Element[] {
-        return [
-            node.nodeEl?.querySelector('.canvas-node-content'),
-            node.nodeEl?.querySelector('.markdown-embed'),
-            node.nodeEl
-        ].filter((element): element is Element => element instanceof Element);
+        const contentElement = node.nodeEl?.querySelector('.canvas-node-content');
+        if (contentElement instanceof Element) {
+            return [contentElement];
+        }
+
+        const embedElement = node.nodeEl?.querySelector('.markdown-embed');
+        if (embedElement instanceof Element) {
+            return [embedElement];
+        }
+
+        return [];
     }
 
     private async persistBadgeToCanvas(node: CanvasNode, badge: BadgeData | null): Promise<void> {

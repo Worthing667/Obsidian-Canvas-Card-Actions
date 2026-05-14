@@ -10,7 +10,8 @@ export class OpenCardPropertiesCommand {
     private app: App,
     private cardService: CardService,
     private selection: CanvasNode[],
-    private clipboardAdapter: ClipboardAdapter
+    private clipboardAdapter: ClipboardAdapter,
+    private defaultSortPriority: 'yx' | 'xy' = 'yx'
   ) {}
 
   execute(): Promise<void> {
@@ -43,7 +44,7 @@ export class OpenCardPropertiesCommand {
         modal.open();
       } else {
         // 多卡片使用批量管理器
-        const modal = new CardPropertiesModal(this.app, textCards, this.cardService);
+        const modal = new CardPropertiesModal(this.app, textCards, this.cardService, this.defaultSortPriority);
         modal.open();
       }
       
