@@ -7,7 +7,19 @@
 - 为卡片添加标记
 - 查看和调整卡片属性
 
-当前版本：`1.5.1`
+## English overview
+
+Canvas Loom is an Obsidian Canvas enhancement plugin for working with text cards more efficiently. It helps you split long cards, copy or merge selected card content, preview ordered output, add numeric badges, and inspect or adjust card properties.
+
+Main features:
+
+- Split one text card by a custom delimiter or Markdown heading level.
+- Copy, merge, and preview content from multiple selected Canvas cards.
+- Export merged content to the clipboard, a new Canvas card, or a Markdown note.
+- Add and edit card badges for manual ordering.
+- View card size and position, and batch-adjust selected card dimensions.
+
+当前版本：`1.5.2`
 
 ## 功能概览
 
