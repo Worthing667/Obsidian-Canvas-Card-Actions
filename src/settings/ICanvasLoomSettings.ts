@@ -7,5 +7,8 @@ export default interface CanvasLoomSettings {
 	enableBadges: boolean; // 是否启用标记功能
 	defaultSortMode: MergeOrderSetting;
 	mergeCleanupMode: MergeCleanupMode;
+	enablePerformanceMode: boolean;
+	enablePerformanceDiagnostics: boolean;
+	largeCanvasNodeThreshold: number;
+	badgeUpdateDebounceMs: number;
 }
-

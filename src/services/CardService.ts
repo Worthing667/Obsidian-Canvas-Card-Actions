@@ -94,17 +94,11 @@ export class CardService implements ICardService {
 
     private async applySplit(nodeData: CanvasNodeData, parts: string[], successMessage: string): Promise<void> {
         try {
-            // 更新原始卡片
-            const updatedNodeData = { ...nodeData, text: parts[0] };
-            await this.canvasAdapter.updateNode(updatedNodeData);
-
-            // 创建新卡片
             const newCards = this.createCardsFromContent(
                 parts.slice(1),
                 { x: nodeData.x, y: nodeData.y }
             );
 
-            // 调整新卡片的位置
             const adjustedCards = newCards.map((card, index) => ({
                 ...card,
                 x: nodeData.x + (nodeData.width + this.cardSpacing) * (index + 1),
@@ -113,8 +107,12 @@ export class CardService implements ICardService {
                 height: nodeData.height
             }));
 
-            // 添加新卡片到画布
-            await this.canvasAdapter.addNodes(adjustedCards);
+            await this.canvasAdapter.mutateData((canvasData) => {
+                canvasData.nodes = canvasData.nodes.map((node) =>
+                    node.id === nodeData.id ? { ...nodeData, text: parts[0] } : node
+                );
+                canvasData.nodes.push(...adjustedCards);
+            });
             await this.canvasAdapter.requestSave();
 
             new Notice(successMessage);

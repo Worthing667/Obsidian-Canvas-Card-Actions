@@ -71,12 +71,19 @@ export class MergeService implements IMergeService {
             height: anchor.height
         };
 
-        await this.canvasAdapter.addNode(nodeData);
+        await this.canvasAdapter.mutateData((canvasData) => {
+            const ids = options?.cleanupMode === 'delete-source'
+                ? new Set(selection.map(n => n.id))
+                : null;
 
-        if (options?.cleanupMode === 'delete-source') {
-            const ids = new Set(selection.map(n => n.id));
-            await this.canvasAdapter.removeNodes(ids);
-        }
+            canvasData.nodes = ids
+                ? canvasData.nodes.filter(node => !ids.has(node.id))
+                : canvasData.nodes;
+            canvasData.edges = ids
+                ? canvasData.edges.filter(edge => !ids.has(edge.fromNode) && !ids.has(edge.toNode))
+                : canvasData.edges;
+            canvasData.nodes.push(nodeData);
+        });
 
         await this.canvasAdapter.requestSave();
         new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
@@ -211,12 +218,19 @@ export class MergeService implements IMergeService {
             return false;
         }
 
-        await adapter.addNode(nodeData);
+        await adapter.mutateData((canvasData) => {
+            const ids = options?.cleanupMode === 'delete-source'
+                ? new Set(snapshots.map(s => s.id))
+                : null;
 
-        if (options?.cleanupMode === 'delete-source') {
-            const ids = new Set(snapshots.map(s => s.id));
-            await adapter.removeNodes(ids);
-        }
+            canvasData.nodes = ids
+                ? canvasData.nodes.filter(node => !ids.has(node.id))
+                : canvasData.nodes;
+            canvasData.edges = ids
+                ? canvasData.edges.filter(edge => !ids.has(edge.fromNode) && !ids.has(edge.toNode))
+                : canvasData.edges;
+            canvasData.nodes.push(nodeData);
+        });
 
         await adapter.requestSave();
         new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);

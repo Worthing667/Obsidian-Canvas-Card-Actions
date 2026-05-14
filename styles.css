@@ -1346,6 +1346,10 @@
 
 /* === End Card Properties Panel === */
 
+.canvas-loom-performance-mode .canvas-node {
+    contain: layout paint;
+}
+
 @media (max-width: 640px) {
     .cca-grid-cols-2,
     .cca-grid-cols-3 {

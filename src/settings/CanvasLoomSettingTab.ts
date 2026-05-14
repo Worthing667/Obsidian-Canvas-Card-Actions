@@ -70,5 +70,56 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 					this.plugin.settings.mergeCleanupMode = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName('启用 Canvas 性能模式')
+			.setDesc('减少 Canvas-Loom 在大型 Canvas 中的附加渲染开销')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enablePerformanceMode)
+				.onChange(async (value) => {
+					await this.plugin.setPerformanceModeEnabled(value);
+				}));
+
+		new Setting(containerEl)
+			.setName('启用性能诊断日志')
+			.setDesc('在开发者控制台输出 Canvas-Loom 操作耗时和节点统计')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.enablePerformanceDiagnostics)
+				.onChange(async (value) => {
+					this.plugin.settings.enablePerformanceDiagnostics = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('大 Canvas 阈值')
+			.setDesc('节点数达到该值后，标记加载会使用更保守的分帧策略')
+			.addText(text => text
+				.setPlaceholder('80')
+				.setValue(String(this.plugin.settings.largeCanvasNodeThreshold))
+				.onChange(async (value) => {
+					const parsedValue = Number(value);
+					if (!Number.isFinite(parsedValue) || parsedValue < 1) {
+						return;
+					}
+
+					this.plugin.settings.largeCanvasNodeThreshold = Math.round(parsedValue);
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('标记更新防抖时间')
+			.setDesc('控制标记 DOM 更新的延迟，单位毫秒')
+			.addText(text => text
+				.setPlaceholder('150')
+				.setValue(String(this.plugin.settings.badgeUpdateDebounceMs))
+				.onChange(async (value) => {
+					const parsedValue = Number(value);
+					if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+						return;
+					}
+
+					this.plugin.settings.badgeUpdateDebounceMs = Math.round(parsedValue);
+					await this.plugin.saveSettings();
+				}));
 	}
 }

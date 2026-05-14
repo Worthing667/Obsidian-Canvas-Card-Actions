@@ -3,7 +3,15 @@ import CanvasLoomSettings from "./settings/ICanvasLoomSettings";
 import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
 
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
-import { CardService, BadgeService, ContentService, ColorGroupService, MergeService } from './services';
+import {
+    CardService,
+    BadgeService,
+    ContentService,
+    ColorGroupService,
+    MergeService,
+    PerformanceService,
+    BadgeRenderScheduler
+} from './services';
 import {
     CommandRegistry,
     CopySingleCardCommand,
@@ -32,6 +40,10 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     enableBadges: true,
     defaultSortMode: 'position',
     mergeCleanupMode: 'keep-source',
+    enablePerformanceMode: false,
+    enablePerformanceDiagnostics: false,
+    largeCanvasNodeThreshold: 80,
+    badgeUpdateDebounceMs: 150,
 };
 
 export default class CanvasLoomPlugin extends Plugin {
@@ -44,6 +56,8 @@ export default class CanvasLoomPlugin extends Plugin {
     private contentService: ContentService;
     private colorGroupService: ColorGroupService;
     private mergeService: MergeService;
+    private performanceService: PerformanceService;
+    private badgeRenderScheduler: BadgeRenderScheduler;
     private commandRegistry: CommandRegistry;
     private badgeStyleManager: BadgeStyleManager;
     private vaultAdapter: VaultAdapter;
@@ -67,6 +81,8 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.commandRegistry = new CommandRegistry();
         this.badgeStyleManager = new BadgeStyleManager();
+        this.performanceService = new PerformanceService(() => this.settings);
+        this.badgeRenderScheduler = new BadgeRenderScheduler();
     }
 
     private registerSettingTab(): void {
@@ -74,6 +90,8 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private setupUI(): void {
+        this.syncPerformanceModeClass();
+
         if (this.settings.enableBadges) {
             this.badgeStyleManager.injectStyles();
         }
@@ -286,7 +304,21 @@ export default class CanvasLoomPlugin extends Plugin {
                 try {
                     const canvasAdapter = new CanvasAdapter(canvas);
                     const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
-                    await badgeService.loadCanvasBadges();
+                    const canvasData = canvasAdapter.getData();
+                    const stats = this.performanceService.getStats(canvasData);
+
+                    this.performanceService.log("canvas.stats", {
+                        filePath: file.path,
+                        ...stats
+                    });
+
+                    this.badgeRenderScheduler.schedule({
+                        key: file.path,
+                        badgeService,
+                        debounceMs: this.settings.badgeUpdateDebounceMs,
+                        batchSize: stats.isLargeCanvas ? 30 : Math.max(1, stats.badgeNodeCount),
+                        performanceService: this.performanceService
+                    });
                 } catch (error) {
                     console.error("加载 Canvas 标记时出错:", error);
                 }
@@ -347,11 +379,27 @@ export default class CanvasLoomPlugin extends Plugin {
             return;
         }
 
+        this.badgeRenderScheduler.cancelAll();
         this.badgeStyleManager.removeStyles();
         this.clearAllCanvasBadgeDom();
     }
 
+    async setPerformanceModeEnabled(enabled: boolean) {
+        this.settings.enablePerformanceMode = enabled;
+        await this.saveSettings();
+        this.syncPerformanceModeClass();
+    }
+
+    private syncPerformanceModeClass(): void {
+        activeDocument.body.classList.toggle(
+            "canvas-loom-performance-mode",
+            this.settings.enablePerformanceMode
+        );
+    }
+
     onunload() {
+        this.badgeRenderScheduler.cancelAll();
+        activeDocument.body.classList.remove("canvas-loom-performance-mode");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
     }

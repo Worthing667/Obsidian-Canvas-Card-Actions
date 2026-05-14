@@ -8,6 +8,7 @@ export interface ICanvasAdapter {
     replaceSelection(nodes: CanvasNode[]): void;
     findNodeById(id: string): CanvasNode | null;
     requestSave(): Promise<void>;
+    mutateData(mutator: (data: CanvasData) => void): Promise<CanvasData>;
     updateNode(nodeData: CanvasNodeData): Promise<void>;
     addNode(nodeData: CanvasNodeData): Promise<void>;
     addNodes(nodes: CanvasNodeData[]): Promise<void>;
@@ -89,6 +90,19 @@ export class CanvasAdapter implements ICanvasAdapter {
         }
     }
 
+    async mutateData(mutator: (data: CanvasData) => void): Promise<CanvasData> {
+        const currentData = this.getData();
+        const nextData: CanvasData = {
+            ...currentData,
+            nodes: [...(currentData.nodes || [])],
+            edges: [...(currentData.edges || [])]
+        };
+
+        mutator(nextData);
+        await this.setData(nextData);
+        return nextData;
+    }
+
     getDataModel(): CanvasDataModel {
         const data = this.getData();
         return CanvasDataModel.fromRawData(data);
@@ -100,26 +114,29 @@ export class CanvasAdapter implements ICanvasAdapter {
     }
 
     async updateNode(nodeData: CanvasNodeData): Promise<void> {
-        const model = this.getDataModel();
-        const updatedModel = model.updateNode(nodeData);
-        await this.setDataModel(updatedModel);
+        await this.mutateData((data) => {
+            data.nodes = data.nodes.map(node =>
+                node.id === nodeData.id ? nodeData : node
+            );
+        });
     }
 
     async addNode(nodeData: CanvasNodeData): Promise<void> {
-        const model = this.getDataModel();
-        const updatedModel = model.addNode(nodeData);
-        await this.setDataModel(updatedModel);
+        await this.mutateData((data) => {
+            data.nodes = [...data.nodes, nodeData];
+        });
     }
 
     async addNodes(nodes: CanvasNodeData[]): Promise<void> {
-        const model = this.getDataModel();
-        const updatedModel = model.addNodes(nodes);
-        await this.setDataModel(updatedModel);
+        await this.mutateData((data) => {
+            data.nodes = [...data.nodes, ...nodes];
+        });
     }
 
     async removeNodes(ids: Set<string>): Promise<void> {
-        const model = this.getDataModel();
-        const updatedModel = model.removeNodes(ids);
-        await this.setDataModel(updatedModel);
+        await this.mutateData((data) => {
+            data.nodes = data.nodes.filter(node => !ids.has(node.id));
+            data.edges = data.edges.filter(edge => !ids.has(edge.fromNode) && !ids.has(edge.toNode));
+        });
     }
 }
