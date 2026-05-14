@@ -31,7 +31,7 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     getDisplayText(): string {
-        return 'Loom 工作台';
+        return 'Loom工作台';
     }
 
     getIcon(): string {
@@ -57,6 +57,10 @@ export class MergeWorkbenchView extends ItemView {
         this.render();
     }
 
+    getWorkbenchState(): WorkbenchState {
+        return this.context.state;
+    }
+
     private render(): void {
         const { contentEl } = this;
         contentEl.empty();
@@ -74,7 +78,7 @@ export class MergeWorkbenchView extends ItemView {
 
         const toolbar = container.createDiv({ cls: 'canvas-loom-workbench-toolbar' });
         const heading = toolbar.createDiv({ cls: 'canvas-loom-workbench-heading' });
-        heading.createEl('h3', { text: 'Loom 工作台' });
+        heading.createEl('h3', { text: 'Loom工作台' });
         heading.createDiv({
             cls: 'canvas-loom-workbench-source',
             text: `${this.context.state.canvasFileBasename} / ${this.context.state.scopeLabel}`
@@ -355,7 +359,7 @@ export class MergeWorkbenchView extends ItemView {
     private createEmptyContext(): MergeWorkbenchContext {
         const state = this.workbenchService.createState({
             canvasFilePath: null,
-            canvasFileBasename: 'Loom 工作台',
+            canvasFileBasename: 'Loom工作台',
             scopeLabel: '等待卡片组',
             selectionSnapshot: [],
             defaultSortMode: 'position',

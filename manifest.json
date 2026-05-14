@@ -1,7 +1,7 @@
 {
 	"id": "canvas-loom",
 	"name": "Canvas Loom",
-	"version": "1.5.2",
+	"version": "1.5.3",
 	"minAppVersion": "0.16.0",
 	"description": "为 Canvas 添加卡片拼合、拆分、内容复制和添加标记的功能.",
 	"author": "沃辛",

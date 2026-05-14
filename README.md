@@ -10,7 +10,7 @@
 - Inspecting, resizing, and arranging card properties
 - Selecting cards by color and previewing color-based groups
 
-Current version: `1.5.2`
+Current version: `1.5.3`
 
 ## Feature Overview
 
@@ -21,7 +21,7 @@ Current version: `1.5.2`
 - `Quick copy` / `Quick merge`
   Process multiple selected cards with the default sorting mode from settings.
 - `Preview card group`
-  Load the selected text cards into the Loom workspace, change sorting, drag-adjust the current order, preview merged output, and export it to the clipboard, a new Canvas card, or a Markdown note.
+  Load the selected text cards into the Loom workspace; when the workspace stays open, run the action again to add more cards, then change sorting, drag-adjust the current order, preview merged output, and export it.
 - `Add/Edit badge`
   Add numeric outline-style badges such as `1`, `2.1`, or `10.3.2`.
 - `Manage card properties`

@@ -4,6 +4,7 @@ import { IVaultAdapter } from "../adapters/VaultAdapter";
 import { IContentService, MergeOrder } from "./ContentService";
 import { SortPriority } from "../domain/strategies";
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
+import type { MergeWorkbenchContext } from "../presentation/views";
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
 import { PerformanceService } from "./PerformanceService";
 import type { MergeCleanupMode } from "../settings/ICanvasLoomSettings";
@@ -159,8 +160,24 @@ export class MergeService implements IMergeService {
             snapshotCount: snapshots.length
         }, () => this.activateMergePreviewView());
         const sortPriority = options?.sortPriority || 'yx';
+        const canvasFilePath = canvasFile?.path || null;
+        const existingState = view.getWorkbenchState();
+
+        if (canvasFilePath && existingState.canvasFilePath === canvasFilePath && existingState.selectionSnapshot.length > 0) {
+            const appendResult = this.workbenchService.appendSnapshots(existingState, snapshots, sortPriority);
+            view.setWorkbenchContext(this.createWorkbenchContext(appendResult.state, sortPriority, options));
+
+            if (appendResult.addedCount > 0) {
+                new Notice(`已向 Loom工作台添加 ${appendResult.addedCount} 张卡片（共 ${appendResult.state.selectionSnapshot.length} 张）`);
+            } else {
+                new Notice(`选中卡片已在 Loom工作台中，已刷新 ${appendResult.updatedCount} 张卡片快照`);
+            }
+
+            return true;
+        }
+
         const state = this.workbenchService.createState({
-            canvasFilePath: canvasFile?.path || null,
+            canvasFilePath,
             canvasFileBasename: canvasFile?.basename || '当前画布',
             scopeLabel: options?.scopeLabel || '当前选区',
             selectionSnapshot: snapshots,
@@ -169,7 +186,18 @@ export class MergeService implements IMergeService {
             previewExpanded: options?.previewExpanded ?? false
         });
 
-        view.setWorkbenchContext({
+        view.setWorkbenchContext(this.createWorkbenchContext(state, sortPriority, options));
+
+        new Notice(`已在 Loom工作台载入卡片组（${state.scopeLabel}，${snapshots.length} 张卡片）`);
+        return true;
+    }
+
+    private createWorkbenchContext(
+        state: WorkbenchState,
+        sortPriority: SortPriority,
+        options?: OpenWorkbenchOptions
+    ): MergeWorkbenchContext {
+        return {
             state,
             sortPriority,
             onCopy: async (currentState: WorkbenchState) => {
@@ -201,10 +229,7 @@ export class MergeService implements IMergeService {
                     includeBadgePrefix: currentState.sortMode === 'badge'
                 });
             }
-        });
-
-        new Notice(`已在 Loom 工作台载入卡片组（${state.scopeLabel}，${snapshots.length} 张卡片）`);
-        return true;
+        };
     }
 
     async mergeSnapshotsToCanvasCard(snapshots: CardSnapshot[], canvasFilePath: string | null, options?: MergeExecutionOptions): Promise<boolean> {
@@ -388,7 +413,7 @@ export class MergeService implements IMergeService {
 
         await leaf.setViewState({ type: MERGE_PREVIEW_VIEW_TYPE, active: true });
         if (!(leaf.view instanceof MergeWorkbenchView)) {
-            throw new Error("Loom 工作台视图未成功初始化");
+            throw new Error("Loom工作台视图未成功初始化");
         }
 
         return leaf.view;

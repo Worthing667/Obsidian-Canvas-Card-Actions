@@ -12,6 +12,12 @@ export interface CreateWorkbenchStateOptions {
     previewExpanded?: boolean;
 }
 
+export interface AppendWorkbenchSnapshotsResult {
+    state: WorkbenchState;
+    addedCount: number;
+    updatedCount: number;
+}
+
 export class PreviewWorkbenchService {
     readonly previewCollapseThreshold = 30;
 
@@ -65,6 +71,46 @@ export class PreviewWorkbenchService {
         return {
             ...state,
             lastComputedContent,
+        };
+    }
+
+    appendSnapshots(state: WorkbenchState, snapshots: CardSnapshot[], sortPriority: SortPriority): AppendWorkbenchSnapshotsResult {
+        const incomingCards = this.getTextCards(snapshots);
+        if (incomingCards.length === 0) {
+            return { state, addedCount: 0, updatedCount: 0 };
+        }
+
+        const incomingById = new Map(incomingCards.map(card => [card.id, card]));
+        let updatedCount = 0;
+        const refreshedSnapshots = state.selectionSnapshot.map((snapshot) => {
+            const incoming = incomingById.get(snapshot.id);
+            if (!incoming) {
+                return snapshot;
+            }
+
+            incomingById.delete(snapshot.id);
+            updatedCount += 1;
+            return incoming;
+        });
+
+        const addedCards = Array.from(incomingById.values());
+        const selectionSnapshot = [...refreshedSnapshots, ...addedCards];
+        const orderedCards = state.isManualAdjusted
+            ? [
+                ...this.getOrderedCards({ ...state, selectionSnapshot: refreshedSnapshots }, sortPriority),
+                ...addedCards
+            ]
+            : this.getAutoSortedCards(selectionSnapshot, state.sortMode, sortPriority);
+
+        return {
+            state: {
+                ...state,
+                selectionSnapshot,
+                manualOrderIds: orderedCards.map(card => card.id),
+                lastComputedContent: ''
+            },
+            addedCount: addedCards.length,
+            updatedCount
         };
     }
 
