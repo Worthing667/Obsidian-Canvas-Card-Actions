@@ -1,125 +1,120 @@
 # Canvas Loom
 
-`Canvas Loom` 是一个 Obsidian Canvas 增强插件，聚焦四类高频操作：
+[中文说明](./README-ZH.md)
 
-- 拆分单张文本卡片
-- 复制、拼合和预览多张卡片内容
-- 为卡片添加标记
-- 查看和调整卡片属性
+`Canvas Loom` is an Obsidian Canvas plugin for organizing text cards more efficiently. It focuses on common Canvas workflows:
 
-## English overview
+- Splitting a long text card into smaller cards
+- Copying, merging, and previewing content from multiple cards
+- Adding visible badges to cards
+- Inspecting, resizing, and arranging card properties
+- Selecting cards by color and previewing color-based groups
 
-Canvas Loom is an Obsidian Canvas enhancement plugin for working with text cards more efficiently. It helps you split long cards, copy or merge selected card content, preview ordered output, add numeric badges, and inspect or adjust card properties.
+Current version: `1.5.1`
 
-Main features:
+## Feature Overview
 
-- Split one text card by a custom delimiter or Markdown heading level.
-- Copy, merge, and preview content from multiple selected Canvas cards.
-- Export merged content to the clipboard, a new Canvas card, or a Markdown note.
-- Add and edit card badges for manual ordering.
-- View card size and position, and batch-adjust selected card dimensions.
+- `Split card...`
+  Split one text card by a custom delimiter or by Markdown heading level.
+- `Copy card content`
+  Copy the plain text content of a selected text card.
+- `Quick copy` / `Quick merge`
+  Process multiple selected cards with the default sorting mode from settings.
+- `Open preview...`
+  Open a reusable workspace panel to change sorting, drag-adjust the current order, preview merged output, and export it to the clipboard, a new Canvas card, or a Markdown note.
+- `Add/Edit badge`
+  Add numeric outline-style badges such as `1`, `2.1`, or `10.3.2`.
+- `Manage card properties`
+  Inspect one card or batch-adjust selected card dimensions, width, height, aspect ratio, and layout.
+- `Select same color cards`
+  Select text cards with the same Canvas color and open them in the preview workflow.
 
-当前版本：`1.5.2`
+## Screenshots
 
-## 功能概览
-
-- `拆分卡片...`
-  支持按自定义分隔符或 Markdown 标题层级拆分。
-- `复制卡片内容`
-  复制单张文本卡片的纯文本内容。
-- `一键复制` / `一键拼合`
-  按设置中的默认排序方式处理多张卡片。
-- `打开预览...`
-  在工作台中切换排序、预览结果，并输出为剪贴板、画布卡片或 Markdown 文稿。
-- `添加/编辑标记`
-  支持数字、文字和表情标记。
-- `管理卡片属性`
-  统一处理单卡片查看和多卡片批量尺寸调整。
-
-## 界面演示
-
-下面这组截图适合直接放在主页，基本能把插件的主要使用路径说明白。
-
-### 1. 拆分文本卡片
+### 1. Split Text Cards
 
 <p align="center">
-  <img src="Demo/按标题_拆分卡片_选择器.png" alt="拆分卡片方式选择器" width="48%" />
-  <img src="Demo/按标题_拆分卡片.png" alt="按标题层级拆分后的画布卡片" width="48%" />
+  <img src="Demo/按标题_拆分卡片_选择器.png" alt="Split card mode selector" width="48%" />
+  <img src="Demo/按标题_拆分卡片.png" alt="Canvas cards after splitting by heading level" width="48%" />
 </p>
 
-单张长文本卡片可以先选择拆分方式，再按分隔符或 Markdown 标题层级拆成多张新卡片。
+A long text card can be split by choosing a split mode, then using either a delimiter or Markdown heading level.
 
-### 2. 多卡片整理与导出
+### 2. Organize and Export Multiple Cards
 
 <p align="center">
-  <img src="Demo/一键拼合卡片.png" alt="多卡片一键拼合" width="48%" />
-  <img src="Demo/侧边栏工作台.png" alt="侧边栏工作台预览与导出" width="48%" />
+  <img src="Demo/一键拼合卡片.png" alt="Quick merge selected Canvas cards" width="48%" />
+  <img src="Demo/侧边栏工作台.png" alt="Workspace preview and export panel" width="48%" />
 </p>
 
-选中多张卡片后，可以直接一键拼合，也可以进入侧边栏工作台切换排序模式、预览结果，并输出到剪贴板、画布卡片或 Markdown 文稿。
+After selecting multiple cards, you can merge them immediately or open the side panel to adjust sorting, preview the result, and export it.
 
-### 3. 右键菜单入口
+### 3. Context Menu Actions
 
 <p align="center">
-  <img src="Demo/单卡片右键菜单.png" alt="单卡片右键菜单" width="31%" />
-  <img src="Demo/多卡片右键菜单.png" alt="多卡片右键菜单" width="31%" />
-  <img src="Demo/一键统一卡片尺寸_3后.png" alt="统一尺寸后的多卡片效果" width="31%" />
+  <img src="Demo/单卡片右键菜单.png" alt="Single card context menu" width="31%" />
+  <img src="Demo/多卡片右键菜单.png" alt="Multiple card context menu" width="31%" />
+  <img src="Demo/一键统一卡片尺寸_3后.png" alt="Cards after batch size adjustment" width="31%" />
 </p>
 
-单卡片和多卡片场景分别提供不同的右键操作入口，批量整理后的画布效果也能直接在画布中看到。
+Canvas Loom provides different context menu actions for single-card and multi-card selections.
 
-### 4. 卡片属性管理
+### 4. Card Property Management
 
 <p align="center">
-  <img src="Demo/单卡片属性管理.png" alt="单卡片属性管理面板" width="48%" />
-  <img src="Demo/多卡片属性管理.png" alt="多卡片属性管理面板" width="48%" />
+  <img src="Demo/单卡片属性管理.png" alt="Single card property panel" width="48%" />
+  <img src="Demo/多卡片属性管理.png" alt="Multiple card property panel" width="48%" />
 </p>
 
-属性管理支持查看尺寸和坐标、复制位置信息，以及对多张卡片执行统一最小尺寸、最大尺寸或平均尺寸等批量调整。
+The property panel shows card size and position, supports copying position data, and can batch-adjust selected cards to minimum, maximum, or average dimensions.
 
-## 插件设置
+## Settings
 
-- `设置画布卡片分隔符`：控制分隔符拆分使用的文本
-- `设置卡片排序优先级`：控制位置排序优先按纵向还是横向
-- `一键排序方式`：控制一键复制和一键拼合的默认排序模式
-- `启用标记功能`：控制是否显示卡片标记
+- `Canvas card delimiter`: controls the delimiter used when splitting cards.
+- `Card sorting priority`: controls whether position-based sorting prioritizes vertical or horizontal order.
+- `Quick action sorting mode`: controls the default sorting mode for quick copy and quick merge.
+- `Enable badges`: controls whether card badges are shown.
+- `Merge cleanup mode`: controls whether source cards are kept or deleted after creating a merged card.
+- `Canvas performance mode`: reduces Canvas Loom's additional rendering cost on large canvases.
+- `Performance diagnostics`: logs Canvas Loom operation timing and Canvas statistics to the developer console.
 
-## 权限与隐私说明
+## Privacy
 
-- 不需要账号，不接入付费服务
-- 不包含广告，不采集遥测数据，不上传用户内容
-- 不主动联网
-- 仅在用户手动触发命令时，读取当前 Obsidian 仓库中的 Canvas 或 Markdown 内容
-- 仅在用户明确执行导出、拼合或新建文稿相关操作时，在当前仓库内创建或修改文件
-- 支持将选中卡片内容复制到系统剪贴板
+- No account required
+- No paid service integration
+- No ads, telemetry, or uploaded user content
+- No proactive network access
+- Reads Canvas or Markdown content only when the user runs a command
+- Creates or modifies files in the current vault only when the user explicitly exports, merges, or creates a note
+- Supports copying selected card content to the system clipboard
 
-## 安装
+## Installation
 
-### 从 GitHub 发布页安装
+### Install from GitHub Releases
 
-1. 打开本仓库的 [发布页](https://github.com/woxin667/Canvas-Loom/releases)
-2. 下载 `main.js`、`manifest.json`、`styles.css`
-3. 将这三个文件放入 `.obsidian/plugins/canvas-loom/`
-4. 在 Obsidian 中启用插件
+1. Open the repository [Releases page](https://github.com/woxin667/Canvas-Loom/releases).
+2. Download `main.js`, `manifest.json`, and `styles.css`.
+3. Put the three files in `.obsidian/plugins/canvas-loom/`.
+4. Enable the plugin in Obsidian.
 
-### 本地构建
+### Build Locally
 
 ```bash
 npm install
 npm run build
 ```
 
-## 开发
+## Development
 
-- `npm run dev`：开发模式
-- `npm run build`：生产构建
-- `npm run version`：同步更新版本号
+- `npm run dev`: development build
+- `npm run build`: production build
+- `npm run version`: sync version metadata
 
-## 文档
+## Documentation
 
-文档索引见 [docs/README.md](./docs/README.md)。
+The documentation index is available at [docs/README.md](./docs/README.md).
 
-建议优先阅读：
+Suggested reading:
 
 - `docs/功能-拆分Canvas卡片.md`
 - `docs/功能-卡片内容复制与排序.md`
@@ -128,6 +123,6 @@ npm run build
 - `docs/技术实现细节.md`
 - `docs/技术实现-Obsidian官方上架与发布流程.md`
 
-## 致谢
+## Credits
 
-早期开发参考了 **joshuakto** 的开源项目 [obsidian-cardify](https://github.com/joshuakto/obsidian-cardify)。
+Early development referenced **joshuakto**'s open-source project [obsidian-cardify](https://github.com/joshuakto/obsidian-cardify).

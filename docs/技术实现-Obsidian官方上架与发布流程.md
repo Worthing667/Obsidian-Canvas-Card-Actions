@@ -28,13 +28,14 @@
 - `package.json`
 - `versions.json`
 - `README.md`
+- `README-ZH.md`
 
 其中：
 
 - `manifest.json` 中的 `version` 是 Obsidian 官方审核和安装使用的主版本号
 - `package.json` 中的 `version` 应与 `manifest.json` 保持一致
 - `versions.json` 需要补充当前版本对应的最低兼容 Obsidian 版本
-- `README.md` 中展示的“当前版本”应同步更新，避免页面信息落后于实际发布版本
+- `README.md` 和 `README-ZH.md` 中展示的“当前版本”应同步更新，避免页面信息落后于实际发布版本
 
 ### 发布产物
 
@@ -104,6 +105,22 @@ npm run build
 - 同步复制 `manifest.json` 与 `styles.css` 到 `build/`
 - 将最新 `build/main.js` 覆盖到仓库根目录的 `main.js`
 
+### 本地安装目录同步
+
+`esbuild.config.mjs` 会在启动时尝试读取仓库根目录 `.env`：
+
+```text
+PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
+```
+
+生产构建时如果 `PLUGIN_DEST_PATH` 存在，会把以下文件同步到该目录：
+
+- `main.js`
+- `manifest.json`
+- `styles.css`
+
+如果 `.env` 不存在或没有设置 `PLUGIN_DEST_PATH`，构建会跳过本地同步，但仍会正常生成发布产物。这个逻辑只用于本地测试，不应作为 GitHub Release 的发布依据。
+
 ### 自动发布工作流
 
 仓库内使用以下工作流生成 GitHub Release：
@@ -130,7 +147,7 @@ npm run build
 3. 本地执行 `npm run build` 成功
 4. 本地执行静态检查后，不存在明显的官方规范风险项，例如运行时注入样式、裸 `any`、未处理 Promise、直接写 `innerHTML`
    建议额外使用 `eslint-plugin-obsidianmd` 复查一次，重点关注样式加载方式、`activeWindow` 兼容、Promise 处理和废弃 API 使用
-5. `README.md` 已包含功能说明、安装方式和权限与隐私说明
+5. `README.md` 和 `README-ZH.md` 已包含功能说明、安装方式和权限与隐私说明
 6. 仓库中不存在明显无意义的调试日志或演示性质的提交内容
 7. GitHub Release 已包含 `manifest.json`、`main.js`、`styles.css`
 8. GitHub Release 的 tag 与当前仓库约定一致，例如 `v1.4.1`
@@ -175,6 +192,7 @@ npm run build
 - 构建方式
 - 权限与隐私说明
 - 与 Canvas 相关的行为边界，例如何时读取内容、何时写入文件、何时复制到系统剪贴板
+- 中英文入口链接保持可用，不指向不存在的文件
 
 ## 后续维护建议
 

@@ -1,6 +1,6 @@
 # Canvas 性能优化方案
 
-本文档用于规划 Canvas-Loom 后续的 Canvas 性能优化工作。重点不是重写 Obsidian Canvas，而是在当前插件架构内，用低风险方式减少额外开销，并在可控范围内提供可关闭的性能模式。
+本文档用于记录 Canvas-Loom 的 Canvas 性能优化边界、已落地实现和后续路线。重点不是重写 Obsidian Canvas，而是在当前插件架构内，用低风险方式减少额外开销，并在可控范围内提供可关闭的性能模式。
 
 ## 背景
 
@@ -84,14 +84,34 @@ Canvas-Loom 当前适合做“辅助型性能优化”，不适合直接做 Hept
 4. **P3：实验性快照缓存**
    只对纯文本静态卡片做可选实验，不默认开启。
 
+## 当前落地状态
+
+截至当前代码，已经落地的部分包括：
+
+- 设置项：`enablePerformanceMode`、`enablePerformanceDiagnostics`、`largeCanvasNodeThreshold`、`badgeUpdateDebounceMs`
+- `PerformanceService`：统计 Canvas 节点结构、判断大 Canvas、输出诊断日志、包裹操作耗时
+- `CanvasAdapter.mutateData`：集中完成一次 Canvas 数据修改，减少重复 `setData`
+- 拆分卡片：更新原卡片和追加新卡片合并为一次 `setData`
+- 拼合并删除源卡片：删除源节点、删除相关边、追加合并卡片合并为一次 `setData`
+- `BadgeRenderScheduler`：对标记加载做防抖，并在大 Canvas 中按 `requestAnimationFrame` 分帧写 DOM
+- 插件生命周期：关闭标记或卸载插件时取消 pending timer / RAF，并清理 DOM 上的标记显示
+- 性能模式 class：通过 `body.canvas-loom-performance-mode` 控制，具体 CSS 规则放在根目录 `styles.css`
+
+尚未落地或仍保持实验边界的部分：
+
+- `content-visibility` 单独实验开关
+- 缩放级别 LOD
+- 屏外弱化显示
+- 位图或文本快照缓存
+
 ## P0：度量和写入减负
 
 ### 0.1 增加性能设置项
 
-建议新增设置：
+当前已经新增设置：
 
 - `enablePerformanceMode`
-  是否开启 Canvas 性能模式，默认关闭或保守开启。
+  是否开启 Canvas 性能模式，默认关闭。
 - `enablePerformanceDiagnostics`
   是否在控制台输出性能诊断，默认关闭。
 - `badgeUpdateDebounceMs`
@@ -118,7 +138,7 @@ Canvas-Loom 当前适合做“辅助型性能优化”，不适合直接做 Hept
 - 为其他服务提供 `isLargeCanvas(canvasData)` 判断。
 - 在诊断模式下使用 `console.debug` 输出结构化日志。
 
-建议接口：
+当前接口：
 
 ```ts
 export interface CanvasPerformanceStats {
@@ -162,22 +182,16 @@ console.debug("[Canvas Loom][perf]", {
   - 当前已经基本是一次读取、一次写入。
   - 后续只需要确认没有额外 requestSave。
 
-建议在 `CanvasAdapter` 增加事务式方法：
+当前已经在 `CanvasAdapter` 增加事务式方法：
 
 ```ts
-async mutateData(mutator: (data: CanvasData) => void): Promise<void>
-```
-
-或更明确：
-
-```ts
-async updateData(mutator: (data: CanvasData) => CanvasData): Promise<void>
+async mutateData(mutator: (data: CanvasData) => void): Promise<CanvasData>
 ```
 
 注意点：
 
 - 不要直接丢失未知字段。
-- `CanvasDataModel.toRawData()` 当前只返回 `nodes` 和 `edges`，会丢弃 Canvas 顶层未知字段。做性能优化时可以顺手改成保留原始顶层字段。
+- 当前 `mutateData` 会保留 Canvas 顶层未知字段，并复制 `nodes` / `edges` 后再交给 mutator 修改。
 - 批量 mutation 后统一 `requestSave`。
 
 ### 0.4 验收标准
@@ -410,7 +424,7 @@ LOD 分级建议：
 
 ## 设置设计
 
-建议设置页新增一个“性能”分组：
+当前设置页直接新增以下性能相关项：
 
 - `启用 Canvas 性能模式`
   - 描述：减少 Canvas-Loom 在大型 Canvas 中的附加渲染开销。
@@ -420,8 +434,7 @@ LOD 分级建议：
   - 描述：超过该节点数后启用更保守的延迟和分帧策略。
 - `标记更新防抖时间`
   - 描述：控制标记 DOM 更新的延迟，数值越大越不容易阻塞交互。
-- `实验：content-visibility`
-  - 描述：尝试让浏览器跳过屏外内容渲染，可能在部分主题或 Obsidian 版本下显示异常。
+`实验：content-visibility` 暂未加入设置页，仍属于后续实验项。
 
 默认值建议：
 
@@ -430,14 +443,13 @@ LOD 分级建议：
     enablePerformanceMode: false,
     enablePerformanceDiagnostics: false,
     largeCanvasNodeThreshold: 80,
-    badgeUpdateDebounceMs: 150,
-    enableContentVisibilityExperiment: false
+    badgeUpdateDebounceMs: 150
 }
 ```
 
-## 代码结构建议
+## 代码结构
 
-新增或调整文件：
+当前新增或调整文件：
 
 ```text
 src/services/PerformanceService.ts
@@ -557,7 +569,7 @@ function getCanvasZoom(canvas: unknown): number | null {
 - 拆分卡片一次 setData。
 - 合并并删除源卡片一次 setData。
 - badge 加载 debounce + requestAnimationFrame。
-- badge DOM 更新跳过无变化节点。
+- badge DOM 更新在同一次服务实例内跳过无变化节点。
 - 设置页提供性能诊断开关和 badge 防抖时间。
 
 这一版不触碰 Canvas transform、不做屏外卸载、不做位图快照，风险最低。
@@ -569,4 +581,3 @@ function getCanvasZoom(canvas: unknown): number | null {
 - 如果主要卡顿来自 Canvas-Loom 自身操作，继续优化插件即可。
 - 如果关闭 Canvas-Loom 后 Obsidian Canvas 仍明显卡顿，则瓶颈在 Obsidian 原生渲染或其他插件。
 - 如果用户强烈需要 Heptabase 级别体验，应考虑独立 Canvas 替代视图，而不是在当前插件内继续 monkey patch。
-
