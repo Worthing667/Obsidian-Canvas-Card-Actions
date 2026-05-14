@@ -142,12 +142,18 @@ export default class CanvasLoomPlugin extends Plugin {
             return;
         }
 
-        const canvasAdapter = new CanvasAdapter(canvas);
-        this.cardService = new CardService(canvasAdapter);
+        const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
+        this.cardService = new CardService(canvasAdapter, 20, 400, 400, this.performanceService);
         this.badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
         this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
         this.colorGroupService = new ColorGroupService(canvasAdapter);
-        this.mergeService = new MergeService(this.app, canvasAdapter, this.contentService, this.vaultAdapter);
+        this.mergeService = new MergeService(
+            this.app,
+            canvasAdapter,
+            this.contentService,
+            this.vaultAdapter,
+            this.performanceService
+        );
     }
 
     private addNodeMenuCommands(menu: Menu, node: CanvasNode): void {
@@ -302,7 +308,7 @@ export default class CanvasLoomPlugin extends Plugin {
                 }
 
                 try {
-                    const canvasAdapter = new CanvasAdapter(canvas);
+                    const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
                     const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
                     const canvasData = canvasAdapter.getData();
                     const stats = this.performanceService.getStats(canvasData);
@@ -352,7 +358,7 @@ export default class CanvasLoomPlugin extends Plugin {
             }
 
             try {
-                const canvasAdapter = new CanvasAdapter(canvas);
+                const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
                 const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
                 badgeService.clearCanvasBadgeDom();
             } catch (error) {
@@ -399,9 +405,25 @@ export default class CanvasLoomPlugin extends Plugin {
 
     onunload() {
         this.badgeRenderScheduler.cancelAll();
+        this.detachMergePreviewLeaves();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
+    }
+
+    private detachMergePreviewLeaves(): void {
+        const leaves: WorkspaceLeaf[] = [];
+
+        this.app.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
+            const stateType = leaf.getViewState().type;
+            const viewType = leaf.view?.getViewType?.();
+
+            if (stateType === MERGE_PREVIEW_VIEW_TYPE || viewType === MERGE_PREVIEW_VIEW_TYPE) {
+                leaves.push(leaf);
+            }
+        });
+
+        leaves.forEach((leaf) => leaf.detach());
     }
 
     private registerHotkeys() {

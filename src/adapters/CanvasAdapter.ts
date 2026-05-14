@@ -1,6 +1,10 @@
 import { CanvasData, CanvasDataModel, CanvasNodeData } from "../domain/models/CanvasData";
 import type { Canvas, CanvasNode } from "../types/canvas";
 
+export interface CanvasDiagnostics {
+    log(operation: string, details: Record<string, unknown>): void;
+}
+
 export interface ICanvasAdapter {
     getData(): CanvasData;
     setData(data: CanvasData): Promise<void>;
@@ -16,7 +20,10 @@ export interface ICanvasAdapter {
 }
 
 export class CanvasAdapter implements ICanvasAdapter {
-    constructor(private canvas: Canvas) {
+    constructor(
+        private canvas: Canvas,
+        private diagnostics?: CanvasDiagnostics
+    ) {
         if (!canvas) {
             throw new Error("Canvas instance is required");
         }
@@ -33,8 +40,14 @@ export class CanvasAdapter implements ICanvasAdapter {
     }
 
     async setData(data: CanvasData): Promise<void> {
+        const startedAt = performance.now();
         try {
             await this.canvas.setData(data);
+            this.log("canvas.setData", {
+                nodeCount: data.nodes?.length || 0,
+                edgeCount: data.edges?.length || 0,
+                durationMs: this.getDurationMs(startedAt)
+            });
         } catch (error) {
             console.error("Failed to set canvas data:", error);
             throw new Error("无法设置画布数据");
@@ -82,8 +95,12 @@ export class CanvasAdapter implements ICanvasAdapter {
     }
 
     async requestSave(): Promise<void> {
+        const startedAt = performance.now();
         try {
             await this.canvas.requestSave();
+            this.log("canvas.requestSave", {
+                durationMs: this.getDurationMs(startedAt)
+            });
         } catch (error) {
             console.error("Failed to request save:", error);
             throw new Error("保存画布失败");
@@ -92,6 +109,8 @@ export class CanvasAdapter implements ICanvasAdapter {
 
     async mutateData(mutator: (data: CanvasData) => void): Promise<CanvasData> {
         const currentData = this.getData();
+        const beforeNodeCount = currentData.nodes?.length || 0;
+        const beforeEdgeCount = currentData.edges?.length || 0;
         const nextData: CanvasData = {
             ...currentData,
             nodes: [...(currentData.nodes || [])],
@@ -99,8 +118,24 @@ export class CanvasAdapter implements ICanvasAdapter {
         };
 
         mutator(nextData);
+        this.log("canvas.mutateData", {
+            beforeNodeCount,
+            afterNodeCount: nextData.nodes.length,
+            nodeDelta: nextData.nodes.length - beforeNodeCount,
+            beforeEdgeCount,
+            afterEdgeCount: nextData.edges.length,
+            edgeDelta: nextData.edges.length - beforeEdgeCount
+        });
         await this.setData(nextData);
         return nextData;
+    }
+
+    private log(operation: string, details: Record<string, unknown>): void {
+        this.diagnostics?.log(operation, details);
+    }
+
+    private getDurationMs(startedAt: number): number {
+        return Math.round((performance.now() - startedAt) * 100) / 100;
     }
 
     getDataModel(): CanvasDataModel {

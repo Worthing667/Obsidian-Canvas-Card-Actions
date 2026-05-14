@@ -3,6 +3,7 @@ import { CanvasNodeData } from "../domain/models/CanvasData";
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { PositionSortStrategy } from "../domain/strategies/PositionSort";
 import { Notice } from "obsidian";
+import { PerformanceService } from "./PerformanceService";
 import type { CanvasNode } from "../types/canvas";
 
 export interface HeadingSplitOption {
@@ -30,45 +31,63 @@ export class CardService implements ICardService {
         private canvasAdapter: ICanvasAdapter,
         private readonly cardSpacing: number = 20,
         private readonly defaultCardWidth: number = 400,
-        private readonly defaultCardHeight: number = 400
+        private readonly defaultCardHeight: number = 400,
+        private performanceService?: PerformanceService
     ) {}
 
     get defaultCardSpacing(): number { return this.cardSpacing; }
 
     async splitCard(node: CanvasNode, delimiter: string): Promise<void> {
-        const nodeData = node.getData();
-        const text = nodeData.text;
+        await this.measure("card.split.delimiter", { nodeId: node.id }, async () => {
+            const nodeData = node.getData();
+            const text = nodeData.text;
 
-        if (!text || !delimiter?.trim()) {
-            new Notice("卡片中未找到分隔符。");
-            return;
-        }
+            if (!text || !delimiter?.trim()) {
+                new Notice("卡片中未找到分隔符。");
+                return;
+            }
 
-        const parts = this.getDelimitedParts(text, delimiter);
-        if (parts.length <= 1) {
-            new Notice("没有可拆分的内容。");
-            return;
-        }
+            const parts = this.getDelimitedParts(text, delimiter);
+            this.performanceService?.log("card.split.delimiter.parts", {
+                nodeId: node.id,
+                textLength: text.length,
+                partCount: parts.length
+            });
 
-        await this.applySplit(nodeData, parts, `卡片已拆分为 ${parts.length} 张卡片`);
+            if (parts.length <= 1) {
+                new Notice("没有可拆分的内容。");
+                return;
+            }
+
+            await this.applySplit(nodeData, parts, `卡片已拆分为 ${parts.length} 张卡片`);
+        });
     }
 
     async splitCardByHeadingLevel(node: CanvasNode, level: number): Promise<void> {
-        const nodeData = node.getData();
-        const text = nodeData.text;
+        await this.measure("card.split.heading", { nodeId: node.id, level }, async () => {
+            const nodeData = node.getData();
+            const text = nodeData.text;
 
-        if (!text || level < 1 || level > 6) {
-            new Notice("当前卡片没有可用于按标题拆分的内容。");
-            return;
-        }
+            if (!text || level < 1 || level > 6) {
+                new Notice("当前卡片没有可用于按标题拆分的内容。");
+                return;
+            }
 
-        const parts = this.getHeadingSplitParts(text, level);
-        if (parts.length <= 1) {
-            new Notice(`当前卡片无法按 ${level} 级标题拆分。`);
-            return;
-        }
+            const parts = this.getHeadingSplitParts(text, level);
+            this.performanceService?.log("card.split.heading.parts", {
+                nodeId: node.id,
+                level,
+                textLength: text.length,
+                partCount: parts.length
+            });
 
-        await this.applySplit(nodeData, parts, `卡片已按 ${level} 级标题拆分为 ${parts.length} 张卡片`);
+            if (parts.length <= 1) {
+                new Notice(`当前卡片无法按 ${level} 级标题拆分。`);
+                return;
+            }
+
+            await this.applySplit(nodeData, parts, `卡片已按 ${level} 级标题拆分为 ${parts.length} 张卡片`);
+        });
     }
 
     getAvailableHeadingSplitOptions(node: CanvasNode): HeadingSplitOption[] {
@@ -120,6 +139,15 @@ export class CardService implements ICardService {
             console.error("拆分卡片失败:", error);
             new Notice("拆分卡片失败，请查看控制台了解详情");
         }
+    }
+
+    private async measure(operation: string, details: Record<string, unknown>, action: () => Promise<void>): Promise<void> {
+        if (!this.performanceService) {
+            await action();
+            return;
+        }
+
+        await this.performanceService.measure(operation, action, details);
     }
 
     private getDelimitedParts(text: string, delimiter: string): string[] {
@@ -267,6 +295,7 @@ export class CardService implements ICardService {
 
     private async applyDimensionChange(nodes: CanvasNode[], targetWidth?: number, targetHeight?: number, successMessage?: string): Promise<void> {
         const textNodes = nodes.filter(node => node.getData().type === "text");
+        const startedAt = performance.now();
         
         if (textNodes.length === 0) {
             throw new Error("没有找到可调整的文本卡片");
@@ -293,6 +322,13 @@ export class CardService implements ICardService {
 
             await this.canvasAdapter.setData(canvasData);
             await this.canvasAdapter.requestSave();
+
+            this.performanceService?.log("card.dimensionChange", {
+                nodeCount: textNodes.length,
+                targetWidth: targetWidth ?? "unchanged",
+                targetHeight: targetHeight ?? "unchanged",
+                durationMs: Math.round((performance.now() - startedAt) * 100) / 100
+            });
 
             if (successMessage) {
                 new Notice(successMessage);
@@ -361,6 +397,7 @@ export class CardService implements ICardService {
         spacing: number;
         sortPriority: 'yx' | 'xy';
     }): Promise<void> {
+        const startedAt = performance.now();
         const textNodes = nodes.filter(node => node.getData().type === "text");
 
         if (textNodes.length < 2) {
@@ -423,6 +460,14 @@ export class CardService implements ICardService {
 
         await this.canvasAdapter.setData(canvasData);
         await this.canvasAdapter.requestSave();
+
+        this.performanceService?.log("card.arrange", {
+            nodeCount: sorted.length,
+            direction: options.direction,
+            spacing: options.spacing,
+            sortPriority: options.sortPriority,
+            durationMs: Math.round((performance.now() - startedAt) * 100) / 100
+        });
 
         const dirLabel = options.direction === 'horizontal' ? '水平' : '垂直';
         new Notice(`已排列 ${sorted.length} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);

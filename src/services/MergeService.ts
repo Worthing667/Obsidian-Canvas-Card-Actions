@@ -5,6 +5,7 @@ import { IContentService, MergeOrder } from "./ContentService";
 import { SortPriority } from "../domain/strategies";
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
+import { PerformanceService } from "./PerformanceService";
 import type { MergeCleanupMode } from "../settings/ICanvasLoomSettings";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
 import type { CanvasNode, CanvasNodeData } from "../types/canvas";
@@ -42,24 +43,32 @@ export class MergeService implements IMergeService {
         private app: App,
         private canvasAdapter: ICanvasAdapter,
         private contentService: IContentService,
-        private vaultAdapter: IVaultAdapter
+        private vaultAdapter: IVaultAdapter,
+        private performanceService?: PerformanceService
     ) {}
 
     async mergeToCanvasCard(selection: CanvasNode[], options?: MergeExecutionOptions): Promise<boolean> {
-        const result = await this.contentService.buildMergedContent({
+        const result = await this.measure("merge.buildContent", {
+            target: "canvas-card",
+            selectionCount: selection.length,
+            order: options?.order || 'position'
+        }, () => this.contentService.buildMergedContent({
             selection,
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
             includeBadgePrefix: options?.includeBadgePrefix ?? true
-        });
+        }));
 
         if (!result.content || result.count === 0) {
             new Notice('没有可合并的文本卡片');
             return false;
         }
 
-        const snapshots = await this.contentService.createSelectionSnapshot(selection);
+        const snapshots = await this.measure("merge.createSelectionSnapshot", {
+            target: "canvas-card",
+            selectionCount: selection.length
+        }, () => this.contentService.createSelectionSnapshot(selection));
         const anchor = this.resolveAnchorCard(snapshots);
         const nodeData: CanvasNodeData = {
             id: `${Math.random().toString(36).slice(2, 11)}`,
@@ -71,7 +80,10 @@ export class MergeService implements IMergeService {
             height: anchor.height
         };
 
-        await this.canvasAdapter.mutateData((canvasData) => {
+        await this.measure("merge.mutateCanvasCard", {
+            sourceCount: selection.length,
+            cleanupMode: options?.cleanupMode || 'keep-source'
+        }, () => this.canvasAdapter.mutateData((canvasData) => {
             const ids = options?.cleanupMode === 'delete-source'
                 ? new Set(selection.map(n => n.id))
                 : null;
@@ -83,7 +95,7 @@ export class MergeService implements IMergeService {
                 ? canvasData.edges.filter(edge => !ids.has(edge.fromNode) && !ids.has(edge.toNode))
                 : canvasData.edges;
             canvasData.nodes.push(nodeData);
-        });
+        }));
 
         await this.canvasAdapter.requestSave();
         new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
@@ -99,13 +111,17 @@ export class MergeService implements IMergeService {
     }
 
     async mergeToMarkdown(selection: CanvasNode[], canvasFile: TFile | null, options?: MergeExecutionOptions): Promise<boolean> {
-        const result = await this.contentService.buildMergedContent({
+        const result = await this.measure("merge.buildContent", {
+            target: "markdown",
+            selectionCount: selection.length,
+            order: options?.order || 'position'
+        }, () => this.contentService.buildMergedContent({
             selection,
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
             includeBadgePrefix: options?.includeBadgePrefix ?? true
-        });
+        }));
 
         if (!result.content || result.count === 0) {
             new Notice('没有可合并的文本卡片');
@@ -118,13 +134,18 @@ export class MergeService implements IMergeService {
         }
 
         const baseName = `${canvasFile.basename}-卡片合并`;
-        const file = await this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName);
+        const file = await this.measure("merge.createMarkdownFile", {
+            sourceCount: result.count,
+            canvasFilePath: canvasFile.path
+        }, () => this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName));
         new Notice(`已创建文稿：${file.path}`);
         return true;
     }
 
     async openWorkbench(selection: CanvasNode[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean> {
-        const snapshots = await this.contentService.createSelectionSnapshot(selection);
+        const snapshots = await this.measure("workbench.createSelectionSnapshot", {
+            selectionCount: selection.length
+        }, () => this.contentService.createSelectionSnapshot(selection));
         return this.openWorkbenchFromSnapshots(snapshots, canvasFile, options);
     }
 
@@ -134,7 +155,9 @@ export class MergeService implements IMergeService {
             return false;
         }
 
-        const view = await this.activateMergePreviewView();
+        const view = await this.measure("workbench.activateView", {
+            snapshotCount: snapshots.length
+        }, () => this.activateMergePreviewView());
         const sortPriority = options?.sortPriority || 'yx';
         const state = this.workbenchService.createState({
             canvasFilePath: canvasFile?.path || null,
@@ -185,13 +208,17 @@ export class MergeService implements IMergeService {
     }
 
     async mergeSnapshotsToCanvasCard(snapshots: CardSnapshot[], canvasFilePath: string | null, options?: MergeExecutionOptions): Promise<boolean> {
-        const result = await this.contentService.buildMergedContent({
+        const result = await this.measure("merge.buildContent", {
+            target: "canvas-card",
+            snapshotCount: snapshots.length,
+            order: options?.order || 'position'
+        }, () => this.contentService.buildMergedContent({
             snapshots,
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
             includeBadgePrefix: options?.includeBadgePrefix ?? true
-        });
+        }));
 
         if (!result.content || result.count === 0) {
             new Notice('没有可合并的文本卡片');
@@ -218,7 +245,11 @@ export class MergeService implements IMergeService {
             return false;
         }
 
-        await adapter.mutateData((canvasData) => {
+        await this.measure("merge.mutateCanvasCard", {
+            sourceCount: snapshots.length,
+            cleanupMode: options?.cleanupMode || 'keep-source',
+            canvasFilePath: canvasFilePath || 'active'
+        }, () => adapter.mutateData((canvasData) => {
             const ids = options?.cleanupMode === 'delete-source'
                 ? new Set(snapshots.map(s => s.id))
                 : null;
@@ -230,7 +261,7 @@ export class MergeService implements IMergeService {
                 ? canvasData.edges.filter(edge => !ids.has(edge.fromNode) && !ids.has(edge.toNode))
                 : canvasData.edges;
             canvasData.nodes.push(nodeData);
-        });
+        }));
 
         await adapter.requestSave();
         new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
@@ -238,13 +269,17 @@ export class MergeService implements IMergeService {
     }
 
     async mergeSnapshotsToMarkdown(snapshots: CardSnapshot[], canvasFilePath: string | null, options?: MergeExecutionOptions): Promise<boolean> {
-        const result = await this.contentService.buildMergedContent({
+        const result = await this.measure("merge.buildContent", {
+            target: "markdown",
+            snapshotCount: snapshots.length,
+            order: options?.order || 'position'
+        }, () => this.contentService.buildMergedContent({
             snapshots,
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
             includeBadgePrefix: options?.includeBadgePrefix ?? true
-        });
+        }));
 
         if (!result.content || result.count === 0) {
             new Notice('没有可合并的文本卡片');
@@ -258,7 +293,10 @@ export class MergeService implements IMergeService {
         }
 
         const baseName = `${canvasFile.basename}-卡片合并`;
-        const file = await this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName);
+        const file = await this.measure("merge.createMarkdownFile", {
+            sourceCount: result.count,
+            canvasFilePath: canvasFile.path
+        }, () => this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName));
         new Notice(`已创建文稿：${file.path}`);
         return true;
     }
@@ -301,7 +339,7 @@ export class MergeService implements IMergeService {
     private async resolveCanvasAdapterByPath(canvasFilePath: string): Promise<ICanvasAdapter | null> {
         const existingLeaf = this.findCanvasLeafByPath(canvasFilePath);
         if (existingLeaf?.view?.canvas) {
-            return new CanvasAdapter(existingLeaf.view.canvas);
+            return new CanvasAdapter(existingLeaf.view.canvas, this.performanceService);
         }
 
         const canvasFile = this.resolveCanvasFile(canvasFilePath);
@@ -322,7 +360,7 @@ export class MergeService implements IMergeService {
             return null;
         }
 
-        return new CanvasAdapter(view.canvas);
+        return new CanvasAdapter(view.canvas, this.performanceService);
     }
 
     private findCanvasLeafByPath(canvasFilePath: string): WorkspaceLeaf | null {
@@ -336,14 +374,17 @@ export class MergeService implements IMergeService {
     }
 
     private async activateMergePreviewView(): Promise<MergeWorkbenchView> {
-        const leaves = this.app.workspace.getLeavesOfType(MERGE_PREVIEW_VIEW_TYPE);
-        const existingLeaf = leaves.length > 0 ? leaves[0] : null;
-        const fallbackLeaf = this.app.workspace.getRightLeaf(false);
-        const leaf: WorkspaceLeaf | null = existingLeaf || fallbackLeaf;
+        const leaves = this.findMergePreviewLeaves();
+        const existingLeaf = leaves.find((leaf) => leaf.view instanceof MergeWorkbenchView) || leaves[0] || null;
+        const leaf: WorkspaceLeaf | null = existingLeaf || this.app.workspace.getRightLeaf(false);
 
         if (!leaf) {
             throw new Error('无法创建侧边栏视图');
         }
+
+        leaves
+            .filter((candidate) => candidate !== leaf)
+            .forEach((candidate) => candidate.detach());
 
         await leaf.setViewState({ type: MERGE_PREVIEW_VIEW_TYPE, active: true });
         await this.app.workspace.revealLeaf(leaf);
@@ -352,5 +393,32 @@ export class MergeService implements IMergeService {
         }
 
         return leaf.view;
+    }
+
+    private findMergePreviewLeaves(): WorkspaceLeaf[] {
+        const leaves: WorkspaceLeaf[] = [];
+
+        this.app.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
+            const stateType = leaf.getViewState().type;
+            const viewType = leaf.view?.getViewType?.();
+
+            if (stateType === MERGE_PREVIEW_VIEW_TYPE || viewType === MERGE_PREVIEW_VIEW_TYPE) {
+                leaves.push(leaf);
+            }
+        });
+
+        return leaves;
+    }
+
+    private async measure<T>(
+        operation: string,
+        details: Record<string, unknown>,
+        action: () => Promise<T>
+    ): Promise<T> {
+        if (!this.performanceService) {
+            return action();
+        }
+
+        return this.performanceService.measure(operation, action, details);
     }
 }
