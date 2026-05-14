@@ -7,7 +7,7 @@
 - 为卡片添加标记
 - 查看和调整卡片属性
 
-当前版本：`1.4.2`
+当前版本：`1.5.0`
 
 ## 功能概览
 
@@ -119,5 +119,4 @@ npm run build
 ## 致谢
 
 早期开发参考了 **joshuakto** 的开源项目 [obsidian-cardify](https://github.com/joshuakto/obsidian-cardify)。
-
 
