@@ -76,6 +76,6 @@ export class OpenPreviewWorkbenchCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '打开预览工作台';
+        return '预览选中卡片组';
     }
 }

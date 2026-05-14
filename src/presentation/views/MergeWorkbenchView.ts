@@ -5,6 +5,8 @@ import { MergeOrder } from "../../services/ContentService";
 import type { WorkbenchState } from "../../types/WorkbenchState";
 
 export const MERGE_PREVIEW_VIEW_TYPE = 'canvas-loom-merge-preview';
+const MERGE_PREVIEW_VIEW_ICON = 'panel-right';
+const EMPTY_WORKBENCH_CARD_NOTICE = '当前没有可输出的卡片';
 
 export interface MergeWorkbenchContext {
     state: WorkbenchState;
@@ -16,7 +18,7 @@ export interface MergeWorkbenchContext {
 
 export class MergeWorkbenchView extends ItemView {
     private readonly workbenchService = new PreviewWorkbenchService();
-    private context: MergeWorkbenchContext | null = null;
+    private context: MergeWorkbenchContext = this.createEmptyContext();
     private draggedIndex: number | null = null;
     private previewTimer: number | null = null;
 
@@ -29,7 +31,11 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     getDisplayText(): string {
-        return '卡片预览工作台';
+        return 'Loom 工作台';
+    }
+
+    getIcon(): string {
+        return MERGE_PREVIEW_VIEW_ICON;
     }
 
     onOpen(): Promise<void> {
@@ -56,13 +62,6 @@ export class MergeWorkbenchView extends ItemView {
         contentEl.empty();
         contentEl.addClass('canvas-loom-workbench');
 
-        if (!this.context) {
-            const emptyState = contentEl.createDiv({ cls: 'canvas-loom-workbench-empty' });
-            emptyState.createEl('h3', { text: '暂无工作台内容' });
-            emptyState.createEl('p', { text: '请先在画布中多选卡片，再执行“打开预览...”或相关命令。' });
-            return;
-        }
-
         const container = contentEl.createDiv({ cls: 'canvas-loom-workbench-container' });
         this.renderToolbar(container);
         this.renderOrderSummary(container);
@@ -71,15 +70,11 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private renderToolbar(container: HTMLElement): void {
-        if (!this.context) {
-            return;
-        }
-
         const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
 
         const toolbar = container.createDiv({ cls: 'canvas-loom-workbench-toolbar' });
         const heading = toolbar.createDiv({ cls: 'canvas-loom-workbench-heading' });
-        heading.createEl('h3', { text: '卡片预览工作台' });
+        heading.createEl('h3', { text: 'Loom 工作台' });
         heading.createDiv({
             cls: 'canvas-loom-workbench-source',
             text: `${this.context.state.canvasFileBasename} / ${this.context.state.scopeLabel}`
@@ -95,10 +90,6 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private renderOrderSummary(container: HTMLElement): void {
-        if (!this.context) {
-            return;
-        }
-
         const summary = container.createDiv({ cls: 'canvas-loom-workbench-order-summary' });
         const text = summary.createDiv({ cls: 'canvas-loom-workbench-order-text' });
         text.createEl('strong', { text: this.getListTitle() });
@@ -110,17 +101,13 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private renderList(container: HTMLElement): void {
-        if (!this.context) {
-            return;
-        }
-
         const section = container.createDiv({ cls: 'canvas-loom-workbench-list-section' });
         const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const list = section.createDiv({ cls: 'canvas-loom-workbench-list' });
 
         if (cards.length === 0) {
             const empty = list.createDiv({ cls: 'canvas-loom-workbench-list-empty' });
-            empty.setText('当前没有可处理的文本卡片。');
+            empty.setText('选择多张文本卡片后，使用右键菜单“预览卡片组”载入当前选区。');
             return;
         }
 
@@ -161,10 +148,6 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private renderPreviewArea(container: HTMLElement): void {
-        if (!this.context) {
-            return;
-        }
-
         const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const section = container.createDiv({ cls: 'canvas-loom-workbench-preview-section' });
         if (this.context.state.previewExpanded) {
@@ -176,9 +159,11 @@ export class MergeWorkbenchView extends ItemView {
         });
         toggle.setAttribute('type', 'button');
         const toggleText = toggle.createSpan();
-        toggleText.createEl('strong', { text: '结果预览' });
+        toggleText.createEl('strong', { text: '卡片组预览' });
         const toggleHint = toggleText.createSpan({
-            text: this.context.state.previewExpanded
+            text: orderedCards.length === 0
+                ? '等待卡片渲染进工作台。'
+                : this.context.state.previewExpanded
                 ? '当前内容由工作台顺序生成，输出按钮使用同一份结果。'
                 : orderedCards.length >= this.workbenchService.previewCollapseThreshold
                     ? '内容较多，展开后再渲染合并文本。'
@@ -188,10 +173,6 @@ export class MergeWorkbenchView extends ItemView {
         toggle.createSpan({ cls: 'canvas-loom-workbench-chevron' });
 
         toggle.addEventListener('click', () => {
-            if (!this.context) {
-                return;
-            }
-
             this.context.state = this.workbenchService.setPreviewExpanded(
                 this.context.state,
                 !this.context.state.previewExpanded
@@ -215,7 +196,7 @@ export class MergeWorkbenchView extends ItemView {
                 await this.context.onCopy(this.context.state);
             }
         }, !hasCards);
-        this.createActionButton(actions, '新建卡片', async () => {
+        this.createActionButton(actions, '添加为新卡片', async () => {
             if (this.context) {
                 await this.context.onCreateCard(this.context.state);
             }
@@ -228,19 +209,11 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private schedulePreviewRender(previewEl: HTMLElement): void {
-        if (!this.context) {
-            return;
-        }
-
         if (this.previewTimer) {
             window.clearTimeout(this.previewTimer);
         }
 
         this.previewTimer = window.setTimeout(() => {
-            if (!this.context) {
-                return;
-            }
-
             const content = this.workbenchService.buildPreviewContent(this.context.state, this.context.sortPriority);
             this.context.state = this.workbenchService.setLastComputedContent(this.context.state, content);
             previewEl.setText(content || '没有可预览的内容');
@@ -248,10 +221,6 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private createModeButton(container: HTMLElement, mode: MergeOrder, label: string): void {
-        if (!this.context) {
-            return;
-        }
-
         const button = container.createEl('button', {
             text: label,
             cls: this.isModeButtonActive(mode) ? 'is-active' : ''
@@ -259,10 +228,6 @@ export class MergeWorkbenchView extends ItemView {
         button.setAttribute('type', 'button');
 
         button.addEventListener('click', () => {
-            if (!this.context) {
-                return;
-            }
-
             this.context.state = this.workbenchService.setSortMode(
                 this.context.state,
                 mode,
@@ -273,10 +238,6 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private isModeButtonActive(mode: MergeOrder): boolean {
-        if (!this.context) {
-            return false;
-        }
-
         return this.context.state.sortMode === mode;
     }
 
@@ -289,7 +250,7 @@ export class MergeWorkbenchView extends ItemView {
         button.disabled = disabled;
         button.addEventListener('click', () => {
             if (button.disabled) {
-                new Notice('当前没有可输出的卡片');
+                new Notice(EMPTY_WORKBENCH_CARD_NOTICE);
                 return;
             }
 
@@ -317,7 +278,7 @@ export class MergeWorkbenchView extends ItemView {
     private onDrop(event: DragEvent, targetIndex: number): void {
         event.preventDefault();
 
-        if (!this.context || this.draggedIndex === null || this.draggedIndex === targetIndex) {
+        if (this.draggedIndex === null || this.draggedIndex === targetIndex) {
             this.onDragEnd();
             return;
         }
@@ -341,10 +302,6 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private getCurrentOrderLabel(): string {
-        if (!this.context) {
-            return '位置';
-        }
-
         const baseLabel = this.getModeLabel(this.context.state.sortMode);
         return this.context.state.isManualAdjusted
             ? `${baseLabel} + 手动调整`
@@ -360,10 +317,6 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private getListTitle(): string {
-        if (!this.context) {
-            return '当前顺序';
-        }
-
         if (this.context.state.sortMode === 'badge') {
             return this.context.state.isManualAdjusted
                 ? '按标记排序并手动调整'
@@ -376,12 +329,14 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private getSortDescription(): string {
-        if (!this.context) {
-            return '工作台会基于当前快照生成输出内容';
+        const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+
+        if (cards.length === 0) {
+            return '工作台会在收到卡片快照后生成输出内容';
         }
 
         if (this.context.state.isManualAdjusted) {
-            return '拖拽后的顺序会直接用于复制、新建卡片和新建文稿';
+            return '拖拽后的顺序会直接用于复制、添加为新卡片和新建文稿';
         }
 
         if (this.context.state.sortMode === 'badge') {
@@ -395,6 +350,31 @@ export class MergeWorkbenchView extends ItemView {
 
     private toPreviewText(text: string): string {
         return text.length > 60 ? `${text.slice(0, 60)}...` : text;
+    }
+
+    private createEmptyContext(): MergeWorkbenchContext {
+        const state = this.workbenchService.createState({
+            canvasFilePath: null,
+            canvasFileBasename: 'Loom 工作台',
+            scopeLabel: '等待卡片组',
+            selectionSnapshot: [],
+            defaultSortMode: 'position',
+            sortPriority: 'yx',
+            previewExpanded: false
+        });
+
+        return {
+            state,
+            sortPriority: 'yx',
+            onCopy: () => this.notifyEmptyWorkbench(),
+            onCreateCard: () => this.notifyEmptyWorkbench(),
+            onCreateMarkdown: () => this.notifyEmptyWorkbench(),
+        };
+    }
+
+    private notifyEmptyWorkbench(): Promise<void> {
+        new Notice(EMPTY_WORKBENCH_CARD_NOTICE);
+        return Promise.resolve();
     }
 
     private resolveCardAccent(color?: string): string {

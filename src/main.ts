@@ -246,7 +246,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.settings
         );
         this.commandRegistry.registerCommand("open-preview-workbench", openPreviewCommand);
-        this.commandRegistry.addCommandToMenu(menu, "open-preview-workbench", "打开预览...", "panel-right");
+        this.commandRegistry.addCommandToMenu(menu, "open-preview-workbench", "预览卡片组", "panel-right");
 
         menu.addSeparator();
 
@@ -405,25 +405,9 @@ export default class CanvasLoomPlugin extends Plugin {
 
     onunload() {
         this.badgeRenderScheduler.cancelAll();
-        this.detachMergePreviewLeaves();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
-    }
-
-    private detachMergePreviewLeaves(): void {
-        const leaves: WorkspaceLeaf[] = [];
-
-        this.app.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
-            const stateType = leaf.getViewState().type;
-            const viewType = leaf.view?.getViewType?.();
-
-            if (stateType === MERGE_PREVIEW_VIEW_TYPE || viewType === MERGE_PREVIEW_VIEW_TYPE) {
-                leaves.push(leaf);
-            }
-        });
-
-        leaves.forEach((leaf) => leaf.detach());
     }
 
     private registerHotkeys() {
@@ -486,7 +470,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.registerCanvasSelectionCommand(
             'open-merge-workbench',
-            '打开预览工作台',
+            '预览选中卡片组',
             ({ selection, file }) => new OpenPreviewWorkbenchCommand(this.mergeService, selection, file, this.settings)
         );
 
@@ -510,7 +494,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.registerCanvasSelectionCommand(
             'preview-selected-cards-in-workbench',
-            '在工作台中预览合并结果',
+            '预览选中卡片组（展开结果）',
             ({ selection, file }) => new MergeToSidebarPreviewCommand(this.mergeService, selection, file, this.settings)
         );
 

@@ -51,7 +51,7 @@ export class MergeToSidebarPreviewCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '合并 → 侧边栏预览';
+        return '预览选中卡片组（展开结果）';
     }
 }
 
@@ -95,7 +95,7 @@ export class ManualMergeCommand implements ICommand {
             description: (count) => `拖拽卡片调整拼合顺序（共 ${count} 张卡片）`,
             actions: [
                 {
-                    text: "新建卡片",
+                    text: "添加为新卡片",
                     cls: "drag-sort-btn drag-sort-btn-primary",
                     onClick: async ({ nodes, modal }) => {
                         const success = await this.mergeService.mergeToCanvasCard(nodes, {
@@ -108,7 +108,7 @@ export class ManualMergeCommand implements ICommand {
                     }
                 },
                 {
-                    text: "侧边栏预览",
+                    text: "预览卡片组",
                     cls: "drag-sort-btn drag-sort-btn-secondary",
                     onClick: async ({ nodes, modal }) => {
                         const success = await this.mergeService.mergeToSidebar(nodes, this.canvasFile, { order: 'manual' });

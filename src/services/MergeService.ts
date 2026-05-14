@@ -203,7 +203,7 @@ export class MergeService implements IMergeService {
             }
         });
 
-        new Notice(`已打开预览工作台（${state.scopeLabel}，${snapshots.length} 张卡片）`);
+        new Notice(`已在 Loom 工作台载入卡片组（${state.scopeLabel}，${snapshots.length} 张卡片）`);
         return true;
     }
 
@@ -388,7 +388,7 @@ export class MergeService implements IMergeService {
 
         await leaf.setViewState({ type: MERGE_PREVIEW_VIEW_TYPE, active: true });
         if (!(leaf.view instanceof MergeWorkbenchView)) {
-            throw new Error("预览工作台视图未成功初始化");
+            throw new Error("Loom 工作台视图未成功初始化");
         }
 
         return leaf.view;

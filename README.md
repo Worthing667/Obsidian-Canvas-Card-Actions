@@ -20,8 +20,8 @@ Current version: `1.5.2`
   Copy the plain text content of a selected text card.
 - `Quick copy` / `Quick merge`
   Process multiple selected cards with the default sorting mode from settings.
-- `Open preview...`
-  Open a reusable workspace panel to change sorting, drag-adjust the current order, preview merged output, and export it to the clipboard, a new Canvas card, or a Markdown note.
+- `Preview card group`
+  Load the selected text cards into the Loom workspace, change sorting, drag-adjust the current order, preview merged output, and export it to the clipboard, a new Canvas card, or a Markdown note.
 - `Add/Edit badge`
   Add numeric outline-style badges such as `1`, `2.1`, or `10.3.2`.
 - `Manage card properties`
@@ -47,7 +47,7 @@ A long text card can be split by choosing a split mode, then using either a deli
   <img src="Demo/侧边栏工作台.png" alt="Workspace preview and export panel" width="48%" />
 </p>
 
-After selecting multiple cards, you can merge them immediately or open the side panel to adjust sorting, preview the result, and export it.
+After selecting multiple cards, you can merge them immediately or load the card group into the Loom workspace to adjust sorting, preview the result, and export it.
 
 ### 3. Context Menu Actions
 
