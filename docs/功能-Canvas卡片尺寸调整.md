@@ -1,6 +1,6 @@
 # 功能：Canvas 卡片尺寸与排列调整
 
-本文档记录当前版本仍在使用的尺寸和排列规则，覆盖拆分、拼合和属性管理三类入口。
+本文档记录当前版本仍在使用的尺寸和排列规则，覆盖拆分、拼合、属性管理和选区浮动工具栏入口。
 
 ## 拆分卡片后的尺寸
 
@@ -45,11 +45,11 @@
 
 ## 一键排列
 
-多卡片属性管理器还支持一键排列：
+选中 2 张以上文本卡片时，Canvas 选区浮动工具栏提供一键排列：
 
 - 方向：水平或垂直
 - 间距：`0–500 px`
-- 排序优先级：`yx` 或 `xy`
+- 排序优先级：浮层内可选择，默认使用插件设置中的 `sortPriority`
 
 排列前会先按位置排序选中文本卡片。排序后的第一张卡片作为锚点，位置不变；其余卡片按方向和间距依次移动。
 
@@ -57,22 +57,23 @@
 
 ```text
 next.x = prev.x + prev.width + spacing
-next.y = anchor.y
+next.y 保持不变
 ```
 
 垂直排列时：
 
 ```text
-next.x = anchor.x
+next.x 保持不变
 next.y = prev.y + prev.height + spacing
 ```
 
-排列只修改 `x` 和 `y`，不会修改尺寸、内容、颜色、标记或边。
+水平排列只修改 `x`，垂直排列只修改 `y`，不会修改另一轴上的对齐关系、尺寸、内容、颜色、标记或边。
 
 ## 相关代码
 
 - `src/services/CardService.ts`
+- `src/services/CanvasArrangementService.ts`
+- `src/services/CanvasSelectionToolbarService.ts`
 - `src/adapters/CanvasAdapter.ts`
-- `src/presentation/modals/CardPropertiesModal.ts`
 - `src/presentation/modals/SingleCardPropertiesModal.ts`
 - `src/services/MergeService.ts`

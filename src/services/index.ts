@@ -6,3 +6,5 @@ export * from './ColorGroupService';
 export * from './MergeService';
 export * from './PreviewWorkbenchService';
 export * from './PerformanceService';
+export * from './CanvasArrangementService';
+export * from './CanvasSelectionToolbarService';

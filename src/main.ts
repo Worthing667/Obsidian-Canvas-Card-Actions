@@ -10,7 +10,8 @@ import {
     ColorGroupService,
     MergeService,
     PerformanceService,
-    BadgeRenderScheduler
+    BadgeRenderScheduler,
+    CanvasSelectionToolbarService
 } from './services';
 import {
     CommandRegistry,
@@ -58,6 +59,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private mergeService: MergeService;
     private performanceService: PerformanceService;
     private badgeRenderScheduler: BadgeRenderScheduler;
+    private canvasSelectionToolbarService: CanvasSelectionToolbarService;
     private commandRegistry: CommandRegistry;
     private badgeStyleManager: BadgeStyleManager;
     private vaultAdapter: VaultAdapter;
@@ -83,6 +85,10 @@ export default class CanvasLoomPlugin extends Plugin {
         this.badgeStyleManager = new BadgeStyleManager();
         this.performanceService = new PerformanceService(() => this.settings);
         this.badgeRenderScheduler = new BadgeRenderScheduler();
+        this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(
+            this.app,
+            () => this.settings.sortPriority
+        );
     }
 
     private registerSettingTab(): void {
@@ -97,6 +103,7 @@ export default class CanvasLoomPlugin extends Plugin {
         }
 
         this.registerMergePreviewView();
+        this.canvasSelectionToolbarService.start();
     }
 
     private registerMergePreviewView(): void {
@@ -203,8 +210,7 @@ export default class CanvasLoomPlugin extends Plugin {
                 this.app,
                 this.cardService,
                 [node],
-                this.clipboardAdapter,
-                this.settings.sortPriority
+                this.clipboardAdapter
             );
 
             this.commandRegistry.registerCommand("open-single-card-properties", propertiesCommand);
@@ -254,8 +260,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.app,
             this.cardService,
             selectionArray,
-            this.clipboardAdapter,
-            this.settings.sortPriority
+            this.clipboardAdapter
         );
         this.commandRegistry.registerCommand("open-card-properties", propertiesCommand);
         this.commandRegistry.addCommandToMenu(menu, "open-card-properties", "管理卡片属性", "settings");
@@ -405,6 +410,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
     onunload() {
         this.badgeRenderScheduler.cancelAll();
+        this.canvasSelectionToolbarService.stop();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
@@ -426,8 +432,7 @@ export default class CanvasLoomPlugin extends Plugin {
                         this.app,
                         this.cardService,
                         context.selection,
-                        this.clipboardAdapter,
-                        this.settings.sortPriority
+                        this.clipboardAdapter
                     );
                     void command.execute();
                 }

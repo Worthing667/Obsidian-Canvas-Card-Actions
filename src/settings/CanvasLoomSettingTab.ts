@@ -28,7 +28,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('设置卡片排序优先级')
-			.setDesc('选择在复制多张卡片时的排序优先级')
+			.setDesc('选择复制、拼合、预览和排列多张卡片时的位置排序优先级')
 			.addDropdown(dropdown => dropdown
 				.addOption('yx', '优先按垂直方向排序（从上到下，然后从左到右）')
 				.addOption('xy', '优先按水平方向排序（从左到右，然后从上到下）')

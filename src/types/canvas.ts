@@ -42,6 +42,7 @@ export interface CanvasNode {
 export interface Canvas {
     selection?: Set<CanvasNode>;
     nodes?: Map<string, CanvasNode>;
+    getSelectionData?(): CanvasData;
     getData(): CanvasData;
     setData(data: CanvasData): Promise<void> | void;
     requestSave(): Promise<void> | void;

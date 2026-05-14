@@ -1,9 +1,9 @@
 import { CardData, Position } from "../domain/models/Card";
 import { CanvasNodeData } from "../domain/models/CanvasData";
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
-import { PositionSortStrategy } from "../domain/strategies/PositionSort";
 import { Notice } from "obsidian";
 import { PerformanceService } from "./PerformanceService";
+import { arrangeSelectedTextCards } from "./CanvasArrangementService";
 import type { CanvasNode } from "../types/canvas";
 
 export interface HeadingSplitOption {
@@ -398,71 +398,15 @@ export class CardService implements ICardService {
         sortPriority: 'yx' | 'xy';
     }): Promise<void> {
         const startedAt = performance.now();
-        const textNodes = nodes.filter(node => node.getData().type === "text");
-
-        if (textNodes.length < 2) {
-            throw new Error("至少需要两张文本卡片才能排列");
-        }
-
-        const canvasData = this.canvasAdapter.getData();
-        const textNodeIds = new Set(textNodes.map(n => n.id));
-
-        const cardInfos = canvasData.nodes
-            .filter(n => textNodeIds.has(n.id) && n.type === 'text')
-            .map(n => ({ id: n.id, text: n.text || '', x: n.x, y: n.y, width: n.width, height: n.height }));
-
-        if (cardInfos.length < 2) {
-            throw new Error("在画布数据中未找到足够的卡片信息");
-        }
-
-        for (const card of cardInfos) {
-            if (card.width <= 0 || card.height <= 0) {
-                throw new Error(`卡片尺寸无效（宽:${card.width}, 高:${card.height}），无法排列`);
-            }
-        }
-
-        // Sort by position, keeping a reference to the original index
-        const withIndex = cardInfos.map((c, i) => ({ ...c, _idx: i }));
-        const sorter = new PositionSortStrategy(options.sortPriority, 10);
-        const sorted = sorter.sort(withIndex);
-        const sortedInfos = sorted.map(s => cardInfos[s._idx]);
-
-        const anchor = sortedInfos[0];
-        const newPositions = new Map<string, { x: number; y: number }>();
-        newPositions.set(anchor.id, { x: anchor.x, y: anchor.y });
-
-        let prev = anchor;
-        for (let i = 1; i < sortedInfos.length; i++) {
-            const curr = sortedInfos[i];
-            let newX: number;
-            let newY: number;
-
-            if (options.direction === 'horizontal') {
-                newX = prev.x + prev.width + options.spacing;
-                newY = anchor.y;
-            } else {
-                newX = anchor.x;
-                newY = prev.y + prev.height + options.spacing;
-            }
-
-            newPositions.set(curr.id, { x: newX, y: newY });
-
-            prev = { ...curr, x: newX, y: newY };
-        }
-
-        for (const nodeData of canvasData.nodes) {
-            const pos = newPositions.get(nodeData.id);
-            if (pos) {
-                nodeData.x = pos.x;
-                nodeData.y = pos.y;
-            }
-        }
-
-        await this.canvasAdapter.setData(canvasData);
-        await this.canvasAdapter.requestSave();
+        const result = await arrangeSelectedTextCards({
+            selection: new Set(nodes),
+            getData: () => this.canvasAdapter.getData(),
+            setData: (data) => this.canvasAdapter.setData(data),
+            requestSave: () => this.canvasAdapter.requestSave(),
+        }, options);
 
         this.performanceService?.log("card.arrange", {
-            nodeCount: sorted.length,
+            nodeCount: result.count,
             direction: options.direction,
             spacing: options.spacing,
             sortPriority: options.sortPriority,
@@ -470,6 +414,6 @@ export class CardService implements ICardService {
         });
 
         const dirLabel = options.direction === 'horizontal' ? '水平' : '垂直';
-        new Notice(`已排列 ${sorted.length} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);
+        new Notice(`已排列 ${result.count} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);
     }
 }
