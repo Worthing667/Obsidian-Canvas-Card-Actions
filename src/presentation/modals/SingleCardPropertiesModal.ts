@@ -49,8 +49,7 @@ export class SingleCardPropertiesModal extends Modal {
     }
 
     private createInfoSection(container: HTMLElement) {
-        const statsSection = container.createDiv({ cls: "cl-section cl-summary" });
-        statsSection.style.gridTemplateColumns = "1fr 1fr";
+        const statsSection = container.createDiv({ cls: "cl-section cl-summary cl-summary--two-column" });
 
         // 当前尺寸
         const sizeItem = statsSection.createDiv({ cls: "summary-item" });

@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -29,17 +31,13 @@ jobs:
       - name: 构建插件
         run: npm run build
 
-      - name: 打包发布文件
-        shell: bash
-        run: |
-          mkdir -p release
-          cp manifest.json release/
-          cp main.js release/
-          if [ -f styles.css ]; then
-            cp styles.css release/
-          fi
-          cd release
-          zip -r "../canvas-loom-${{ github.ref_name }}.zip" .
+      - name: 生成构建来源证明
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            manifest.json
+            main.js
+            styles.css
 
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
@@ -49,5 +47,3 @@ jobs:
             manifest.json
             main.js
             styles.css
-            canvas-loom-${{ github.ref_name }}.zip
-

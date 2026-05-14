@@ -16,7 +16,7 @@ export class BadgeRenderScheduler {
     schedule(options: BadgeRenderScheduleOptions): void {
         this.cancel(options.key);
 
-        const timerId = activeWindow.setTimeout(() => {
+        const timerId = window.setTimeout(() => {
             this.timers.delete(options.key);
             void this.run(options);
         }, Math.max(0, options.debounceMs));
@@ -27,13 +27,13 @@ export class BadgeRenderScheduler {
     cancel(key: string): void {
         const timerId = this.timers.get(key);
         if (timerId !== undefined) {
-            activeWindow.clearTimeout(timerId);
+            window.clearTimeout(timerId);
             this.timers.delete(key);
         }
 
         const frameId = this.animationFrames.get(key);
         if (frameId !== undefined) {
-            activeWindow.cancelAnimationFrame(frameId);
+            window.cancelAnimationFrame(frameId);
             this.animationFrames.delete(key);
         }
     }
@@ -68,7 +68,7 @@ export class BadgeRenderScheduler {
                 }
 
                 if (index < entries.length) {
-                    const frameId = activeWindow.requestAnimationFrame(processBatch);
+                    const frameId = window.requestAnimationFrame(processBatch);
                     this.animationFrames.set(options.key, frameId);
                     return;
                 }

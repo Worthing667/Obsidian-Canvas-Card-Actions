@@ -1,12 +1,10 @@
 import esbuild from "esbuild";
 import process from "process";
-import builtins from "builtin-modules";
+import { builtinModules } from "module";
 import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
 
-// Load environment variables from .env file
-dotenv.config();
+process.loadEnvFile?.();
 
 
 
@@ -89,7 +87,7 @@ const copyToPluginDir = () => {
                 "@lezer/common",
                 "@lezer/highlight",
                 "@lezer/lr",
-                ...builtins
+                ...builtinModules
             ],
             format: "cjs",
             target: "es2018",

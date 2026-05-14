@@ -7,7 +7,7 @@
 - 为卡片添加标记
 - 查看和调整卡片属性
 
-当前版本：`1.5.0`
+当前版本：`1.5.1`
 
 ## 功能概览
 
@@ -86,8 +86,8 @@
 ### 从 GitHub 发布页安装
 
 1. 打开本仓库的 [发布页](https://github.com/woxin667/Canvas-Loom/releases)
-2. 下载 `canvas-loom-x.y.z.zip`
-3. 将 `main.js`、`manifest.json`、`styles.css` 放入 `.obsidian/plugins/canvas-loom/`
+2. 下载 `main.js`、`manifest.json`、`styles.css`
+3. 将这三个文件放入 `.obsidian/plugins/canvas-loom/`
 4. 在 Obsidian 中启用插件
 
 ### 本地构建
@@ -119,4 +119,3 @@ npm run build
 ## 致谢
 
 早期开发参考了 **joshuakto** 的开源项目 [obsidian-cardify](https://github.com/joshuakto/obsidian-cardify)。
-

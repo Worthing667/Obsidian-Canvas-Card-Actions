@@ -39,7 +39,7 @@ export class MergeWorkbenchView extends ItemView {
 
     onClose(): Promise<void> {
         if (this.previewTimer) {
-            activeWindow.clearTimeout(this.previewTimer);
+            window.clearTimeout(this.previewTimer);
             this.previewTimer = null;
         }
 
@@ -185,7 +185,7 @@ export class MergeWorkbenchView extends ItemView {
                     : '已折叠，展开后生成当前顺序的合并文本。'
         });
         toggleHint.addClass('canvas-loom-workbench-preview-hint');
-        const chevron = toggle.createSpan({ cls: 'canvas-loom-workbench-chevron' });
+        toggle.createSpan({ cls: 'canvas-loom-workbench-chevron' });
 
         toggle.addEventListener('click', () => {
             if (!this.context) {
@@ -233,10 +233,10 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         if (this.previewTimer) {
-            activeWindow.clearTimeout(this.previewTimer);
+            window.clearTimeout(this.previewTimer);
         }
 
-        this.previewTimer = activeWindow.setTimeout(() => {
+        this.previewTimer = window.setTimeout(() => {
             if (!this.context) {
                 return;
             }

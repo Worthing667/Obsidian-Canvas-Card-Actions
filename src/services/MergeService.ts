@@ -387,7 +387,6 @@ export class MergeService implements IMergeService {
             .forEach((candidate) => candidate.detach());
 
         await leaf.setViewState({ type: MERGE_PREVIEW_VIEW_TYPE, active: true });
-        await this.app.workspace.revealLeaf(leaf);
         if (!(leaf.view instanceof MergeWorkbenchView)) {
             throw new Error("预览工作台视图未成功初始化");
         }

@@ -47,8 +47,8 @@
 说明：
 
 - `main.js` 属于构建产物，不再作为源码文件长期跟踪
-- 仓库根目录中的 `main.js` 由构建命令生成，用于打包 GitHub Release
-- 发布时必须确保 Release 中上传的是当前版本构建结果
+- 仓库根目录中的 `main.js` 由构建命令生成，用于上传到 GitHub Release
+- 发布时必须确保 Release 中只上传官方支持的 `manifest.json`、`main.js`、`styles.css`
 
 ## 当前实现需要长期满足的官方规范
 
@@ -118,9 +118,8 @@ npm run build
 
 1. 安装依赖
 2. 执行 `npm run build`
-3. 收集 `manifest.json`、`main.js`、`styles.css`
-4. 打包为 `canvas-loom-版本号.zip`
-5. 创建对应的 GitHub Release 并上传以上文件
+3. 为 `manifest.json`、`main.js`、`styles.css` 生成 GitHub artifact attestation
+4. 创建对应的 GitHub Release 并上传以上三个文件
 
 ## 提审前检查清单
 
@@ -183,4 +182,3 @@ npm run build
 - 如果功能范围、数据读写范围或外部依赖发生变化，优先更新 README 中的权限与隐私说明
 - 如果发布流程发生变化，优先更新本文件和 `.github/workflows/release.yml`
 - 每次对发布或提审流程有改动后，都应检查 `docs/README.md` 的索引是否仍然正确
-

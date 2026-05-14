@@ -274,7 +274,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.registerEvent(
             this.app.workspace.on("file-open", (file: TFile) => {
                 if (this.settings.enableBadges && file && file.extension === "canvas") {
-                    activeWindow.setTimeout(() => {
+                    window.setTimeout(() => {
                         void this.loadCanvasBadges(file);
                     }, 100);
                 }

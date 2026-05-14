@@ -1052,6 +1052,10 @@
     overflow: hidden;
 }
 
+.cl-summary--two-column {
+    grid-template-columns: 1fr 1fr;
+}
+
 .summary-item {
     padding: 14px 16px;
     min-width: 0;
