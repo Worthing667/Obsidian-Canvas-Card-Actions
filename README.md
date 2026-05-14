@@ -10,7 +10,7 @@
 - Inspecting, resizing, and arranging card properties
 - Selecting cards by color and previewing color-based groups
 
-Current version: `1.5.1`
+Current version: `1.5.2`
 
 ## Feature Overview
 
