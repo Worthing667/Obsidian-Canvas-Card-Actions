@@ -18,7 +18,7 @@
 - 插件名称：`Canvas Loom`
 - 仓库地址：`https://github.com/woxin667/Canvas-Loom`
 - 默认分支：`main`
-- 发布 tag 格式：`v主版本.次版本.修订版本`
+- 发布 tag 格式：`主版本.次版本.修订版本`
 
 ### 版本文件
 
@@ -129,7 +129,7 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
 
 触发条件：
 
-- 推送符合 `v*.*.*` 的 Git tag，例如 `v1.4.1`
+- 推送符合 `*.*.*` 的 Git tag，例如 `1.4.1`
 
 工作流行为：
 
@@ -150,7 +150,7 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
 5. `README.md` 和 `README-EN.md` 已包含功能说明、安装方式和权限与隐私说明
 6. 仓库中不存在明显无意义的调试日志或演示性质的提交内容
 7. GitHub Release 已包含 `manifest.json`、`main.js`、`styles.css`
-8. GitHub Release 的 tag 与当前仓库约定一致，例如 `v1.4.1`
+8. GitHub Release 的 tag 与当前仓库约定一致，例如 `1.4.1`
 
 ## 提交到官方插件市场
 
@@ -175,7 +175,7 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
   "id": "canvas-loom",
   "name": "Canvas Loom",
   "author": "沃辛",
-  "description": "为 Canvas 添加卡片拼合、拆分、内容复制和添加标记的功能.",
+  "description": "为 Canvas 添加卡片拼合、拆分、内容复制和添加标记功能。Adds Canvas card merging, splitting, content copying, and markers.",
   "repo": "woxin667/Canvas-Loom"
 }
 ```

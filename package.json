@@ -1,7 +1,7 @@
 {
 	"name": "canvas-loom",
 	"version": "1.5.4",
-	"description": "为 Canvas 添加卡片拼合、拆分、内容复制和添加标记的功能.",
+	"description": "为 Canvas 添加卡片拼合、拆分、内容复制和添加标记功能。Adds Canvas card merging, splitting, content copying, and markers.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

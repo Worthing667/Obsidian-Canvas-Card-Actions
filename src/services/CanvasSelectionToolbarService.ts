@@ -41,7 +41,7 @@ export class CanvasSelectionToolbarService {
         }
 
         this.pendingInjection = true;
-        activeWindow.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
             this.pendingInjection = false;
             this.injectIntoActiveCanvasMenu();
         });

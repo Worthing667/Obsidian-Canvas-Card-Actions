@@ -9,7 +9,8 @@
 - 在选区浮动工具栏排列多张卡片
 - 按颜色选择卡片并进入分组预览
 
-English: [README-EN.md](./README-EN.md)
+英文版介绍请看这里：[README-EN.md](./README-EN.md)
+English overview: See [README-EN.md](./README-EN.md). Canvas Loom is an Obsidian Canvas plugin for splitting, merging, copying, arranging, and marking cards.
 
 当前版本：`1.5.4`
 

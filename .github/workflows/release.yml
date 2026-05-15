@@ -3,7 +3,6 @@ name: 发布插件
 on:
   push:
     tags:
-      - "v*.*.*"
       - "*.*.*"
 
 permissions:
