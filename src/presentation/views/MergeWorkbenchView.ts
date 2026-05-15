@@ -348,8 +348,8 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         return this.context.sortPriority === 'xy'
-            ? '按画布坐标从左到右、从上到下排列'
-            : '按画布坐标从上到下、从左到右排列';
+            ? 'Z字排序，从左至右、从上到下'
+            : '倒N排序，从上到下、从左至右';
     }
 
     private toPreviewText(text: string): string {

@@ -6,6 +6,8 @@ import { PerformanceService } from "./PerformanceService";
 import { arrangeSelectedTextCards } from "./CanvasArrangementService";
 import type { CanvasNode } from "../types/canvas";
 
+const MAX_SPLIT_CARDS_PER_ROW = 6;
+
 export interface HeadingSplitOption {
     level: number;
     cardCount: number;
@@ -120,8 +122,7 @@ export class CardService implements ICardService {
 
             const adjustedCards = newCards.map((card, index) => ({
                 ...card,
-                x: nodeData.x + (nodeData.width + this.cardSpacing) * (index + 1),
-                y: nodeData.y,
+                ...this.calculateSplitCardPosition(nodeData, index + 1),
                 width: nodeData.width,
                 height: nodeData.height
             }));
@@ -227,6 +228,16 @@ export class CardService implements ICardService {
 
     private isDelimiterLine(line: string, delimiter: string): boolean {
         return line.trim() === delimiter;
+    }
+
+    private calculateSplitCardPosition(baseCard: CanvasNodeData, cardIndex: number): Position {
+        const column = cardIndex % MAX_SPLIT_CARDS_PER_ROW;
+        const row = Math.floor(cardIndex / MAX_SPLIT_CARDS_PER_ROW);
+
+        return {
+            x: baseCard.x + (baseCard.width + this.cardSpacing) * column,
+            y: baseCard.y + (baseCard.height + this.cardSpacing) * row
+        };
     }
 
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[] {

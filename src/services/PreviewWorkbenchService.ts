@@ -22,11 +22,11 @@ export class PreviewWorkbenchService {
     readonly previewCollapseThreshold = 30;
 
     createState(options: CreateWorkbenchStateOptions): WorkbenchState {
-        const sortPriority = options.sortPriority || 'yx';
         const initialSortMode = options.defaultSortMode === 'badge' ? 'badge' : 'position';
-        const initialCards = options.defaultSortMode === 'manual'
+        const isManualAdjusted = options.defaultSortMode === 'manual';
+        const initialCards = isManualAdjusted
             ? this.getTextCards(options.selectionSnapshot)
-            : this.getAutoSortedCards(options.selectionSnapshot, initialSortMode, sortPriority);
+            : [];
 
         return {
             canvasFilePath: options.canvasFilePath,
@@ -35,7 +35,7 @@ export class PreviewWorkbenchService {
             selectionSnapshot: [...options.selectionSnapshot],
             sortMode: initialSortMode,
             manualOrderIds: initialCards.map(card => card.id),
-            isManualAdjusted: options.defaultSortMode === 'manual',
+            isManualAdjusted,
             previewExpanded: options.previewExpanded ?? false,
             lastComputedContent: '',
         };
@@ -50,12 +50,10 @@ export class PreviewWorkbenchService {
             return state;
         }
 
-        const sortedCards = this.getAutoSortedCards(state.selectionSnapshot, sortMode, sortPriority);
-
         return {
             ...state,
             sortMode,
-            manualOrderIds: sortedCards.map(card => card.id),
+            manualOrderIds: [],
             isManualAdjusted: false,
         };
     }
@@ -100,7 +98,7 @@ export class PreviewWorkbenchService {
                 ...this.getOrderedCards({ ...state, selectionSnapshot: refreshedSnapshots }, sortPriority),
                 ...addedCards
             ]
-            : this.getAutoSortedCards(selectionSnapshot, state.sortMode, sortPriority);
+            : [];
 
         return {
             state: {
@@ -133,7 +131,9 @@ export class PreviewWorkbenchService {
 
     getOrderedCards(state: WorkbenchState, sortPriority: SortPriority): CardSnapshot[] {
         const baseCards = this.getAutoSortedCards(state.selectionSnapshot, state.sortMode, sortPriority);
-        return this.sortByManualOrder(baseCards, state.manualOrderIds);
+        return state.isManualAdjusted
+            ? this.sortByManualOrder(baseCards, state.manualOrderIds)
+            : baseCards;
     }
 
     buildPreviewContent(state: WorkbenchState, sortPriority: SortPriority): string {

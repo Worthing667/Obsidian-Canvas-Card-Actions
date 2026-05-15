@@ -11,17 +11,17 @@ export class PositionSortStrategy implements SortStrategy<SortableCard> {
     sort<T extends SortableCard>(cards: T[]): T[] {
         return [...cards].sort((a, b) => {
             if (this.priority === 'yx') {
-                // 优先按y坐标排序（从上到下），然后按x坐标排序（从左到右）
-                if (Math.abs(a.y - b.y) > this.tolerance) {
-                    return a.y - b.y;
-                }
-                return a.x - b.x;
-            } else {
-                // 优先按x坐标排序（从左到右），然后按y坐标排序（从上到下）
+                // 倒N排序：同一列从上到下，再移动到右侧列。
                 if (Math.abs(a.x - b.x) > this.tolerance) {
                     return a.x - b.x;
                 }
                 return a.y - b.y;
+            } else {
+                // Z字排序：同一行从左到右，再移动到下方行。
+                if (Math.abs(a.y - b.y) > this.tolerance) {
+                    return a.y - b.y;
+                }
+                return a.x - b.x;
             }
         });
     }

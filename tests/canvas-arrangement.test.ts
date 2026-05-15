@@ -25,9 +25,9 @@ async function testArrangesLiveSelectionHorizontally() {
   assert.equal(setDataCalls, 1);
   assert.equal(saved, 1);
   assert.deepEqual(data.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })), [
-    { id: 'a', x: 170, y: 20 },
-    { id: 'b', x: 80, y: 0 },
-    { id: 'c', x: 290, y: 120 },
+    { id: 'a', x: 10, y: 20 },
+    { id: 'b', x: 180, y: 0 },
+    { id: 'c', x: 130, y: 120 },
   ]);
 }
 
@@ -46,9 +46,9 @@ async function testArrangesLiveSelectionVerticallyWithoutChangingX() {
   await arrangeSelectedTextCards(canvas, { direction: 'vertical', spacing: 20, sortPriority: 'yx' });
 
   assert.deepEqual(data.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })), [
-    { id: 'a', x: 10, y: 60 },
-    { id: 'b', x: 80, y: 0 },
-    { id: 'c', x: 5, y: 130 },
+    { id: 'a', x: 10, y: 20 },
+    { id: 'b', x: 80, y: 140 },
+    { id: 'c', x: 5, y: 90 },
   ]);
 }
 
@@ -67,9 +67,9 @@ async function testUsesConfiguredPositionSortPriority() {
   await arrangeSelectedTextCards(canvas, { direction: 'horizontal', spacing: 20, sortPriority: 'xy' });
 
   assert.deepEqual(data.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })), [
-    { id: 'a', x: 50, y: 20 },
-    { id: 'b', x: 170, y: 0 },
-    { id: 'c', x: 0, y: 120 },
+    { id: 'a', x: 190, y: 20 },
+    { id: 'b', x: 100, y: 0 },
+    { id: 'c', x: 310, y: 120 },
   ]);
 }
 
