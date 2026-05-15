@@ -47,11 +47,12 @@ export class CopyByPositionCommand implements ICommand {
 export class CopyByBadgeOrderCommand implements ICommand {
     constructor(
         private contentService: IContentService,
-        private selection: CanvasNode[]
+        private selection: CanvasNode[],
+        private sortPriority: SortPriority = 'yx'
     ) {}
 
     async execute(): Promise<void> {
-        await this.contentService.copyContentByBadgeOrder(this.selection);
+        await this.contentService.copyContentByBadgeOrder(this.selection, this.sortPriority);
     }
 
     canExecute(): boolean {
@@ -66,11 +67,12 @@ export class CopyByBadgeOrderCommand implements ICommand {
 export class CopyByManualOrderCommand implements ICommand {
     constructor(
         private app: App,
-        private selection: CanvasNode[]
+        private selection: CanvasNode[],
+        private sortPriority: SortPriority = 'yx'
     ) {}
 
     execute(): Promise<void> {
-        new DragSortModal(this.app, this.selection).open();
+        new DragSortModal(this.app, this.selection, { sortPriority: this.sortPriority }).open();
         return Promise.resolve();
     }
 

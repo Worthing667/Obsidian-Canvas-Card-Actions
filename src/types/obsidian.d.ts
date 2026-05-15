@@ -5,13 +5,5 @@ declare module "obsidian" {
     interface View {
         canvas?: CanvasRuntime;
         file?: TFile | null;
-        getViewType(): string;
-    }
-
-    interface WorkspaceLeaf {
-        view: View & {
-            canvas?: CanvasRuntime;
-            file?: TFile | null;
-        };
     }
 }

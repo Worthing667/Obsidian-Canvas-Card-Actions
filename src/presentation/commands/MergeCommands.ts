@@ -93,6 +93,7 @@ export class ManualMergeCommand implements ICommand {
         new DragSortModal(this.app, this.selection, {
             title: "手动排序拼合",
             description: (count) => `拖拽卡片调整拼合顺序（共 ${count} 张卡片）`,
+            sortPriority: this.settings.sortPriority,
             actions: [
                 {
                     text: "添加为新卡片",

@@ -1,6 +1,6 @@
 import { App, Modal, Notice } from "obsidian";
 import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
-import { PositionSortStrategy } from "../../domain/strategies/PositionSort";
+import { PositionSortStrategy, SortPriority } from "../../domain/strategies/PositionSort";
 import type { CanvasNode } from "../../types/canvas";
 
 interface DragSortCardItem {
@@ -28,6 +28,7 @@ interface DragSortModalOptions {
     title?: string;
     description?: (count: number) => string;
     actions?: DragSortAction[];
+    sortPriority?: SortPriority;
 }
 
 export class DragSortModal extends Modal {
@@ -38,12 +39,14 @@ export class DragSortModal extends Modal {
     private readonly title: string;
     private readonly descriptionBuilder: (count: number) => string;
     private readonly actions: DragSortAction[];
+    private readonly sortPriority: SortPriority;
 
     constructor(app: App, cards: CanvasNode[], options: DragSortModalOptions = {}) {
         super(app);
         this.cards = cards;
         this.title = options.title || "手动排序复制";
         this.descriptionBuilder = options.description || ((count) => `拖拽卡片调整复制顺序（共 ${count} 张卡片）`);
+        this.sortPriority = options.sortPriority || 'yx';
         this.actions = options.actions || [
             {
                 text: "复制",
@@ -82,8 +85,7 @@ export class DragSortModal extends Modal {
             }
         }
 
-        // 按位置排序：从上到下，从左到右
-        const sorter = new PositionSortStrategy('yx', 10);
+        const sorter = new PositionSortStrategy(this.sortPriority, 10);
         this.cardItems = sorter.sort(rawItems);
     }
 

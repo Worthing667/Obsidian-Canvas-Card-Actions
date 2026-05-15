@@ -2,7 +2,7 @@ import { App, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { CanvasAdapter, ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { IVaultAdapter } from "../adapters/VaultAdapter";
 import { IContentService, MergeOrder } from "./ContentService";
-import { SortPriority } from "../domain/strategies";
+import { PositionSortStrategy, SortPriority } from "../domain/strategies";
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
 import type { MergeWorkbenchContext } from "../presentation/views";
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
@@ -70,7 +70,7 @@ export class MergeService implements IMergeService {
             target: "canvas-card",
             selectionCount: selection.length
         }, () => this.contentService.createSelectionSnapshot(selection));
-        const anchor = this.resolveAnchorCard(snapshots);
+        const anchor = this.resolveAnchorCard(snapshots, options?.sortPriority);
         const nodeData: CanvasNodeData = {
             id: `${Math.random().toString(36).slice(2, 11)}`,
             type: 'text',
@@ -250,7 +250,7 @@ export class MergeService implements IMergeService {
             return false;
         }
 
-        const anchor = this.resolveAnchorCard(snapshots);
+        const anchor = this.resolveAnchorCard(snapshots, options?.sortPriority);
         const nodeData: CanvasNodeData = {
             id: `${Math.random().toString(36).slice(2, 11)}`,
             type: 'text',
@@ -326,18 +326,14 @@ export class MergeService implements IMergeService {
         return true;
     }
 
-    private resolveAnchorCard(snapshots: CardSnapshot[]): { x: number; y: number; width: number; height: number } {
+    private resolveAnchorCard(snapshots: CardSnapshot[], sortPriority?: SortPriority): { x: number; y: number; width: number; height: number } {
         const fallback = { x: 0, y: 0, width: 400, height: 400 };
         if (!Array.isArray(snapshots) || snapshots.length === 0) {
             return fallback;
         }
 
-        const sortedSnapshots = [...snapshots].sort((a, b) => {
-            if (Math.abs(a.y - b.y) > 10) {
-                return a.y - b.y;
-            }
-            return a.x - b.x;
-        });
+        const sorter = new PositionSortStrategy(sortPriority || 'yx', 10);
+        const sortedSnapshots = sorter.sort(snapshots);
 
         const first = sortedSnapshots[0];
         return {

@@ -25,7 +25,7 @@ export interface MergedContentResult {
 
 export interface IContentService {
     copyContentByPosition(selection: CanvasNode[], sortPriority: SortPriority): Promise<void>;
-    copyContentByBadgeOrder(selection: CanvasNode[]): Promise<void>;
+    copyContentByBadgeOrder(selection: CanvasNode[], sortPriority?: SortPriority): Promise<void>;
     copySingleCardContent(node: CanvasNode): Promise<void>;
     copyMergedContent(options: BuildMergedContentOptions, successNotice: string): Promise<boolean>;
     buildMergedContent(options: BuildMergedContentOptions): Promise<MergedContentResult>;
@@ -54,11 +54,12 @@ export class ContentService implements IContentService {
         }
     }
 
-    async copyContentByBadgeOrder(selection: CanvasNode[]): Promise<void> {
+    async copyContentByBadgeOrder(selection: CanvasNode[], sortPriority?: SortPriority): Promise<void> {
         try {
             await this.copyMergedContent({
                 selection,
                 order: 'badge',
+                sortPriority,
                 includeBadgePrefix: true
             }, '已按标记顺序复制卡片内容');
         } catch (error) {

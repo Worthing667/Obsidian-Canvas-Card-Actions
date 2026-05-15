@@ -134,8 +134,8 @@ export class CanvasSelectionToolbarService {
         sortOrderRow.appendChild(activeDocument.createTextNode("顺序"));
 
         const sortOrderSelect = activeDocument.createElement("select");
-        this.addSortPriorityOption(sortOrderSelect, "xy", "从左到右优先");
-        this.addSortPriorityOption(sortOrderSelect, "yx", "从上到下优先");
+        this.addSortPriorityOption(sortOrderSelect, "yx", "倒N排序");
+        this.addSortPriorityOption(sortOrderSelect, "xy", "Z字排序");
         sortOrderSelect.value = sortPriority;
         sortOrderSelect.addEventListener("change", () => {
             sortPriority = sortOrderSelect.value as SortPriority;
