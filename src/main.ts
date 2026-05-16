@@ -1,5 +1,5 @@
 import { Menu, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
-import CanvasLoomSettings from "./settings/ICanvasLoomSettings";
+import CanvasLoomSettings, { DEFAULT_SPLIT_CARDS_PER_ROW } from "./settings/ICanvasLoomSettings";
 import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
 
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
@@ -37,6 +37,7 @@ import type { Canvas, CanvasNode } from "./types/canvas";
 
 const DEFAULT_SETTINGS: CanvasLoomSettings = {
     canvasCardDelimiter: '---',
+    splitCardsPerRow: DEFAULT_SPLIT_CARDS_PER_ROW,
     sortPriority: 'yx',
     enableBadges: true,
     defaultSortMode: 'position',
@@ -150,7 +151,14 @@ export default class CanvasLoomPlugin extends Plugin {
         }
 
         const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
-        this.cardService = new CardService(canvasAdapter, 20, 400, 400, this.performanceService);
+        this.cardService = new CardService(
+            canvasAdapter,
+            20,
+            400,
+            400,
+            this.performanceService,
+            () => this.settings.splitCardsPerRow
+        );
         this.badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
         this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
         this.colorGroupService = new ColorGroupService(canvasAdapter);

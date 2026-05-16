@@ -48,8 +48,8 @@ function adapterFor(data: CanvasData): ICanvasAdapter & { setDataCalls: number; 
   return adapter;
 }
 
-async function testSplitWrapsAfterSixCardsIncludingOriginal() {
-  const source: CanvasNodeData = {
+function sourceWithEightParts(): CanvasNodeData {
+  return {
     id: 'source',
     type: 'text',
     text: ['part-1', '---', 'part-2', '---', 'part-3', '---', 'part-4', '---', 'part-5', '---', 'part-6', '---', 'part-7', '---', 'part-8'].join('\n'),
@@ -58,6 +58,10 @@ async function testSplitWrapsAfterSixCardsIncludingOriginal() {
     width: 120,
     height: 80,
   };
+}
+
+async function testSplitWrapsAfterDefaultFiveCardsIncludingOriginal() {
+  const source = sourceWithEightParts();
   const data: CanvasData = { nodes: [source], edges: [] };
   const adapter = adapterFor(data);
   const service = new CardService(adapter, 20);
@@ -73,13 +77,45 @@ async function testSplitWrapsAfterSixCardsIncludingOriginal() {
     { text: 'part-3', x: 380, y: 200 },
     { text: 'part-4', x: 520, y: 200 },
     { text: 'part-5', x: 660, y: 200 },
-    { text: 'part-6', x: 800, y: 200 },
-    { text: 'part-7', x: 100, y: 300 },
-    { text: 'part-8', x: 240, y: 300 },
+    { text: 'part-6', x: 100, y: 300 },
+    { text: 'part-7', x: 240, y: 300 },
+    { text: 'part-8', x: 380, y: 300 },
+  ]);
+}
+
+async function testSplitUsesConfiguredCardsPerRowIncludingOriginal() {
+  const source: CanvasNodeData = {
+    id: 'source',
+    type: 'text',
+    text: ['part-1', '---', 'part-2', '---', 'part-3', '---', 'part-4', '---', 'part-5', '---', 'part-6', '---', 'part-7', '---', 'part-8'].join('\n'),
+    x: 100,
+    y: 200,
+    width: 120,
+    height: 80,
+  };
+  const data: CanvasData = { nodes: [source], edges: [] };
+  const adapter = adapterFor(data);
+  const service = new CardService(adapter, 20, 400, 400, undefined, () => 3);
+
+  await service.splitCard(textNode(source), '---');
+
+  assert.equal(adapter.setDataCalls, 1);
+  assert.equal(adapter.saveCalls, 1);
+  assert.equal(data.nodes.length, 8);
+  assert.deepEqual(data.nodes.map((node) => ({ text: node.text, x: node.x, y: node.y })), [
+    { text: 'part-1', x: 100, y: 200 },
+    { text: 'part-2', x: 240, y: 200 },
+    { text: 'part-3', x: 380, y: 200 },
+    { text: 'part-4', x: 100, y: 300 },
+    { text: 'part-5', x: 240, y: 300 },
+    { text: 'part-6', x: 380, y: 300 },
+    { text: 'part-7', x: 100, y: 400 },
+    { text: 'part-8', x: 240, y: 400 },
   ]);
 }
 
 void (async () => {
-  await testSplitWrapsAfterSixCardsIncludingOriginal();
+  await testSplitWrapsAfterDefaultFiveCardsIncludingOriginal();
+  await testSplitUsesConfiguredCardsPerRowIncludingOriginal();
   console.log('card service split layout tests passed');
 })();

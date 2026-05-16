@@ -1,6 +1,10 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import CanvasLoomPlugin from "../main";
-import type { MergeCleanupMode } from "./ICanvasLoomSettings";
+import {
+	MAX_SPLIT_CARDS_PER_ROW,
+	MIN_SPLIT_CARDS_PER_ROW,
+	type MergeCleanupMode
+} from "./ICanvasLoomSettings";
 
 export default class CanvasLoomSettingTab extends PluginSettingTab {
 	plugin: CanvasLoomPlugin;
@@ -25,6 +29,30 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 					this.plugin.settings.canvasCardDelimiter = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName('拆分后每行卡片数')
+			.setDesc(`控制单张卡片拆分后每行最多排列多少张卡片，包含原卡片。超过数量后会自动换到下一行，并按卡片高度和间距下移。请输入 ${MIN_SPLIT_CARDS_PER_ROW}-${MAX_SPLIT_CARDS_PER_ROW} 的整数。`)
+			.addText(text => {
+				text.inputEl.type = 'number';
+				text.inputEl.min = String(MIN_SPLIT_CARDS_PER_ROW);
+				text.inputEl.max = String(MAX_SPLIT_CARDS_PER_ROW);
+				text.inputEl.step = '1';
+				text
+					.setPlaceholder('5')
+					.setValue(String(this.plugin.settings.splitCardsPerRow))
+					.onChange(async (value) => {
+						const parsedValue = Number(value);
+						if (!Number.isInteger(parsedValue)
+							|| parsedValue < MIN_SPLIT_CARDS_PER_ROW
+							|| parsedValue > MAX_SPLIT_CARDS_PER_ROW) {
+							return;
+						}
+
+						this.plugin.settings.splitCardsPerRow = parsedValue;
+						await this.plugin.saveSettings();
+					});
+			});
 
 		new Setting(containerEl)
 			.setName('设置卡片排序优先级')

@@ -5,8 +5,11 @@ import { Notice } from "obsidian";
 import { PerformanceService } from "./PerformanceService";
 import { arrangeSelectedTextCards } from "./CanvasArrangementService";
 import type { CanvasNode } from "../types/canvas";
-
-const MAX_SPLIT_CARDS_PER_ROW = 6;
+import {
+    DEFAULT_SPLIT_CARDS_PER_ROW,
+    MAX_SPLIT_CARDS_PER_ROW,
+    MIN_SPLIT_CARDS_PER_ROW
+} from "../settings/ICanvasLoomSettings";
 
 export interface HeadingSplitOption {
     level: number;
@@ -34,7 +37,8 @@ export class CardService implements ICardService {
         private readonly cardSpacing: number = 20,
         private readonly defaultCardWidth: number = 400,
         private readonly defaultCardHeight: number = 400,
-        private performanceService?: PerformanceService
+        private performanceService?: PerformanceService,
+        private readonly getSplitCardsPerRow: () => number = () => DEFAULT_SPLIT_CARDS_PER_ROW
     ) {}
 
     get defaultCardSpacing(): number { return this.cardSpacing; }
@@ -231,13 +235,23 @@ export class CardService implements ICardService {
     }
 
     private calculateSplitCardPosition(baseCard: CanvasNodeData, cardIndex: number): Position {
-        const column = cardIndex % MAX_SPLIT_CARDS_PER_ROW;
-        const row = Math.floor(cardIndex / MAX_SPLIT_CARDS_PER_ROW);
+        const cardsPerRow = this.getValidSplitCardsPerRow();
+        const column = cardIndex % cardsPerRow;
+        const row = Math.floor(cardIndex / cardsPerRow);
 
         return {
             x: baseCard.x + (baseCard.width + this.cardSpacing) * column,
             y: baseCard.y + (baseCard.height + this.cardSpacing) * row
         };
+    }
+
+    private getValidSplitCardsPerRow(): number {
+        const value = this.getSplitCardsPerRow();
+        if (!Number.isInteger(value) || value < MIN_SPLIT_CARDS_PER_ROW || value > MAX_SPLIT_CARDS_PER_ROW) {
+            return DEFAULT_SPLIT_CARDS_PER_ROW;
+        }
+
+        return value;
     }
 
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[] {
