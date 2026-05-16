@@ -18,6 +18,7 @@ import {
     CopySingleCardCommand,
     OpenSplitCardModalCommand,
     OpenBadgeModalCommand,
+    OpenBatchBadgeModalCommand,
     SelectSameColorCardsCommand,
     OpenSameColorGroupWorkbenchCommand,
     MergeToCanvasCardCommand,
@@ -29,7 +30,7 @@ import {
     QuickMergeCommand,
     ICommand
 } from './presentation/commands';
-import { BadgeModal } from './presentation/modals';
+import { BadgeModal, BatchBadgeModal } from './presentation/modals';
 import { BadgeStyleManager } from './presentation/styles';
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
@@ -114,6 +115,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private registerEventHandlers(): void {
         this.registerCanvasMenus();
         this.registerCanvasEvents();
+        this.registerBadgeUndoRefresh();
     }
 
     private initializeBadges(): void {
@@ -245,6 +247,18 @@ export default class CanvasLoomPlugin extends Plugin {
             this.commandRegistry.addCommandToMenu(menu, "select-same-color-cards", "选中同色卡片", "palette");
         }
 
+        if (this.badgeService && this.hasBadgeEditableSelection(selectionArray)) {
+            const batchBadgeCommand = new OpenBatchBadgeModalCommand(
+                async (nodes) => {
+                    new BatchBadgeModal(this.app, nodes, this.badgeService, this.settings.sortPriority).open();
+                },
+                selectionArray,
+                (nodes) => this.hasBadgeEditableSelection(nodes)
+            );
+            this.commandRegistry.registerCommand("open-batch-badge-modal", batchBadgeCommand);
+            this.commandRegistry.addCommandToMenu(menu, "open-batch-badge-modal", "批量编辑标记", "tag");
+        }
+
         const quickCopyCommand = new QuickCopyCommand(this.contentService, selectionArray, this.settings);
         this.commandRegistry.registerCommand("quick-copy", quickCopyCommand);
         this.commandRegistry.addCommandToMenu(menu, "quick-copy", "一键复制", "copy");
@@ -305,6 +319,16 @@ export default class CanvasLoomPlugin extends Plugin {
         );
     }
 
+    private registerBadgeUndoRefresh(): void {
+        this.registerDomEvent(activeDocument, "keydown", (event: KeyboardEvent) => {
+            if (!this.settings.enableBadges || !this.isUndoOrRedoShortcut(event)) {
+                return;
+            }
+
+            this.scheduleActiveCanvasBadgeRefresh();
+        }, { capture: true });
+    }
+
     async loadCanvasBadges(file: TFile) {
         if (!this.settings.enableBadges) {
             return;
@@ -358,6 +382,35 @@ export default class CanvasLoomPlugin extends Plugin {
                 await this.loadCanvasBadges(view.file);
             }
         }
+    }
+
+    private scheduleActiveCanvasBadgeRefresh(): void {
+        [0, 50, 200, 700].forEach((delayMs) => {
+            window.setTimeout(() => this.refreshActiveCanvasBadges(), delayMs);
+        });
+    }
+
+    private refreshActiveCanvasBadges(): void {
+        if (!this.settings.enableBadges) {
+            return;
+        }
+
+        const activeView = this.app.workspace.getActiveViewOfType(View);
+        if (!activeView || activeView.getViewType?.() !== "canvas" || !activeView.canvas) {
+            return;
+        }
+
+        try {
+            const canvasAdapter = new CanvasAdapter(activeView.canvas, this.performanceService);
+            const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
+            void badgeService.loadCanvasBadges();
+        } catch (error) {
+            console.error("刷新 Canvas 标记显示时出错:", error);
+        }
+    }
+
+    private isUndoOrRedoShortcut(event: KeyboardEvent): boolean {
+        return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z";
     }
 
     clearAllCanvasBadgeDom() {
@@ -488,6 +541,18 @@ export default class CanvasLoomPlugin extends Plugin {
         );
 
         this.registerCanvasSelectionCommand(
+            'batch-edit-selected-card-badges',
+            '批量编辑选中卡片标记',
+            ({ selection }) => new OpenBatchBadgeModalCommand(
+                async (nodes) => {
+                    new BatchBadgeModal(this.app, nodes, this.badgeService, this.settings.sortPriority).open();
+                },
+                selection,
+                (nodes) => this.hasBadgeEditableSelection(nodes)
+            )
+        );
+
+        this.registerCanvasSelectionCommand(
             'preview-same-color-card-group',
             '预览同色卡片分组',
             ({ selection, file }) => new OpenSameColorGroupWorkbenchCommand(
@@ -584,5 +649,9 @@ export default class CanvasLoomPlugin extends Plugin {
         }
 
         return selection.some((selectedNode) => selectedNode.id === node.id) ? selection : [node];
+    }
+
+    private hasBadgeEditableSelection(selection: CanvasNode[]): boolean {
+        return !!this.badgeService && selection.some((node) => this.badgeService.isValidBadgeNode(node));
     }
 }

@@ -12,6 +12,8 @@ export interface IBadgeService {
     getCurrentBadge(node: CanvasNode): Promise<BadgeData | null>;
     setBadge(node: CanvasNode, badgeText: string): Promise<void>;
     removeBadge(node: CanvasNode): Promise<void>;
+    setBadges(nodes: CanvasNode[], badgeTexts: string[]): Promise<number>;
+    removeBadges(nodes: CanvasNode[]): Promise<number>;
     applyBadgeToNode(node: CanvasNode, badge: BadgeData): void;
     clearBadgeFromNode(node: CanvasNode): void;
     clearCanvasBadgeDom(): void;
@@ -85,18 +87,136 @@ export class BadgeService implements IBadgeService {
         }
     }
 
+    async setBadges(nodes: CanvasNode[], badgeTexts: string[]): Promise<number> {
+        try {
+            if (nodes.length !== badgeTexts.length) {
+                throw new Error("批量标记数量与卡片数量不一致");
+            }
+
+            const badgeTextByNodeId = new Map<string, string>();
+            nodes.forEach((node, index) => {
+                if (node?.id && !badgeTextByNodeId.has(node.id)) {
+                    badgeTextByNodeId.set(node.id, badgeTexts[index] || "");
+                }
+            });
+
+            const assignments = this.getValidUniqueNodes(nodes).map((node) => {
+                return {
+                    node,
+                    badge: BadgeData.create(badgeTextByNodeId.get(node.id) || "")
+                };
+            });
+
+            assignments.forEach(({ badge }) => {
+                if (!badge.isValid()) {
+                    throw new Error("标记只支持数字序号，格式如 1、2、2.1");
+                }
+            });
+
+            if (assignments.length === 0) {
+                new Notice("未找到可标记的文本卡片");
+                return 0;
+            }
+
+            const canvasData = this.canvasAdapter.getData();
+            const nodeDataById = new Map(canvasData.nodes.map((nodeData) => [nodeData.id, nodeData]));
+            let updatedCount = 0;
+
+            assignments.forEach(({ node, badge }) => {
+                const nodeData = nodeDataById.get(node.id);
+                if (!nodeData) {
+                    return;
+                }
+
+                if (this.isBadgeDisplayEnabled()) {
+                    this.applyBadgeToNode(node, badge);
+                } else {
+                    this.clearBadgeFromNode(node);
+                }
+
+                nodeData.badge = badge.content;
+                delete nodeData.badgeType;
+                updatedCount += 1;
+            });
+
+            if (updatedCount === 0) {
+                throw new Error("在画布数据中找不到可标记节点");
+            }
+
+            await this.canvasAdapter.setData(canvasData);
+            await this.canvasAdapter.requestSave();
+            this.refreshBadgeDomSoon();
+            new Notice(`已为 ${updatedCount} 张卡片添加标记`);
+            return updatedCount;
+        } catch (error) {
+            console.error("批量设置标记时出错:", error);
+            new Notice("批量设置标记失败，请查看控制台了解详情");
+            throw error;
+        }
+    }
+
+    async removeBadges(nodes: CanvasNode[]): Promise<number> {
+        try {
+            const targetNodes = this.getValidUniqueNodes(nodes);
+
+            if (targetNodes.length === 0) {
+                new Notice("未找到可移除标记的文本卡片");
+                return 0;
+            }
+
+            const canvasData = this.canvasAdapter.getData();
+            const nodeDataById = new Map(canvasData.nodes.map((nodeData) => [nodeData.id, nodeData]));
+            let updatedCount = 0;
+
+            targetNodes.forEach((node) => {
+                const nodeData = nodeDataById.get(node.id);
+                if (!nodeData) {
+                    return;
+                }
+
+                this.clearBadgeFromNode(node);
+                delete nodeData.badge;
+                delete nodeData.badgeType;
+                updatedCount += 1;
+            });
+
+            if (updatedCount === 0) {
+                throw new Error("在画布数据中找不到可移除标记节点");
+            }
+
+            await this.canvasAdapter.setData(canvasData);
+            await this.canvasAdapter.requestSave();
+            this.refreshBadgeDomSoon();
+            new Notice(`已移除 ${updatedCount} 张卡片的标记`);
+            return updatedCount;
+        } catch (error) {
+            console.error("批量移除标记时出错:", error);
+            new Notice("批量移除标记失败，请查看控制台了解详情");
+            throw error;
+        }
+    }
+
     applyBadgeToNode(node: CanvasNode, badge: BadgeData): void {
         if (!this.isBadgeDisplayEnabled()) {
             this.clearBadgeFromNode(node);
             return;
         }
 
-        const currentBadge = this.appliedBadgesByNodeId.get(node.id);
-        if (currentBadge === badge.content) {
+        const elements = this.getNodeElements(node);
+        if (elements.length === 0) {
+            this.appliedBadgesByNodeId.delete(node.id);
             return;
         }
 
-        this.getNodeElements(node).forEach(element => {
+        const currentBadge = this.appliedBadgesByNodeId.get(node.id);
+        const isAlreadyRendered = elements.every((element) => {
+            return element.getAttribute("data-badge") === badge.content;
+        });
+        if (currentBadge === badge.content && isAlreadyRendered) {
+            return;
+        }
+
+        elements.forEach(element => {
             element.setAttribute("data-badge", badge.content);
         });
         this.appliedBadgesByNodeId.set(node.id, badge.content);
@@ -179,7 +299,8 @@ export class BadgeService implements IBadgeService {
     }
 
     isValidBadgeNode(node: CanvasNode): boolean {
-        const isTextCard = node.text !== undefined;
+        const nodeData = node.getData?.();
+        const isTextCard = node.text !== undefined || nodeData?.type === "text";
         const isMarkdownEmbed = node.nodeEl?.querySelector('.markdown-embed') !== null;
         return isTextCard || isMarkdownEmbed;
     }
@@ -196,6 +317,19 @@ export class BadgeService implements IBadgeService {
         }
 
         return [];
+    }
+
+    private getValidUniqueNodes(nodes: CanvasNode[]): CanvasNode[] {
+        const seenNodeIds = new Set<string>();
+
+        return nodes.filter((node) => {
+            if (!node?.id || seenNodeIds.has(node.id) || !this.isValidBadgeNode(node)) {
+                return false;
+            }
+
+            seenNodeIds.add(node.id);
+            return true;
+        });
     }
 
     private async persistBadgeToCanvas(node: CanvasNode, badge: BadgeData | null): Promise<void> {
@@ -216,5 +350,28 @@ export class BadgeService implements IBadgeService {
 
         await this.canvasAdapter.setData(canvasData);
         await this.canvasAdapter.requestSave();
+        this.refreshBadgeDomSoon();
+    }
+
+    private refreshBadgeDomSoon(): void {
+        if (!this.isBadgeDisplayEnabled()) {
+            return;
+        }
+
+        const render = () => {
+            void this.loadCanvasBadges();
+        };
+
+        if (typeof window === "undefined") {
+            render();
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            render();
+            window.setTimeout(render, 50);
+            window.setTimeout(render, 250);
+            window.setTimeout(render, 700);
+        });
     }
 }
