@@ -13,7 +13,7 @@
 ## Feature Overview
 
 - `Split card...`
-  Split one text card by a custom delimiter or by Markdown heading level.
+  Split one text card by a custom delimiter, blank lines, or Markdown heading level.
 - `Copy card content`
   Copy the plain text content of a selected text card.
 - `Quick copy` / `Quick merge`
@@ -36,7 +36,7 @@
   <img src="Demo/按标题_拆分卡片.png" alt="Canvas cards after splitting by heading level" width="48%" />
 </p>
 
-A long text card can be split by choosing a split mode, then using either a delimiter or Markdown heading level.
+A long text card can be split by choosing a split mode, then using a delimiter, paragraph blank lines, or Markdown heading level.
 
 ### 2. Organize and Export Multiple Cards
 

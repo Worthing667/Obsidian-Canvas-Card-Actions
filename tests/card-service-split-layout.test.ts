@@ -114,8 +114,129 @@ async function testSplitUsesConfiguredCardsPerRowIncludingOriginal() {
   ]);
 }
 
+async function testSplitByBlankLineUsesParagraphBoundaries() {
+  const source: CanvasNodeData = {
+    id: 'source',
+    type: 'text',
+    text: ['intro line', 'detail line', '', 'middle', '   ', 'ending'].join('\n'),
+    x: 100,
+    y: 200,
+    width: 120,
+    height: 80,
+  };
+  const data: CanvasData = { nodes: [source], edges: [] };
+  const adapter = adapterFor(data);
+  const service = new CardService(adapter, 20);
+
+  assert.equal(service.countBlankLineParts(source.text ?? ''), 3);
+
+  await service.splitCardByBlankLine(textNode(source));
+
+  assert.equal(adapter.setDataCalls, 1);
+  assert.equal(adapter.saveCalls, 1);
+  assert.equal(data.nodes.length, 3);
+  assert.deepEqual(data.nodes.map((node) => ({ text: node.text, x: node.x, y: node.y })), [
+    { text: 'intro line\ndetail line', x: 100, y: 200 },
+    { text: 'middle', x: 240, y: 200 },
+    { text: 'ending', x: 380, y: 200 },
+  ]);
+}
+
+async function testSplitByBlankLineSupportsCrlfAndSkipsEmptyParts() {
+  const source: CanvasNodeData = {
+    id: 'source',
+    type: 'text',
+    text: '\r\nfirst\r\n\r\n\r\nsecond\r\n \t \r\nthird\r\n',
+    x: 100,
+    y: 200,
+    width: 120,
+    height: 80,
+  };
+  const data: CanvasData = { nodes: [source], edges: [] };
+  const adapter = adapterFor(data);
+  const service = new CardService(adapter, 20);
+
+  await service.splitCardByBlankLine(textNode(source));
+
+  assert.equal(adapter.setDataCalls, 1);
+  assert.equal(adapter.saveCalls, 1);
+  assert.deepEqual(data.nodes.map((node) => node.text), ['first', 'second', 'third']);
+}
+
+async function testSplitByBlankLineSkipsConfiguredDelimiterParagraph() {
+  const source: CanvasNodeData = {
+    id: 'source',
+    type: 'text',
+    text: ['first', '', '---', '', 'second'].join('\n'),
+    x: 100,
+    y: 200,
+    width: 120,
+    height: 80,
+  };
+  const data: CanvasData = { nodes: [source], edges: [] };
+  const adapter = adapterFor(data);
+  const service = new CardService(adapter, 20);
+
+  assert.equal(service.countBlankLineParts(source.text ?? '', '---'), 2);
+
+  await service.splitCardByBlankLine(textNode(source), '---');
+
+  assert.equal(adapter.setDataCalls, 1);
+  assert.equal(adapter.saveCalls, 1);
+  assert.deepEqual(data.nodes.map((node) => node.text), ['first', 'second']);
+}
+
+async function testSplitByBlankLineOnlySkipsMatchingDelimiterParagraph() {
+  const source: CanvasNodeData = {
+    id: 'source',
+    type: 'text',
+    text: ['first', '', '---', '', 'second'].join('\n'),
+    x: 100,
+    y: 200,
+    width: 120,
+    height: 80,
+  };
+  const data: CanvasData = { nodes: [source], edges: [] };
+  const adapter = adapterFor(data);
+  const service = new CardService(adapter, 20);
+
+  await service.splitCardByBlankLine(textNode(source), '***');
+
+  assert.equal(adapter.setDataCalls, 1);
+  assert.equal(adapter.saveCalls, 1);
+  assert.deepEqual(data.nodes.map((node) => node.text), ['first', '---', 'second']);
+}
+
+async function testSplitByBlankLineDoesNothingWithoutBlankLine() {
+  const source: CanvasNodeData = {
+    id: 'source',
+    type: 'text',
+    text: ['intro line', 'detail line', 'ending'].join('\n'),
+    x: 100,
+    y: 200,
+    width: 120,
+    height: 80,
+  };
+  const data: CanvasData = { nodes: [source], edges: [] };
+  const adapter = adapterFor(data);
+  const service = new CardService(adapter, 20);
+
+  assert.equal(service.countBlankLineParts(source.text ?? ''), 1);
+
+  await service.splitCardByBlankLine(textNode(source));
+
+  assert.equal(adapter.setDataCalls, 0);
+  assert.equal(adapter.saveCalls, 0);
+  assert.deepEqual(data.nodes, [source]);
+}
+
 void (async () => {
   await testSplitWrapsAfterDefaultFiveCardsIncludingOriginal();
   await testSplitUsesConfiguredCardsPerRowIncludingOriginal();
+  await testSplitByBlankLineUsesParagraphBoundaries();
+  await testSplitByBlankLineSupportsCrlfAndSkipsEmptyParts();
+  await testSplitByBlankLineSkipsConfiguredDelimiterParagraph();
+  await testSplitByBlankLineOnlySkipsMatchingDelimiterParagraph();
+  await testSplitByBlankLineDoesNothingWithoutBlankLine();
   console.log('card service split layout tests passed');
 })();

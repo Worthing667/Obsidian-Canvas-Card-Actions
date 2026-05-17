@@ -96,6 +96,16 @@ export class SplitCardModal extends Modal {
             onChoose: async () => this.cardService.splitCard(this.node, this.delimiter)
         });
 
+        const blankLineParts = this.getBlankLinePartCount(text);
+        this.options.push({
+            title: "按空行拆分",
+            description: blankLineParts > 1
+                ? `按段落之间的空行拆成 ${blankLineParts} 张卡片。`
+                : "当前未检测到可用于拆分的空行。",
+            disabled: blankLineParts <= 1,
+            onChoose: async () => this.cardService.splitCardByBlankLine(this.node, this.delimiter)
+        });
+
         const headingOptions = this.cardService.getAvailableHeadingSplitOptions(this.node);
         if (headingOptions.length === 0) {
             this.options.push({
@@ -127,6 +137,14 @@ export class SplitCardModal extends Modal {
         }
 
         return this.cardService.countDelimitedParts(text, this.delimiter);
+    }
+
+    private getBlankLinePartCount(text: string): number {
+        if (!text) {
+            return 0;
+        }
+
+        return this.cardService.countBlankLineParts(text, this.delimiter);
     }
 
     private getHeadingLevelLabel(level: number): string {

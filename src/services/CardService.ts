@@ -18,9 +18,11 @@ export interface HeadingSplitOption {
 
 export interface ICardService {
     splitCard(node: CanvasNode, delimiter: string): Promise<void>;
+    splitCardByBlankLine(node: CanvasNode, delimiter?: string): Promise<void>;
     splitCardByHeadingLevel(node: CanvasNode, level: number): Promise<void>;
     getAvailableHeadingSplitOptions(node: CanvasNode): HeadingSplitOption[];
     countDelimitedParts(text: string, delimiter: string): number;
+    countBlankLineParts(text: string, delimiter?: string): number;
     createCardsFromContent(contents: string[], basePosition: Position): CanvasNodeData[];
     generateUniqueId(): string;
     calculateNewCardPosition(baseCard: CardData, index: number, cardSpacing?: number): Position;
@@ -66,6 +68,32 @@ export class CardService implements ICardService {
             }
 
             await this.applySplit(nodeData, parts, `卡片已拆分为 ${parts.length} 张卡片`);
+        });
+    }
+
+    async splitCardByBlankLine(node: CanvasNode, delimiter?: string): Promise<void> {
+        await this.measure("card.split.blank-line", { nodeId: node.id }, async () => {
+            const nodeData = node.getData();
+            const text = nodeData.text;
+
+            if (!text) {
+                new Notice("当前卡片没有可用于按空行拆分的内容。");
+                return;
+            }
+
+            const parts = this.getBlankLineParts(text, delimiter);
+            this.performanceService?.log("card.split.blank-line.parts", {
+                nodeId: node.id,
+                textLength: text.length,
+                partCount: parts.length
+            });
+
+            if (parts.length <= 1) {
+                new Notice("当前卡片无法按空行拆分。");
+                return;
+            }
+
+            await this.applySplit(nodeData, parts, `卡片已按空行拆分为 ${parts.length} 张卡片`);
         });
     }
 
@@ -115,6 +143,10 @@ export class CardService implements ICardService {
 
     countDelimitedParts(text: string, delimiter: string): number {
         return this.getDelimitedParts(text, delimiter).length;
+    }
+
+    countBlankLineParts(text: string, delimiter?: string): number {
+        return this.getBlankLineParts(text, delimiter).length;
     }
 
     private async applySplit(nodeData: CanvasNodeData, parts: string[], successMessage: string): Promise<void> {
@@ -184,6 +216,15 @@ export class CardService implements ICardService {
         }
 
         return parts;
+    }
+
+    private getBlankLineParts(text: string, delimiter?: string): string[] {
+        const normalizedDelimiter = delimiter?.trim();
+
+        return text
+            .split(/\r?\n[ \t]*\r?\n(?:[ \t]*\r?\n)*/)
+            .map((part) => part.trim())
+            .filter((part) => !!part && part !== normalizedDelimiter);
     }
 
     private getHeadingSplitParts(text: string, level: number): string[] {

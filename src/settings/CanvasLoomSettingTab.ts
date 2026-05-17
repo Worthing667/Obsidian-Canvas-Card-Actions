@@ -21,7 +21,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('设置画布卡片分隔符')
-			.setDesc('输入用于拆分单个画布卡片的分隔符')
+			.setDesc('输入用于拆分单张画布卡片的分隔符')
 			.addText(text => text
 				.setPlaceholder('---')
 				.setValue(this.plugin.settings.canvasCardDelimiter)
@@ -56,10 +56,10 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('设置卡片排序优先级')
-			.setDesc('选择复制、拼合、预览和排列多张卡片时的位置排序优先级')
+			.setDesc('选择多张卡片按位置排序时的阅读走向')
 			.addDropdown(dropdown => dropdown
-				.addOption('yx', '倒N排序（从上到下，从左至右）')
-				.addOption('xy', 'Z字排序（从左至右，从上到下）')
+				.addOption('yx', '倒 N 排序（从上到下，再从左到右）')
+				.addOption('xy', 'Z 字排序（从左到右，再从上到下）')
 				.setValue(this.plugin.settings.sortPriority)
 				.onChange(async (value: 'yx' | 'xy') => {
 					this.plugin.settings.sortPriority = value;
@@ -67,8 +67,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('启用标记功能')
-			.setDesc('是否在画布卡片上显示标记')
+			.setName('启用标记显示')
+			.setDesc('在画布卡片右上角显示数字标记，关闭后不会删除已有标记')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enableBadges)
 				.onChange(async (value) => {
@@ -77,7 +77,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('一键排序方式')
-			.setDesc('设置一键复制和一键拼合默认使用的位置或标记顺序')
+			.setDesc('设置一键复制、一键拼合默认按位置还是按标记处理')
 			.addDropdown(dropdown => dropdown
 				.addOption('position', '按位置顺序')
 				.addOption('badge', '按标记顺序')
@@ -89,7 +89,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('拼合后处理方式')
-			.setDesc('控制拼合完成后对原始卡片的处理方式')
+			.setDesc('设置一键拼合后是否保留原卡片')
 			.addDropdown(dropdown => dropdown
 				.addOption('keep-source', '拼合后新建卡片（保留原卡片）')
 				.addOption('delete-source', '拼合后新建并删除原卡片')
@@ -119,8 +119,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('大 Canvas 阈值')
-			.setDesc('节点数达到该值后，标记加载会使用更保守的分帧策略')
+			.setName('大 Canvas 判定数量')
+			.setDesc('节点数达到该值后，标记加载会分批处理')
 			.addText(text => text
 				.setPlaceholder('80')
 				.setValue(String(this.plugin.settings.largeCanvasNodeThreshold))
@@ -135,8 +135,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('标记更新防抖时间')
-			.setDesc('控制标记 DOM 更新的延迟，单位毫秒')
+			.setName('标记刷新延迟')
+			.setDesc('控制标记显示刷新的等待时间，单位毫秒')
 			.addText(text => text
 				.setPlaceholder('150')
 				.setValue(String(this.plugin.settings.badgeUpdateDebounceMs))

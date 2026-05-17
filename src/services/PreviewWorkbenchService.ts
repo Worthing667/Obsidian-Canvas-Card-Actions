@@ -72,6 +72,17 @@ export class PreviewWorkbenchService {
         };
     }
 
+    clearState(state: WorkbenchState): WorkbenchState {
+        return {
+            ...state,
+            selectionSnapshot: [],
+            manualOrderIds: [],
+            isManualAdjusted: false,
+            previewExpanded: false,
+            lastComputedContent: '',
+        };
+    }
+
     appendSnapshots(state: WorkbenchState, snapshots: CardSnapshot[], sortPriority: SortPriority): AppendWorkbenchSnapshotsResult {
         const incomingCards = this.getTextCards(snapshots);
         if (incomingCards.length === 0) {

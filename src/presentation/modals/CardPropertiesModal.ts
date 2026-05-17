@@ -471,6 +471,7 @@ export class CardPropertiesModal extends Modal {
   private async unifyWidthOnly(width: number): Promise<void> {
     try {
       await this.cardService.unifyCardWidth(this.cards, width);
+      this.close();
     } catch (error) {
       console.error("统一宽度失败:", error);
       const message = error instanceof Error ? error.message : String(error);
@@ -482,6 +483,7 @@ export class CardPropertiesModal extends Modal {
   private async unifyHeightOnly(height: number): Promise<void> {
     try {
       await this.cardService.unifyCardHeight(this.cards, height);
+      this.close();
     } catch (error) {
       console.error("统一高度失败:", error);
       const message = error instanceof Error ? error.message : String(error);

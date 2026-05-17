@@ -1,4 +1,4 @@
-import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, WorkspaceLeaf, setIcon } from "obsidian";
 import { SortPriority } from "../../domain/strategies";
 import { PreviewWorkbenchService } from "../../services/PreviewWorkbenchService";
 import { MergeOrder } from "../../services/ContentService";
@@ -7,6 +7,7 @@ import type { WorkbenchState } from "../../types/WorkbenchState";
 export const MERGE_PREVIEW_VIEW_TYPE = 'canvas-loom-merge-preview';
 const MERGE_PREVIEW_VIEW_ICON = 'panel-right';
 const EMPTY_WORKBENCH_CARD_NOTICE = '当前没有可输出的卡片';
+const CLEAR_WORKBENCH_NOTICE = '已清空 Loom工作台';
 
 export interface MergeWorkbenchContext {
     state: WorkbenchState;
@@ -84,9 +85,21 @@ export class MergeWorkbenchView extends ItemView {
             text: `${this.context.state.canvasFileBasename} / ${this.context.state.scopeLabel}`
         });
 
-        const count = toolbar.createDiv({ cls: 'canvas-loom-workbench-count' });
+        const actions = toolbar.createDiv({ cls: 'canvas-loom-workbench-toolbar-actions' });
+        const count = actions.createDiv({ cls: 'canvas-loom-workbench-count' });
         count.createEl('strong', { text: String(currentCards.length) });
         count.createEl('span', { text: '可输出卡片' });
+
+        const clearButton = actions.createEl('button', {
+            cls: 'canvas-loom-workbench-clear-button'
+        });
+        clearButton.setAttribute('type', 'button');
+        clearButton.setAttribute('aria-label', '清空工作台');
+        clearButton.setAttribute('title', '清空工作台');
+        setIcon(clearButton, 'trash-2');
+        clearButton.createSpan({ text: '清空' });
+        clearButton.disabled = currentCards.length === 0;
+        clearButton.addEventListener('click', () => this.clearWorkbench());
 
         const modeGroup = container.createDiv({ cls: 'canvas-loom-workbench-modes' });
         this.createModeButton(modeGroup, 'position', '位置');
@@ -260,6 +273,22 @@ export class MergeWorkbenchView extends ItemView {
 
             void handler();
         });
+    }
+
+    private clearWorkbench(): void {
+        const currentCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+        if (currentCards.length === 0) {
+            return;
+        }
+
+        if (this.previewTimer) {
+            window.clearTimeout(this.previewTimer);
+            this.previewTimer = null;
+        }
+
+        this.context.state = this.workbenchService.clearState(this.context.state);
+        new Notice(CLEAR_WORKBENCH_NOTICE);
+        this.render();
     }
 
     private onDragStart(event: DragEvent, index: number): void {

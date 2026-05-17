@@ -66,6 +66,40 @@ function testManualAdjustmentKeepsExplicitOrderAcrossSortPriorityChanges() {
   ]);
 }
 
+function testClearStateEmptiesWorkbenchButKeepsSourceContext() {
+  const service = new PreviewWorkbenchService();
+  const state = service.createState({
+    canvasFilePath: 'test.canvas',
+    canvasFileBasename: 'test',
+    scopeLabel: '当前选区',
+    selectionSnapshot: [
+      card('top-right', 100, 0),
+      card('bottom-left', 0, 100),
+      card('top-left', 0, 0),
+    ],
+    defaultSortMode: 'manual',
+    sortPriority: 'yx',
+    previewExpanded: true,
+  });
+
+  const adjusted = service.setLastComputedContent(
+    service.reorderManual(state, 0, 2, 'yx'),
+    'cached preview'
+  );
+  const cleared = service.clearState(adjusted);
+
+  assert.deepEqual(service.getOrderedCards(cleared, 'yx'), []);
+  assert.deepEqual(cleared.selectionSnapshot, []);
+  assert.deepEqual(cleared.manualOrderIds, []);
+  assert.equal(cleared.isManualAdjusted, false);
+  assert.equal(cleared.previewExpanded, false);
+  assert.equal(cleared.lastComputedContent, '');
+  assert.equal(cleared.canvasFilePath, 'test.canvas');
+  assert.equal(cleared.canvasFileBasename, 'test');
+  assert.equal(cleared.scopeLabel, '当前选区');
+}
+
 testPositionModeFollowsLatestSortPriorityUntilManuallyAdjusted();
 testManualAdjustmentKeepsExplicitOrderAcrossSortPriorityChanges();
+testClearStateEmptiesWorkbenchButKeepsSourceContext();
 console.log('preview workbench service tests passed');
