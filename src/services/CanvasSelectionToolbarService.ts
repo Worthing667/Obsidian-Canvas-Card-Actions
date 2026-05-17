@@ -4,10 +4,15 @@ import {
     shouldShowArrangementToolbarButton,
     type ArrangeDirection
 } from "./CanvasArrangementService";
+import {
+    fitSelectedTextCardsToHeight,
+    shouldShowAutoHeightToolbarButton
+} from "./CanvasAutoFitService";
 import type { SortPriority } from "../domain/strategies";
 import type { Canvas } from "../types/canvas";
 
 const BUTTON_CLASS = "canvas-loom-arrange-toolbar-button";
+const AUTO_HEIGHT_BUTTON_CLASS = "canvas-loom-auto-height-toolbar-button";
 const POPOVER_CLASS = "canvas-loom-arrange-popover";
 
 export class CanvasSelectionToolbarService {
@@ -32,7 +37,8 @@ export class CanvasSelectionToolbarService {
     stop(): void {
         this.observer?.disconnect();
         this.observer = null;
-        activeDocument.querySelectorAll(`.${BUTTON_CLASS}, .${POPOVER_CLASS}`).forEach((element) => element.remove());
+        activeDocument.querySelectorAll(`.${BUTTON_CLASS}, .${AUTO_HEIGHT_BUTTON_CLASS}, .${POPOVER_CLASS}`)
+            .forEach((element) => element.remove());
     }
 
     private scheduleInjection(): void {
@@ -58,18 +64,74 @@ export class CanvasSelectionToolbarService {
             return;
         }
 
-        const existingButton = menuEl.querySelector(`.${BUTTON_CLASS}`);
-        if (!shouldShowArrangementToolbarButton(canvas.selection)) {
-            existingButton?.remove();
+        const existingArrangeButton = menuEl.querySelector(`.${BUTTON_CLASS}`);
+        const existingAutoHeightButton = menuEl.querySelector(`.${AUTO_HEIGHT_BUTTON_CLASS}`);
+        const shouldShowAutoHeight = shouldShowAutoHeightToolbarButton(canvas.selection);
+        const shouldShowArrangement = shouldShowArrangementToolbarButton(canvas.selection);
+
+        if (!shouldShowAutoHeight) {
+            existingAutoHeightButton?.remove();
+        }
+
+        if (!shouldShowArrangement) {
+            existingArrangeButton?.remove();
             menuEl.querySelector(`.${POPOVER_CLASS}`)?.remove();
+        }
+
+        if (!shouldShowAutoHeight) {
             return;
         }
 
-        if (existingButton) {
-            return;
+        if (shouldShowArrangement && !existingArrangeButton) {
+            menuEl.appendChild(this.createArrangeButton(canvas, menuEl));
         }
 
-        menuEl.appendChild(this.createArrangeButton(canvas, menuEl));
+        if (!existingAutoHeightButton) {
+            const arrangeButton = menuEl.querySelector(`.${BUTTON_CLASS}`);
+            const autoHeightButton = this.createAutoHeightButton(canvas);
+            if (arrangeButton) {
+                menuEl.insertBefore(autoHeightButton, arrangeButton.nextSibling);
+            } else {
+                menuEl.appendChild(autoHeightButton);
+            }
+        }
+    }
+
+    private createAutoHeightButton(canvas: Canvas): HTMLButtonElement {
+        const button = activeDocument.createElement("button");
+        button.type = "button";
+        button.className = `clickable-icon ${AUTO_HEIGHT_BUTTON_CLASS}`;
+        button.setAttribute("aria-label", "自适应高度");
+        button.setAttribute("title", "自适应高度");
+
+        try {
+            setIcon(button, "move-vertical");
+        } catch {
+            button.textContent = "高";
+        }
+
+        button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.applyAutoHeight(canvas, button);
+        });
+
+        return button;
+    }
+
+    private async applyAutoHeight(canvas: Canvas, button: HTMLButtonElement): Promise<void> {
+        button.disabled = true;
+
+        try {
+            const result = await fitSelectedTextCardsToHeight(canvas);
+            new Notice(`已自适应 ${result.count} 张卡片高度`);
+        } catch (error) {
+            console.error("自适应卡片高度失败:", error);
+            const message = error instanceof Error ? error.message : String(error);
+            new Notice("自适应高度失败: " + message);
+        } finally {
+            button.disabled = false;
+        }
     }
 
     private createArrangeButton(canvas: Canvas, menuEl: HTMLElement): HTMLButtonElement {

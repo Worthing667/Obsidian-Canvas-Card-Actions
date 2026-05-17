@@ -1,4 +1,15 @@
 import type { TFile, View } from "obsidian";
+
+export type CanvasResizeHandle =
+    | "top"
+    | "right"
+    | "bottom"
+    | "left"
+    | "topright"
+    | "bottomright"
+    | "bottomleft"
+    | "topleft";
+
 export interface CanvasNodeData {
     id: string;
     x: number;
@@ -37,6 +48,7 @@ export interface CanvasNode {
     nodeEl?: HTMLElement | null;
     canvas?: Canvas;
     getData(): CanvasNodeData;
+    onResizeDblclick?(event: MouseEvent, resizeHandle: CanvasResizeHandle): void;
 }
 
 export interface Canvas {

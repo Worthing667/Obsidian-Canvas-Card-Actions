@@ -7,4 +7,5 @@ export * from './MergeService';
 export * from './PreviewWorkbenchService';
 export * from './PerformanceService';
 export * from './CanvasArrangementService';
+export * from './CanvasAutoFitService';
 export * from './CanvasSelectionToolbarService';
