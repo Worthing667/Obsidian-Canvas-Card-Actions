@@ -1,9 +1,8 @@
 import { Notice, setIcon, View, type App } from "obsidian";
 import {
     ArrangeSessionPreferenceStore,
-    arrangeSelectedTextCards,
-    shouldShowArrangementToolbarButton,
-    type ArrangeDirection
+    arrangeSelectedTextCardSpacing,
+    shouldShowArrangementToolbarButton
 } from "./CanvasArrangementService";
 import {
     fitSelectedTextCardsToHeight,
@@ -171,92 +170,110 @@ export class CanvasSelectionToolbarService {
 
     private createArrangePopover(canvas: Canvas): HTMLElement {
         const preference = this.arrangePreferenceStore.get();
-        let direction: ArrangeDirection = preference.direction;
         const popover = activeDocument.createElement("div");
         popover.className = POPOVER_CLASS;
         popover.addEventListener("click", (event) => event.stopPropagation());
 
-        const directionGroup = activeDocument.createElement("div");
-        directionGroup.className = "canvas-loom-arrange-segments";
+        const horizontalInput = this.createSpacingInput(preference.horizontalSpacing);
+        const verticalInput = this.createSpacingInput(preference.verticalSpacing);
 
-        const horizontalButton = this.createDirectionButton("水平", direction === "horizontal", () => {
-            direction = "horizontal";
-            horizontalButton.classList.add("is-active");
-            verticalButton.classList.remove("is-active");
-        });
-        const verticalButton = this.createDirectionButton("垂直", direction === "vertical", () => {
-            direction = "vertical";
-            verticalButton.classList.add("is-active");
-            horizontalButton.classList.remove("is-active");
-        });
-
-        directionGroup.append(horizontalButton, verticalButton);
-        popover.appendChild(directionGroup);
-
-        const spacingRow = activeDocument.createElement("label");
-        spacingRow.className = "canvas-loom-arrange-spacing";
-        spacingRow.appendChild(activeDocument.createTextNode("间距"));
-
-        const spacingInput = activeDocument.createElement("input");
-        spacingInput.type = "number";
-        spacingInput.min = "0";
-        spacingInput.max = "500";
-        spacingInput.step = "1";
-        spacingInput.value = String(preference.spacing);
-        spacingRow.appendChild(spacingInput);
-        spacingRow.appendChild(activeDocument.createTextNode("px"));
-        popover.appendChild(spacingRow);
+        popover.appendChild(this.createSpacingRow("水平间距", horizontalInput));
+        popover.appendChild(this.createSpacingRow("垂直间距", verticalInput));
 
         const submitButton = activeDocument.createElement("button");
         submitButton.type = "button";
         submitButton.className = "mod-cta canvas-loom-arrange-submit";
         submitButton.textContent = "整理";
         submitButton.addEventListener("click", () => {
-            void this.applyArrangement(canvas, direction, spacingInput, popover);
+            void this.applyArrangement(canvas, horizontalInput, verticalInput, popover);
         });
         popover.appendChild(submitButton);
 
         return popover;
     }
 
-    private createDirectionButton(label: string, isActive: boolean, onClick: () => void): HTMLButtonElement {
-        const button = activeDocument.createElement("button");
-        button.type = "button";
-        button.textContent = label;
-        button.className = isActive ? "is-active" : "";
-        button.addEventListener("click", onClick);
-        return button;
+    private createSpacingInput(value: number): HTMLInputElement {
+        const input = activeDocument.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = "500";
+        input.step = "1";
+        input.placeholder = "0";
+        input.value = value > 0 ? String(value) : "";
+        input.addEventListener("focus", () => input.select());
+        return input;
+    }
+
+    private createSpacingRow(labelText: string, input: HTMLInputElement): HTMLElement {
+        const label = activeDocument.createElement("label");
+        label.className = "canvas-loom-arrange-spacing";
+        label.appendChild(activeDocument.createTextNode(labelText));
+        label.appendChild(input);
+        label.appendChild(activeDocument.createTextNode("px"));
+
+        return label;
     }
 
     private async applyArrangement(
         canvas: Canvas,
-        direction: ArrangeDirection,
-        spacingInput: HTMLInputElement,
+        horizontalInput: HTMLInputElement,
+        verticalInput: HTMLInputElement,
         popover: HTMLElement
     ): Promise<void> {
-        const spacing = Number.parseInt(spacingInput.value, 10);
-        if (!Number.isFinite(spacing) || spacing < 0 || spacing > 500) {
+        const horizontalSpacing = this.parseSpacing(horizontalInput);
+        const verticalSpacing = this.parseSpacing(verticalInput);
+        if (!this.isValidSpacing(horizontalSpacing) || !this.isValidSpacing(verticalSpacing)) {
             new Notice("间距值必须在 0-500 像素范围内");
             return;
         }
 
+        const arrangedAxes = this.describeArrangedAxes(horizontalSpacing, verticalSpacing);
+        if (!arrangedAxes) {
+            new Notice("间距为 0 时不会更改，请至少输入一个大于 0 的间距");
+            return;
+        }
+
         try {
-            const result = await arrangeSelectedTextCards(canvas, {
-                direction,
-                spacing,
+            const result = await arrangeSelectedTextCardSpacing(canvas, {
+                horizontalSpacing,
+                verticalSpacing,
             });
             this.arrangePreferenceStore.remember({
-                direction,
-                spacing,
+                horizontalSpacing,
+                verticalSpacing,
             });
-            const directionLabel = direction === "horizontal" ? "水平" : "垂直";
-            new Notice(`已整理 ${result.count} 张卡片（${directionLabel}，间距 ${spacing} px）`);
+            new Notice(`已整理 ${result.count} 张卡片（${arrangedAxes}）`);
             popover.remove();
         } catch (error) {
             console.error("整理卡片间距失败:", error);
             const message = error instanceof Error ? error.message : String(error);
             new Notice("整理间距失败: " + message);
         }
+    }
+
+    private isValidSpacing(spacing: number): boolean {
+        return Number.isFinite(spacing) && Number.isInteger(spacing) && spacing >= 0 && spacing <= 500;
+    }
+
+    private parseSpacing(input: HTMLInputElement): number {
+        const rawValue = input.value.trim();
+        if (!rawValue) {
+            return 0;
+        }
+
+        return Number(rawValue);
+    }
+
+    private describeArrangedAxes(horizontalSpacing: number, verticalSpacing: number): string | null {
+        const parts: string[] = [];
+        if (horizontalSpacing > 0) {
+            parts.push(`水平 ${horizontalSpacing} px`);
+        }
+        if (verticalSpacing > 0) {
+            parts.push(`垂直 ${verticalSpacing} px`);
+        }
+
+        return parts.length > 0 ? parts.join("，") : null;
     }
 
     private getActiveCanvas(): Canvas | null {

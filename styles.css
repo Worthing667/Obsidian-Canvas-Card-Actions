@@ -1401,7 +1401,7 @@
     left: 50%;
     z-index: 20;
     display: flex;
-    min-width: 184px;
+    min-width: 224px;
     flex-direction: column;
     gap: 10px;
     padding: 10px;
@@ -1411,31 +1411,6 @@
     box-shadow: var(--shadow-s);
     color: var(--text-normal);
     transform: translateX(-50%);
-}
-
-.canvas-loom-arrange-segments {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    padding: 3px;
-    border-radius: var(--radius-s, 6px);
-    background: var(--background-secondary);
-}
-
-.canvas-loom-arrange-segments button {
-    height: 28px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: var(--radius-s, 6px);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 12px;
-}
-
-.canvas-loom-arrange-segments button.is-active {
-    background: var(--background-primary);
-    color: var(--text-normal);
-    box-shadow: var(--shadow-xs);
 }
 
 .canvas-loom-arrange-spacing {

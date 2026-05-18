@@ -11,36 +11,40 @@ export interface ArrangeSelectedTextCardsResult {
     count: number;
 }
 
-export interface ArrangeSessionPreference extends ArrangeSelectedTextCardsOptions {}
+export interface ArrangeSpacingPreference {
+    horizontalSpacing: number;
+    verticalSpacing: number;
+}
 
-export const DEFAULT_ARRANGE_SPACING = 20;
+export type ArrangeSelectedTextCardSpacingOptions = ArrangeSpacingPreference;
+
+export const DEFAULT_ARRANGE_SPACING = 0;
 
 export class ArrangeSessionPreferenceStore {
-    private preference: ArrangeSessionPreference | null = null;
+    private preference: ArrangeSpacingPreference | null = null;
 
     constructor(
         private readonly defaultSpacing: number = DEFAULT_ARRANGE_SPACING
     ) {}
 
-    get(): ArrangeSessionPreference {
+    get(): ArrangeSpacingPreference {
         if (this.preference) {
             return { ...this.preference };
         }
 
         return {
-            direction: "horizontal",
-            spacing: this.defaultSpacing,
+            horizontalSpacing: this.defaultSpacing,
+            verticalSpacing: this.defaultSpacing,
         };
     }
 
-    remember(preference: ArrangeSessionPreference): void {
+    remember(preference: ArrangeSpacingPreference): void {
         this.preference = { ...preference };
     }
 }
 
 interface ArrangementCard {
     id: string;
-    text: string;
     x: number;
     y: number;
     width: number;
@@ -66,6 +70,77 @@ export async function arrangeSelectedTextCards(
     canvas: Canvas,
     options: ArrangeSelectedTextCardsOptions
 ): Promise<ArrangeSelectedTextCardsResult> {
+    const { canvasData, cardInfos } = getArrangementContext(canvas);
+
+    const sortedInfos = sortCardsByDirection(cardInfos, options.direction);
+    const newPositions = calculateArrangementPositions(sortedInfos, options.direction, options.spacing);
+
+    await applyArrangementPositions(canvas, canvasData, newPositions);
+
+    return { count: sortedInfos.length };
+}
+
+export async function arrangeSelectedTextCardSpacing(
+    canvas: Canvas,
+    options: ArrangeSelectedTextCardSpacingOptions
+): Promise<ArrangeSelectedTextCardsResult> {
+    validateSpacing(options.horizontalSpacing, "水平间距");
+    validateSpacing(options.verticalSpacing, "垂直间距");
+
+    const { canvasData, cardInfos } = getArrangementContext(canvas);
+    const shouldArrangeHorizontal = options.horizontalSpacing > 0;
+    const shouldArrangeVertical = options.verticalSpacing > 0;
+
+    if (!shouldArrangeHorizontal && !shouldArrangeVertical) {
+        return { count: cardInfos.length };
+    }
+
+    const newPositions = new Map<string, { x: number; y: number }>();
+
+    cardInfos.forEach((card) => {
+        newPositions.set(card.id, { x: card.x, y: card.y });
+    });
+
+    if (shouldArrangeHorizontal) {
+        const horizontalPositions = calculateArrangementPositions(
+            sortCardsByDirection(cardInfos, "horizontal"),
+            "horizontal",
+            options.horizontalSpacing
+        );
+        horizontalPositions.forEach((position, id) => {
+            const current = newPositions.get(id);
+            if (current) {
+                current.x = position.x;
+            }
+        });
+    }
+
+    if (shouldArrangeVertical) {
+        const verticalPositions = calculateArrangementPositions(
+            sortCardsByDirection(cardInfos, "vertical"),
+            "vertical",
+            options.verticalSpacing
+        );
+        verticalPositions.forEach((position, id) => {
+            const current = newPositions.get(id);
+            if (current) {
+                current.y = position.y;
+            }
+        });
+    }
+
+    await applyArrangementPositions(canvas, canvasData, newPositions);
+
+    return { count: cardInfos.length };
+}
+
+function validateSpacing(spacing: number, label: string): void {
+    if (!Number.isFinite(spacing) || !Number.isInteger(spacing) || spacing < 0 || spacing > 500) {
+        throw new Error(`${label}必须在 0-500 像素范围内`);
+    }
+}
+
+function getArrangementContext(canvas: Canvas): { canvasData: ReturnType<Canvas["getData"]>; cardInfos: ArrangementCard[] } {
     const selectedNodeIds = getSelectedTextNodeIds(canvas);
     if (selectedNodeIds.size < 2) {
         throw new Error("至少需要两张文本卡片才能整理间距");
@@ -83,9 +158,14 @@ export async function arrangeSelectedTextCards(
         }
     }
 
-    const sortedInfos = sortCardsByDirection(cardInfos, options.direction);
-    const newPositions = calculateArrangementPositions(sortedInfos, options.direction, options.spacing);
+    return { canvasData, cardInfos };
+}
 
+async function applyArrangementPositions(
+    canvas: Canvas,
+    canvasData: ReturnType<Canvas["getData"]>,
+    newPositions: Map<string, { x: number; y: number }>
+): Promise<void> {
     canvasData.nodes.forEach((nodeData) => {
         const position = newPositions.get(nodeData.id);
         if (!position) {
@@ -98,8 +178,6 @@ export async function arrangeSelectedTextCards(
 
     await canvas.setData(canvasData);
     await canvas.requestSave();
-
-    return { count: sortedInfos.length };
 }
 
 function getSelectedTextNodeIds(canvas: Canvas): Set<string> {
@@ -131,7 +209,6 @@ function getArrangementCards(nodes: CanvasNodeData[], selectedNodeIds: Set<strin
         .filter((node) => selectedNodeIds.has(node.id) && node.type === "text")
         .map((node) => ({
             id: node.id,
-            text: node.text || "",
             x: node.x,
             y: node.y,
             width: node.width,
