@@ -1,5 +1,9 @@
 import * as assert from 'node:assert/strict';
-import { arrangeSelectedTextCards, shouldShowArrangementToolbarButton } from '../src/services/CanvasArrangementService';
+import {
+  ArrangeSessionPreferenceStore,
+  arrangeSelectedTextCards,
+  shouldShowArrangementToolbarButton
+} from '../src/services/CanvasArrangementService';
 
 function node(id: string, x: number, y: number, width = 100, height = 50, type = 'text') {
   return { id, getData: () => ({ id, type, x, y, width, height, text: type === 'text' ? id : undefined }) };
@@ -83,10 +87,49 @@ function testToolbarButtonRequiresAtLeastTwoTextCards() {
   assert.equal(shouldShowArrangementToolbarButton(new Set([textA, textB, fileNode])), true);
 }
 
+function testArrangeSessionPreferenceUsesCurrentSettingsUntilRemembered() {
+  let currentSortPriority: 'yx' | 'xy' = 'yx';
+  const store = new ArrangeSessionPreferenceStore(() => currentSortPriority);
+
+  assert.deepEqual(store.get(), {
+    direction: 'horizontal',
+    sortPriority: 'yx',
+    spacing: 20,
+  });
+
+  currentSortPriority = 'xy';
+
+  assert.deepEqual(store.get(), {
+    direction: 'horizontal',
+    sortPriority: 'xy',
+    spacing: 20,
+  });
+}
+
+function testArrangeSessionPreferenceRemembersLastAppliedChoice() {
+  let currentSortPriority: 'yx' | 'xy' = 'yx';
+  const store = new ArrangeSessionPreferenceStore(() => currentSortPriority);
+
+  store.remember({
+    direction: 'vertical',
+    sortPriority: 'xy',
+    spacing: 48,
+  });
+  currentSortPriority = 'yx';
+
+  assert.deepEqual(store.get(), {
+    direction: 'vertical',
+    sortPriority: 'xy',
+    spacing: 48,
+  });
+}
+
 void (async () => {
   await testArrangesLiveSelectionHorizontally();
   await testArrangesLiveSelectionVerticallyWithoutChangingX();
   await testUsesConfiguredPositionSortPriority();
   testToolbarButtonRequiresAtLeastTwoTextCards();
+  testArrangeSessionPreferenceUsesCurrentSettingsUntilRemembered();
+  testArrangeSessionPreferenceRemembersLastAppliedChoice();
   console.log('canvas arrangement tests passed');
 })();

@@ -13,6 +13,35 @@ export interface ArrangeSelectedTextCardsResult {
     count: number;
 }
 
+export interface ArrangeSessionPreference extends ArrangeSelectedTextCardsOptions {}
+
+export const DEFAULT_ARRANGE_SPACING = 20;
+
+export class ArrangeSessionPreferenceStore {
+    private preference: ArrangeSessionPreference | null = null;
+
+    constructor(
+        private readonly getDefaultSortPriority: () => SortPriority,
+        private readonly defaultSpacing: number = DEFAULT_ARRANGE_SPACING
+    ) {}
+
+    get(): ArrangeSessionPreference {
+        if (this.preference) {
+            return { ...this.preference };
+        }
+
+        return {
+            direction: "horizontal",
+            sortPriority: this.getDefaultSortPriority(),
+            spacing: this.defaultSpacing,
+        };
+    }
+
+    remember(preference: ArrangeSessionPreference): void {
+        this.preference = { ...preference };
+    }
+}
+
 interface ArrangementCard {
     id: string;
     text: string;

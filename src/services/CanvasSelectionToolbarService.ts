@@ -1,5 +1,6 @@
 import { Notice, setIcon, View, type App } from "obsidian";
 import {
+    ArrangeSessionPreferenceStore,
     arrangeSelectedTextCards,
     shouldShowArrangementToolbarButton,
     type ArrangeDirection
@@ -18,11 +19,14 @@ const POPOVER_CLASS = "canvas-loom-arrange-popover";
 export class CanvasSelectionToolbarService {
     private observer: MutationObserver | null = null;
     private pendingInjection = false;
+    private readonly arrangePreferenceStore: ArrangeSessionPreferenceStore;
 
     constructor(
         private readonly app: App,
         private readonly getSortPriority: () => SortPriority
-    ) {}
+    ) {
+        this.arrangePreferenceStore = new ArrangeSessionPreferenceStore(getSortPriority);
+    }
 
     start(): void {
         this.stop();
@@ -168,8 +172,9 @@ export class CanvasSelectionToolbarService {
     }
 
     private createArrangePopover(canvas: Canvas): HTMLElement {
-        let direction: ArrangeDirection = "horizontal";
-        let sortPriority: SortPriority = this.getSortPriority();
+        const preference = this.arrangePreferenceStore.get();
+        let direction: ArrangeDirection = preference.direction;
+        let sortPriority: SortPriority = preference.sortPriority;
         const popover = activeDocument.createElement("div");
         popover.className = POPOVER_CLASS;
         popover.addEventListener("click", (event) => event.stopPropagation());
@@ -177,12 +182,12 @@ export class CanvasSelectionToolbarService {
         const directionGroup = activeDocument.createElement("div");
         directionGroup.className = "canvas-loom-arrange-segments";
 
-        const horizontalButton = this.createDirectionButton("水平", true, () => {
+        const horizontalButton = this.createDirectionButton("水平", direction === "horizontal", () => {
             direction = "horizontal";
             horizontalButton.classList.add("is-active");
             verticalButton.classList.remove("is-active");
         });
-        const verticalButton = this.createDirectionButton("垂直", false, () => {
+        const verticalButton = this.createDirectionButton("垂直", direction === "vertical", () => {
             direction = "vertical";
             verticalButton.classList.add("is-active");
             horizontalButton.classList.remove("is-active");
@@ -214,7 +219,7 @@ export class CanvasSelectionToolbarService {
         spacingInput.min = "0";
         spacingInput.max = "500";
         spacingInput.step = "1";
-        spacingInput.value = "20";
+        spacingInput.value = String(preference.spacing);
         spacingRow.appendChild(spacingInput);
         spacingRow.appendChild(activeDocument.createTextNode("px"));
         popover.appendChild(spacingRow);
@@ -262,6 +267,11 @@ export class CanvasSelectionToolbarService {
 
         try {
             const result = await arrangeSelectedTextCards(canvas, {
+                direction,
+                spacing,
+                sortPriority,
+            });
+            this.arrangePreferenceStore.remember({
                 direction,
                 spacing,
                 sortPriority,
