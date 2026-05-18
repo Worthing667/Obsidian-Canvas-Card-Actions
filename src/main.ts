@@ -87,10 +87,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.badgeStyleManager = new BadgeStyleManager();
         this.performanceService = new PerformanceService(() => this.settings);
         this.badgeRenderScheduler = new BadgeRenderScheduler();
-        this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(
-            this.app,
-            () => this.settings.sortPriority
-        );
+        this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(this.app);
     }
 
     private registerSettingTab(): void {

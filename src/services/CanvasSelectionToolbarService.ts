@@ -9,7 +9,6 @@ import {
     fitSelectedTextCardsToHeight,
     shouldShowAutoHeightToolbarButton
 } from "./CanvasAutoFitService";
-import type { SortPriority } from "../domain/strategies";
 import type { Canvas } from "../types/canvas";
 
 const BUTTON_CLASS = "canvas-loom-arrange-toolbar-button";
@@ -22,10 +21,9 @@ export class CanvasSelectionToolbarService {
     private readonly arrangePreferenceStore: ArrangeSessionPreferenceStore;
 
     constructor(
-        private readonly app: App,
-        private readonly getSortPriority: () => SortPriority
+        private readonly app: App
     ) {
-        this.arrangePreferenceStore = new ArrangeSessionPreferenceStore(getSortPriority);
+        this.arrangePreferenceStore = new ArrangeSessionPreferenceStore();
     }
 
     start(): void {
@@ -142,13 +140,13 @@ export class CanvasSelectionToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = `clickable-icon ${BUTTON_CLASS}`;
-        button.setAttribute("aria-label", "排列卡片");
-        button.setAttribute("title", "排列卡片");
+        button.setAttribute("aria-label", "整理间距");
+        button.setAttribute("title", "整理间距");
 
         try {
             setIcon(button, "rows-3");
         } catch {
-            button.textContent = "排列";
+            button.textContent = "整理";
         }
 
         button.addEventListener("click", (event) => {
@@ -174,7 +172,6 @@ export class CanvasSelectionToolbarService {
     private createArrangePopover(canvas: Canvas): HTMLElement {
         const preference = this.arrangePreferenceStore.get();
         let direction: ArrangeDirection = preference.direction;
-        let sortPriority: SortPriority = preference.sortPriority;
         const popover = activeDocument.createElement("div");
         popover.className = POPOVER_CLASS;
         popover.addEventListener("click", (event) => event.stopPropagation());
@@ -196,20 +193,6 @@ export class CanvasSelectionToolbarService {
         directionGroup.append(horizontalButton, verticalButton);
         popover.appendChild(directionGroup);
 
-        const sortOrderRow = activeDocument.createElement("label");
-        sortOrderRow.className = "canvas-loom-arrange-order";
-        sortOrderRow.appendChild(activeDocument.createTextNode("顺序"));
-
-        const sortOrderSelect = activeDocument.createElement("select");
-        this.addSortPriorityOption(sortOrderSelect, "yx", "倒N排序");
-        this.addSortPriorityOption(sortOrderSelect, "xy", "Z字排序");
-        sortOrderSelect.value = sortPriority;
-        sortOrderSelect.addEventListener("change", () => {
-            sortPriority = sortOrderSelect.value as SortPriority;
-        });
-        sortOrderRow.appendChild(sortOrderSelect);
-        popover.appendChild(sortOrderRow);
-
         const spacingRow = activeDocument.createElement("label");
         spacingRow.className = "canvas-loom-arrange-spacing";
         spacingRow.appendChild(activeDocument.createTextNode("间距"));
@@ -227,9 +210,9 @@ export class CanvasSelectionToolbarService {
         const submitButton = activeDocument.createElement("button");
         submitButton.type = "button";
         submitButton.className = "mod-cta canvas-loom-arrange-submit";
-        submitButton.textContent = "排列";
+        submitButton.textContent = "整理";
         submitButton.addEventListener("click", () => {
-            void this.applyArrangement(canvas, direction, sortPriority, spacingInput, popover);
+            void this.applyArrangement(canvas, direction, spacingInput, popover);
         });
         popover.appendChild(submitButton);
 
@@ -245,17 +228,9 @@ export class CanvasSelectionToolbarService {
         return button;
     }
 
-    private addSortPriorityOption(select: HTMLSelectElement, value: SortPriority, text: string): void {
-        const option = activeDocument.createElement("option");
-        option.value = value;
-        option.textContent = text;
-        select.appendChild(option);
-    }
-
     private async applyArrangement(
         canvas: Canvas,
         direction: ArrangeDirection,
-        sortPriority: SortPriority,
         spacingInput: HTMLInputElement,
         popover: HTMLElement
     ): Promise<void> {
@@ -269,20 +244,18 @@ export class CanvasSelectionToolbarService {
             const result = await arrangeSelectedTextCards(canvas, {
                 direction,
                 spacing,
-                sortPriority,
             });
             this.arrangePreferenceStore.remember({
                 direction,
                 spacing,
-                sortPriority,
             });
             const directionLabel = direction === "horizontal" ? "水平" : "垂直";
-            new Notice(`已排列 ${result.count} 张卡片（${directionLabel}，间距 ${spacing} px）`);
+            new Notice(`已整理 ${result.count} 张卡片（${directionLabel}，间距 ${spacing} px）`);
             popover.remove();
         } catch (error) {
-            console.error("排列卡片失败:", error);
+            console.error("整理卡片间距失败:", error);
             const message = error instanceof Error ? error.message : String(error);
-            new Notice("排列卡片失败: " + message);
+            new Notice("整理间距失败: " + message);
         }
     }
 

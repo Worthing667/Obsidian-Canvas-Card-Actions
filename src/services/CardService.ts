@@ -29,7 +29,7 @@ export interface ICardService {
     unifyCardSizes(nodes: CanvasNode[], targetSize: 'min' | 'max' | { width: number, height: number }): Promise<void>;
     unifyCardWidth(nodes: CanvasNode[], targetWidth: number): Promise<void>;
     unifyCardHeight(nodes: CanvasNode[], targetHeight: number): Promise<void>;
-    arrangeCards(nodes: CanvasNode[], options: { direction: 'horizontal' | 'vertical'; spacing: number; sortPriority: 'yx' | 'xy' }): Promise<void>;
+    arrangeCards(nodes: CanvasNode[], options: { direction: 'horizontal' | 'vertical'; spacing: number }): Promise<void>;
     readonly defaultCardSpacing: number;
 }
 
@@ -461,7 +461,6 @@ export class CardService implements ICardService {
     async arrangeCards(nodes: CanvasNode[], options: {
         direction: 'horizontal' | 'vertical';
         spacing: number;
-        sortPriority: 'yx' | 'xy';
     }): Promise<void> {
         const startedAt = performance.now();
         const result = await arrangeSelectedTextCards({
@@ -475,11 +474,10 @@ export class CardService implements ICardService {
             nodeCount: result.count,
             direction: options.direction,
             spacing: options.spacing,
-            sortPriority: options.sortPriority,
             durationMs: Math.round((performance.now() - startedAt) * 100) / 100
         });
 
         const dirLabel = options.direction === 'horizontal' ? '水平' : '垂直';
-        new Notice(`已排列 ${result.count} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);
+        new Notice(`已整理 ${result.count} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);
     }
 }

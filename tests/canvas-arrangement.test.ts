@@ -23,15 +23,15 @@ async function testArrangesLiveSelectionHorizontally() {
     requestSave: () => { saved += 1; }
   };
 
-  const result = await arrangeSelectedTextCards(canvas, { direction: 'horizontal', spacing: 20, sortPriority: 'yx' });
+  const result = await arrangeSelectedTextCards(canvas, { direction: 'horizontal', spacing: 20 });
 
   assert.equal(result.count, 3);
   assert.equal(setDataCalls, 1);
   assert.equal(saved, 1);
   assert.deepEqual(data.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })), [
-    { id: 'a', x: 10, y: 20 },
-    { id: 'b', x: 180, y: 0 },
-    { id: 'c', x: 130, y: 120 },
+    { id: 'a', x: 55, y: 20 },
+    { id: 'b', x: 175, y: 0 },
+    { id: 'c', x: 5, y: 120 },
   ]);
 }
 
@@ -47,16 +47,16 @@ async function testArrangesLiveSelectionVerticallyWithoutChangingX() {
     requestSave: () => undefined
   };
 
-  await arrangeSelectedTextCards(canvas, { direction: 'vertical', spacing: 20, sortPriority: 'yx' });
+  await arrangeSelectedTextCards(canvas, { direction: 'vertical', spacing: 20 });
 
   assert.deepEqual(data.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })), [
-    { id: 'a', x: 10, y: 20 },
-    { id: 'b', x: 80, y: 140 },
-    { id: 'c', x: 5, y: 90 },
+    { id: 'a', x: 10, y: 60 },
+    { id: 'b', x: 80, y: 0 },
+    { id: 'c', x: 5, y: 130 },
   ]);
 }
 
-async function testUsesConfiguredPositionSortPriority() {
+async function testHorizontalDirectionIgnoresSortPriorityAndUsesXOrder() {
   const a = node('a', 20, 20, 100, 50);
   const b = node('b', 100, 0, 70, 40);
   const c = node('c', 0, 120, 30, 30);
@@ -68,12 +68,12 @@ async function testUsesConfiguredPositionSortPriority() {
     requestSave: () => undefined
   };
 
-  await arrangeSelectedTextCards(canvas, { direction: 'horizontal', spacing: 20, sortPriority: 'xy' });
+  await arrangeSelectedTextCards(canvas, { direction: 'horizontal', spacing: 20 });
 
   assert.deepEqual(data.nodes.map(n => ({ id: n.id, x: n.x, y: n.y })), [
-    { id: 'a', x: 190, y: 20 },
-    { id: 'b', x: 100, y: 0 },
-    { id: 'c', x: 310, y: 120 },
+    { id: 'a', x: 50, y: 20 },
+    { id: 'b', x: 170, y: 0 },
+    { id: 'c', x: 0, y: 120 },
   ]);
 }
 
@@ -87,39 +87,25 @@ function testToolbarButtonRequiresAtLeastTwoTextCards() {
   assert.equal(shouldShowArrangementToolbarButton(new Set([textA, textB, fileNode])), true);
 }
 
-function testArrangeSessionPreferenceUsesCurrentSettingsUntilRemembered() {
-  let currentSortPriority: 'yx' | 'xy' = 'yx';
-  const store = new ArrangeSessionPreferenceStore(() => currentSortPriority);
+function testArrangeSessionPreferenceStartsWithDefaultDirectionAndSpacing() {
+  const store = new ArrangeSessionPreferenceStore();
 
   assert.deepEqual(store.get(), {
     direction: 'horizontal',
-    sortPriority: 'yx',
-    spacing: 20,
-  });
-
-  currentSortPriority = 'xy';
-
-  assert.deepEqual(store.get(), {
-    direction: 'horizontal',
-    sortPriority: 'xy',
     spacing: 20,
   });
 }
 
 function testArrangeSessionPreferenceRemembersLastAppliedChoice() {
-  let currentSortPriority: 'yx' | 'xy' = 'yx';
-  const store = new ArrangeSessionPreferenceStore(() => currentSortPriority);
+  const store = new ArrangeSessionPreferenceStore();
 
   store.remember({
     direction: 'vertical',
-    sortPriority: 'xy',
     spacing: 48,
   });
-  currentSortPriority = 'yx';
 
   assert.deepEqual(store.get(), {
     direction: 'vertical',
-    sortPriority: 'xy',
     spacing: 48,
   });
 }
@@ -127,9 +113,9 @@ function testArrangeSessionPreferenceRemembersLastAppliedChoice() {
 void (async () => {
   await testArrangesLiveSelectionHorizontally();
   await testArrangesLiveSelectionVerticallyWithoutChangingX();
-  await testUsesConfiguredPositionSortPriority();
+  await testHorizontalDirectionIgnoresSortPriorityAndUsesXOrder();
   testToolbarButtonRequiresAtLeastTwoTextCards();
-  testArrangeSessionPreferenceUsesCurrentSettingsUntilRemembered();
+  testArrangeSessionPreferenceStartsWithDefaultDirectionAndSpacing();
   testArrangeSessionPreferenceRemembersLastAppliedChoice();
   console.log('canvas arrangement tests passed');
 })();

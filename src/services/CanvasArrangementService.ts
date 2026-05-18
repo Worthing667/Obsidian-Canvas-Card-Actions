@@ -1,4 +1,3 @@
-import { PositionSortStrategy, SortPriority } from "../domain/strategies";
 import type { Canvas, CanvasNode, CanvasNodeData } from "../types/canvas";
 
 export type ArrangeDirection = "horizontal" | "vertical";
@@ -6,7 +5,6 @@ export type ArrangeDirection = "horizontal" | "vertical";
 export interface ArrangeSelectedTextCardsOptions {
     direction: ArrangeDirection;
     spacing: number;
-    sortPriority: SortPriority;
 }
 
 export interface ArrangeSelectedTextCardsResult {
@@ -21,7 +19,6 @@ export class ArrangeSessionPreferenceStore {
     private preference: ArrangeSessionPreference | null = null;
 
     constructor(
-        private readonly getDefaultSortPriority: () => SortPriority,
         private readonly defaultSpacing: number = DEFAULT_ARRANGE_SPACING
     ) {}
 
@@ -32,7 +29,6 @@ export class ArrangeSessionPreferenceStore {
 
         return {
             direction: "horizontal",
-            sortPriority: this.getDefaultSortPriority(),
             spacing: this.defaultSpacing,
         };
     }
@@ -72,7 +68,7 @@ export async function arrangeSelectedTextCards(
 ): Promise<ArrangeSelectedTextCardsResult> {
     const selectedNodeIds = getSelectedTextNodeIds(canvas);
     if (selectedNodeIds.size < 2) {
-        throw new Error("至少需要两张文本卡片才能排列");
+        throw new Error("至少需要两张文本卡片才能整理间距");
     }
 
     const canvasData = canvas.getData();
@@ -83,11 +79,11 @@ export async function arrangeSelectedTextCards(
 
     for (const card of cardInfos) {
         if (card.width <= 0 || card.height <= 0) {
-            throw new Error(`卡片尺寸无效（宽:${card.width}, 高:${card.height}），无法排列`);
+            throw new Error(`卡片尺寸无效（宽:${card.width}, 高:${card.height}），无法整理间距`);
         }
     }
 
-    const sortedInfos = sortCardsByPosition(cardInfos, options.sortPriority);
+    const sortedInfos = sortCardsByDirection(cardInfos, options.direction);
     const newPositions = calculateArrangementPositions(sortedInfos, options.direction, options.spacing);
 
     canvasData.nodes.forEach((nodeData) => {
@@ -143,10 +139,14 @@ function getArrangementCards(nodes: CanvasNodeData[], selectedNodeIds: Set<strin
         }));
 }
 
-function sortCardsByPosition(cards: ArrangementCard[], sortPriority: SortPriority): ArrangementCard[] {
-    const withIndex = cards.map((card, index) => ({ ...card, _idx: index }));
-    const sorter = new PositionSortStrategy(sortPriority, 10);
-    return sorter.sort(withIndex).map((sortedCard) => cards[sortedCard._idx]);
+function sortCardsByDirection(cards: ArrangementCard[], direction: ArrangeDirection): ArrangementCard[] {
+    return [...cards].sort((a, b) => {
+        if (direction === "horizontal") {
+            return a.x - b.x || a.y - b.y;
+        }
+
+        return a.y - b.y || a.x - b.x;
+    });
 }
 
 function calculateArrangementPositions(
