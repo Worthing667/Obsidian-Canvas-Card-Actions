@@ -49,6 +49,34 @@
     z-index: 1001;
 }
 
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-edges {
+    z-index: 40 !important;
+}
+
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node {
+    z-index: 20 !important;
+}
+
+.canvas-loom-edges-above-cards .canvas-wrapper:has(.canvas-node.is-selected) .canvas-edges,
+.canvas-loom-edges-above-cards .canvas-wrapper:has(.canvas-node.is-focused) .canvas-edges,
+.canvas-loom-edges-above-cards .canvas-wrapper:has(.canvas-node.is-editing) .canvas-edges,
+.canvas-loom-edges-above-cards .canvas-wrapper:has(.canvas-node .cm-focused) .canvas-edges,
+.canvas-loom-edges-above-cards .canvas-wrapper:has(.canvas-node textarea:focus) .canvas-edges,
+.canvas-loom-edges-above-cards .canvas-wrapper:has(.canvas-node [contenteditable="true"]:focus) .canvas-edges,
+.canvas-loom-edges-above-cards .canvas-wrapper:has(.canvas-node:focus-within) .canvas-edges {
+    z-index: 10 !important;
+}
+
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node.is-selected,
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node.is-focused,
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node.is-editing,
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node:has(.cm-focused),
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node:has(textarea:focus),
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node:has([contenteditable="true"]:focus),
+.canvas-loom-edges-above-cards .canvas-wrapper .canvas-node:focus-within {
+    z-index: 60 !important;
+}
+
 .cca-stats-section {
     background: var(--background-secondary-alt);
     border-radius: 6px;

@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     splitCardsPerRow: DEFAULT_SPLIT_CARDS_PER_ROW,
     sortPriority: 'yx',
     enableBadges: true,
+    showEdgesAboveCards: false,
     defaultSortMode: 'position',
     mergeCleanupMode: 'keep-source',
     enablePerformanceMode: false,
@@ -97,6 +98,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
     private setupUI(): void {
         this.syncPerformanceModeClass();
+        this.syncCanvasEdgeLayerClass();
 
         if (this.settings.enableBadges) {
             this.badgeStyleManager.injectStyles();
@@ -461,6 +463,12 @@ export default class CanvasLoomPlugin extends Plugin {
         this.syncPerformanceModeClass();
     }
 
+    async setShowEdgesAboveCardsEnabled(enabled: boolean) {
+        this.settings.showEdgesAboveCards = enabled;
+        await this.saveSettings();
+        this.syncCanvasEdgeLayerClass();
+    }
+
     private syncPerformanceModeClass(): void {
         activeDocument.body.classList.toggle(
             "canvas-loom-performance-mode",
@@ -468,10 +476,18 @@ export default class CanvasLoomPlugin extends Plugin {
         );
     }
 
+    private syncCanvasEdgeLayerClass(): void {
+        activeDocument.body.classList.toggle(
+            "canvas-loom-edges-above-cards",
+            this.settings.showEdgesAboveCards
+        );
+    }
+
     onunload() {
         this.badgeRenderScheduler.cancelAll();
         this.canvasSelectionToolbarService.stop();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
+        activeDocument.body.classList.remove("canvas-loom-edges-above-cards");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
     }

@@ -27,6 +27,7 @@ function settings(): CanvasLoomSettings {
     splitCardsPerRow: 5,
     sortPriority: 'xy',
     enableBadges: true,
+    showEdgesAboveCards: false,
     defaultSortMode: 'badge',
     mergeCleanupMode: 'delete-source',
     enablePerformanceMode: false,

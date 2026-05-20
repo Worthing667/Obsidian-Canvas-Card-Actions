@@ -74,6 +74,7 @@ Resize cards to fit their text and arrange selected cards with cleaner horizonta
 - `Card sorting priority`: controls whether position-based sorting prioritizes vertical or horizontal order.
 - `Quick action sorting mode`: controls the default sorting mode for quick copy and quick merge.
 - `Enable badges`: controls whether card badges are shown.
+- `Show edges above cards`: places Canvas connections above regular cards while keeping selected or edited cards above connections.
 - `Merge cleanup mode`: controls whether source cards are kept or deleted after creating a merged card.
 - `Canvas performance mode`: reduces Canvas Loom's additional rendering cost on large canvases.
 - `Performance diagnostics`: logs Canvas Loom operation timing and Canvas statistics to the developer console.

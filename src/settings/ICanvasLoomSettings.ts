@@ -11,6 +11,7 @@ export default interface CanvasLoomSettings {
 	splitCardsPerRow: number;
 	sortPriority: 'yx' | 'xy'; // yx表示倒N排序，xy表示Z字排序
 	enableBadges: boolean; // 是否启用标记功能
+	showEdgesAboveCards: boolean; // 是否将连线显示在卡片上方
 	defaultSortMode: MergeOrderSetting;
 	mergeCleanupMode: MergeCleanupMode;
 	enablePerformanceMode: boolean;

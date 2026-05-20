@@ -86,6 +86,15 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName('连线显示在卡片上方')
+			.setDesc('空闲时让 Canvas 连线显示在普通卡片上方；选中或编辑卡片时会临时让卡片压过连线，避免影响文字编辑。不修改 Canvas 文件')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showEdgesAboveCards)
+				.onChange(async (value) => {
+					await this.plugin.setShowEdgesAboveCardsEnabled(value);
+				}));
+
+		new Setting(containerEl)
 			.setName('一键排序方式')
 			.setDesc('设置一键复制、一键拼合默认按位置还是按标记处理')
 			.addDropdown(dropdown => dropdown
