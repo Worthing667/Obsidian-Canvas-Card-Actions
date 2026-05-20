@@ -67,6 +67,8 @@ export default class CanvasLoomPlugin extends Plugin {
     private commandRegistry: CommandRegistry;
     private badgeStyleManager: BadgeStyleManager;
     private vaultAdapter: VaultAdapter;
+    private canvasEdgeLayerRefreshTimeout: number | null = null;
+    private canvasEdgeLayerInteractionObserver: MutationObserver | null = null;
 
     async onload() {
         await this.initializeServices();
@@ -99,6 +101,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private setupUI(): void {
         this.syncPerformanceModeClass();
         this.syncCanvasEdgeLayerClass();
+        this.registerCanvasEdgeLayerInteractionTracking();
 
         if (this.settings.enableBadges) {
             this.badgeStyleManager.injectStyles();
@@ -481,13 +484,125 @@ export default class CanvasLoomPlugin extends Plugin {
             "canvas-loom-edges-above-cards",
             this.settings.showEdgesAboveCards
         );
+
+        if (this.settings.showEdgesAboveCards) {
+            this.startCanvasEdgeLayerInteractionObserver();
+            this.scheduleCanvasEdgeLayerInteractionRefresh();
+            return;
+        }
+
+        activeDocument.body.classList.remove("canvas-loom-card-interaction-active");
+        this.clearCanvasEdgeLayerRefreshTimeout();
+        this.stopCanvasEdgeLayerInteractionObserver();
+    }
+
+    private registerCanvasEdgeLayerInteractionTracking(): void {
+        const scheduleRefresh = () => this.scheduleCanvasEdgeLayerInteractionRefresh();
+        const eventNames: Array<keyof DocumentEventMap> = [
+            "pointerdown",
+            "pointerup",
+            "click",
+            "dblclick",
+            "focusin",
+            "focusout",
+            "keydown",
+            "keyup"
+        ];
+
+        eventNames.forEach((eventName) => {
+            this.registerDomEvent(activeDocument, eventName, scheduleRefresh, { capture: true });
+        });
+
+        this.register(() => this.stopCanvasEdgeLayerInteractionObserver());
+    }
+
+    private startCanvasEdgeLayerInteractionObserver(): void {
+        if (this.canvasEdgeLayerInteractionObserver) {
+            return;
+        }
+
+        this.canvasEdgeLayerInteractionObserver = new MutationObserver((mutations) => {
+            const shouldRefresh = mutations.some((mutation) => {
+                return mutation.target instanceof HTMLElement
+                    && (mutation.target.classList.contains("canvas-node")
+                        || Boolean(mutation.target.closest(".canvas-node")));
+            });
+
+            if (shouldRefresh) {
+                this.scheduleCanvasEdgeLayerInteractionRefresh();
+            }
+        });
+
+        this.canvasEdgeLayerInteractionObserver.observe(activeDocument.body, {
+            attributes: true,
+            attributeFilter: ["class"],
+            subtree: true
+        });
+    }
+
+    private stopCanvasEdgeLayerInteractionObserver(): void {
+        if (!this.canvasEdgeLayerInteractionObserver) {
+            return;
+        }
+
+        this.canvasEdgeLayerInteractionObserver.disconnect();
+        this.canvasEdgeLayerInteractionObserver = null;
+    }
+
+    private scheduleCanvasEdgeLayerInteractionRefresh(): void {
+        if (!this.settings.showEdgesAboveCards) {
+            return;
+        }
+
+        this.clearCanvasEdgeLayerRefreshTimeout();
+        this.canvasEdgeLayerRefreshTimeout = window.setTimeout(() => {
+            this.canvasEdgeLayerRefreshTimeout = null;
+            this.syncCanvasEdgeLayerInteractionClass();
+        }, 50);
+    }
+
+    private clearCanvasEdgeLayerRefreshTimeout(): void {
+        if (this.canvasEdgeLayerRefreshTimeout === null) {
+            return;
+        }
+
+        window.clearTimeout(this.canvasEdgeLayerRefreshTimeout);
+        this.canvasEdgeLayerRefreshTimeout = null;
+    }
+
+    private syncCanvasEdgeLayerInteractionClass(): void {
+        activeDocument.body.classList.toggle(
+            "canvas-loom-card-interaction-active",
+            this.hasActiveCanvasCard()
+        );
+    }
+
+    private hasActiveCanvasCard(): boolean {
+        const activeElement = activeDocument.activeElement;
+        if (activeElement instanceof HTMLElement && activeElement.closest(".canvas-node")) {
+            return true;
+        }
+
+        return Boolean(activeDocument.querySelector(
+            [
+                ".canvas-node.is-selected",
+                ".canvas-node.is-focused",
+                ".canvas-node.is-editing",
+                ".canvas-node .cm-focused",
+                ".canvas-node textarea:focus",
+                ".canvas-node [contenteditable='true']:focus"
+            ].join(", ")
+        ));
     }
 
     onunload() {
+        this.clearCanvasEdgeLayerRefreshTimeout();
+        this.stopCanvasEdgeLayerInteractionObserver();
         this.badgeRenderScheduler.cancelAll();
         this.canvasSelectionToolbarService.stop();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         activeDocument.body.classList.remove("canvas-loom-edges-above-cards");
+        activeDocument.body.classList.remove("canvas-loom-card-interaction-active");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
     }
