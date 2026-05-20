@@ -41,8 +41,9 @@ export class MergeToSidebarPreviewCommand implements ICommand {
 
     async execute(): Promise<void> {
         await this.mergeService.mergeToSidebar(this.selection, this.canvasFile, {
-            order: 'position',
-            sortPriority: this.settings.sortPriority
+            order: this.settings.defaultSortMode,
+            sortPriority: this.settings.sortPriority,
+            cleanupMode: this.settings.mergeCleanupMode
         });
     }
 

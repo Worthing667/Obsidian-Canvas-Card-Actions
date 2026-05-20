@@ -166,7 +166,8 @@ export default class CanvasLoomPlugin extends Plugin {
             canvasAdapter,
             this.contentService,
             this.vaultAdapter,
-            this.performanceService
+            this.performanceService,
+            () => this.settings.mergeCleanupMode
         );
     }
 

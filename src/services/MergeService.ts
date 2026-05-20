@@ -2,7 +2,7 @@ import { App, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import { CanvasAdapter, ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { IVaultAdapter } from "../adapters/VaultAdapter";
 import { IContentService, MergeOrder } from "./ContentService";
-import { PositionSortStrategy, SortPriority } from "../domain/strategies";
+import { SortPriority } from "../domain/strategies";
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
 import type { MergeWorkbenchContext } from "../presentation/views";
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
@@ -45,7 +45,8 @@ export class MergeService implements IMergeService {
         private canvasAdapter: ICanvasAdapter,
         private contentService: IContentService,
         private vaultAdapter: IVaultAdapter,
-        private performanceService?: PerformanceService
+        private performanceService?: PerformanceService,
+        private getMergeCleanupMode?: () => MergeCleanupMode
     ) {}
 
     async mergeToCanvasCard(selection: CanvasNode[], options?: MergeExecutionOptions): Promise<boolean> {
@@ -70,7 +71,8 @@ export class MergeService implements IMergeService {
             target: "canvas-card",
             selectionCount: selection.length
         }, () => this.contentService.createSelectionSnapshot(selection));
-        const anchor = this.resolveAnchorCard(snapshots, options?.sortPriority);
+        const orderedSnapshots = await this.getOrderedSnapshots(snapshots, options);
+        const anchor = this.resolveAnchorCard(orderedSnapshots);
         const nodeData: CanvasNodeData = {
             id: `${Math.random().toString(36).slice(2, 11)}`,
             type: 'text',
@@ -81,11 +83,13 @@ export class MergeService implements IMergeService {
             height: anchor.height
         };
 
+        const cleanupMode = this.resolveCleanupMode(options?.cleanupMode);
+
         await this.measure("merge.mutateCanvasCard", {
             sourceCount: selection.length,
-            cleanupMode: options?.cleanupMode || 'keep-source'
+            cleanupMode
         }, () => this.canvasAdapter.mutateData((canvasData) => {
-            const ids = options?.cleanupMode === 'delete-source'
+            const ids = cleanupMode === 'delete-source'
                 ? new Set(selection.map(n => n.id))
                 : null;
 
@@ -216,7 +220,7 @@ export class MergeService implements IMergeService {
                     order,
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
-                    cleanupMode: options?.cleanupMode,
+                    cleanupMode: this.resolveCleanupMode(options?.cleanupMode, true),
                     includeBadgePrefix: currentState.sortMode === 'badge'
                 });
             },
@@ -250,7 +254,8 @@ export class MergeService implements IMergeService {
             return false;
         }
 
-        const anchor = this.resolveAnchorCard(snapshots, options?.sortPriority);
+        const orderedSnapshots = await this.getOrderedSnapshots(snapshots, options);
+        const anchor = this.resolveAnchorCard(orderedSnapshots);
         const nodeData: CanvasNodeData = {
             id: `${Math.random().toString(36).slice(2, 11)}`,
             type: 'text',
@@ -270,12 +275,14 @@ export class MergeService implements IMergeService {
             return false;
         }
 
+        const cleanupMode = this.resolveCleanupMode(options?.cleanupMode);
+
         await this.measure("merge.mutateCanvasCard", {
             sourceCount: snapshots.length,
-            cleanupMode: options?.cleanupMode || 'keep-source',
+            cleanupMode,
             canvasFilePath: canvasFilePath || 'active'
         }, () => adapter.mutateData((canvasData) => {
-            const ids = options?.cleanupMode === 'delete-source'
+            const ids = cleanupMode === 'delete-source'
                 ? new Set(snapshots.map(s => s.id))
                 : null;
 
@@ -326,22 +333,42 @@ export class MergeService implements IMergeService {
         return true;
     }
 
-    private resolveAnchorCard(snapshots: CardSnapshot[], sortPriority?: SortPriority): { x: number; y: number; width: number; height: number } {
+    private async getOrderedSnapshots(snapshots: CardSnapshot[], options?: MergeExecutionOptions): Promise<CardSnapshot[]> {
+        return this.contentService.getOrderedCards({
+            snapshots,
+            order: options?.order || 'position',
+            sortPriority: options?.sortPriority || 'yx',
+            manualOrderIds: options?.manualOrderIds,
+            includeBadgePrefix: options?.includeBadgePrefix
+        });
+    }
+
+    private resolveAnchorCard(snapshots: CardSnapshot[]): { x: number; y: number; width: number; height: number } {
         const fallback = { x: 0, y: 0, width: 400, height: 400 };
         if (!Array.isArray(snapshots) || snapshots.length === 0) {
             return fallback;
         }
 
-        const sorter = new PositionSortStrategy(sortPriority || 'yx', 10);
-        const sortedSnapshots = sorter.sort(snapshots);
-
-        const first = sortedSnapshots[0];
+        const first = snapshots[0];
         return {
             x: first.x,
             y: first.y,
             width: first.width || fallback.width,
             height: first.height || fallback.height
         };
+    }
+
+    private resolveCleanupMode(fallback?: MergeCleanupMode, preferProvider = false): MergeCleanupMode {
+        if (!preferProvider && fallback) {
+            return fallback;
+        }
+
+        try {
+            return this.getMergeCleanupMode?.() || fallback || 'keep-source';
+        } catch (error) {
+            console.error("读取拼合后处理方式失败:", error);
+            return fallback || 'keep-source';
+        }
     }
 
     private resolveCanvasFile(canvasFilePath: string | null): TFile | null {
@@ -374,14 +401,12 @@ export class MergeService implements IMergeService {
         }
 
         await leaf.openFile(canvasFile, { active: false });
-        const canvasLeaf = this.findCanvasLeafByPath(canvasFilePath) || leaf;
-        const view = canvasLeaf.view;
-
-        if (!view?.canvas) {
+        const adapter = await this.waitForCanvasAdapter(canvasFilePath, leaf);
+        if (!adapter) {
             return null;
         }
 
-        return new CanvasAdapter(view.canvas, this.performanceService);
+        return adapter;
     }
 
     private findCanvasLeafByPath(canvasFilePath: string): WorkspaceLeaf | null {
@@ -392,6 +417,21 @@ export class MergeService implements IMergeService {
         });
 
         return matchedLeaf || null;
+    }
+
+    private async waitForCanvasAdapter(canvasFilePath: string, fallbackLeaf: WorkspaceLeaf): Promise<ICanvasAdapter | null> {
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+            const canvasLeaf = this.findCanvasLeafByPath(canvasFilePath) || fallbackLeaf;
+            const view = canvasLeaf.view;
+
+            if (view?.canvas) {
+                return new CanvasAdapter(view.canvas, this.performanceService);
+            }
+
+            await new Promise(resolve => window.setTimeout(resolve, 50));
+        }
+
+        return null;
     }
 
     private async activateMergePreviewView(): Promise<MergeWorkbenchView> {
