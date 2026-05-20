@@ -97,9 +97,28 @@ function testClearStateEmptiesWorkbenchButKeepsSourceContext() {
   assert.equal(cleared.canvasFilePath, 'test.canvas');
   assert.equal(cleared.canvasFileBasename, 'test');
   assert.equal(cleared.scopeLabel, '当前选区');
+  assert.equal(cleared.cardSeparator, null);
+}
+
+function testPreviewContentUsesCardSeparator() {
+  const service = new PreviewWorkbenchService();
+  const state = service.createState({
+    canvasFilePath: 'test.canvas',
+    canvasFileBasename: 'test',
+    selectionSnapshot: [
+      card('first', 0, 0),
+      card('second', 100, 0),
+    ],
+    defaultSortMode: 'position',
+    sortPriority: 'xy',
+    cardSeparator: '---',
+  });
+
+  assert.equal(service.buildPreviewContent(state, 'xy'), 'first\n\n---\n\nsecond');
 }
 
 testPositionModeFollowsLatestSortPriorityUntilManuallyAdjusted();
 testManualAdjustmentKeepsExplicitOrderAcrossSortPriorityChanges();
 testClearStateEmptiesWorkbenchButKeepsSourceContext();
+testPreviewContentUsesCardSeparator();
 console.log('preview workbench service tests passed');

@@ -17,6 +17,7 @@ export interface MergeExecutionOptions {
     manualOrderIds?: string[];
     includeBadgePrefix?: boolean;
     cleanupMode?: MergeCleanupMode;
+    cardSeparator?: string | null;
 }
 
 export interface OpenWorkbenchOptions {
@@ -25,6 +26,7 @@ export interface OpenWorkbenchOptions {
     previewExpanded?: boolean;
     scopeLabel?: string;
     cleanupMode?: MergeCleanupMode;
+    cardSeparator?: string | null;
 }
 
 export interface IMergeService {
@@ -59,7 +61,8 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: options?.includeBadgePrefix ?? true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true,
+            cardSeparator: options?.cardSeparator
         }));
 
         if (!result.content || result.count === 0) {
@@ -111,7 +114,9 @@ export class MergeService implements IMergeService {
         return this.openWorkbench(selection, canvasFile, {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
-            previewExpanded: true
+            previewExpanded: true,
+            cleanupMode: options?.cleanupMode,
+            cardSeparator: options?.cardSeparator
         });
     }
 
@@ -125,7 +130,8 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: options?.includeBadgePrefix ?? true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true,
+            cardSeparator: options?.cardSeparator
         }));
 
         if (!result.content || result.count === 0) {
@@ -187,7 +193,8 @@ export class MergeService implements IMergeService {
             selectionSnapshot: snapshots,
             defaultSortMode: options?.order || 'position',
             sortPriority,
-            previewExpanded: options?.previewExpanded ?? false
+            previewExpanded: options?.previewExpanded ?? false,
+            cardSeparator: options?.cardSeparator
         });
 
         view.setWorkbenchContext(this.createWorkbenchContext(state, sortPriority, options));
@@ -201,8 +208,13 @@ export class MergeService implements IMergeService {
         sortPriority: SortPriority,
         options?: OpenWorkbenchOptions
     ): MergeWorkbenchContext {
+        const contextState = {
+            ...state,
+            cardSeparator: options?.cardSeparator ?? state.cardSeparator ?? null
+        };
+
         return {
-            state,
+            state: contextState,
             sortPriority,
             onCopy: async (currentState: WorkbenchState) => {
                 const order = currentState.isManualAdjusted ? 'manual' : currentState.sortMode;
@@ -211,7 +223,8 @@ export class MergeService implements IMergeService {
                     order,
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
-                    includeBadgePrefix: currentState.sortMode === 'badge'
+                    includeBadgePrefix: currentState.sortMode === 'badge',
+                    cardSeparator: currentState.cardSeparator
                 }, '已复制工作台当前顺序的内容');
             },
             onCreateCard: async (currentState: WorkbenchState) => {
@@ -221,7 +234,8 @@ export class MergeService implements IMergeService {
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
                     cleanupMode: this.resolveCleanupMode(options?.cleanupMode, true),
-                    includeBadgePrefix: currentState.sortMode === 'badge'
+                    includeBadgePrefix: currentState.sortMode === 'badge',
+                    cardSeparator: currentState.cardSeparator
                 });
             },
             onCreateMarkdown: async (currentState: WorkbenchState) => {
@@ -230,7 +244,8 @@ export class MergeService implements IMergeService {
                     order,
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
-                    includeBadgePrefix: currentState.sortMode === 'badge'
+                    includeBadgePrefix: currentState.sortMode === 'badge',
+                    cardSeparator: currentState.cardSeparator
                 });
             }
         };
@@ -246,7 +261,8 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: options?.includeBadgePrefix ?? true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true,
+            cardSeparator: options?.cardSeparator
         }));
 
         if (!result.content || result.count === 0) {
@@ -310,7 +326,8 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: options?.includeBadgePrefix ?? true
+            includeBadgePrefix: options?.includeBadgePrefix ?? true,
+            cardSeparator: options?.cardSeparator
         }));
 
         if (!result.content || result.count === 0) {
@@ -339,7 +356,8 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: options?.includeBadgePrefix
+            includeBadgePrefix: options?.includeBadgePrefix,
+            cardSeparator: options?.cardSeparator
         });
     }
 

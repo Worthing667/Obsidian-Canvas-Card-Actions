@@ -1,4 +1,5 @@
 import { BadgeSortStrategy, PositionSortStrategy, SortPriority } from "../domain/strategies";
+import { formatMergedCardsContent } from "./MergedContentFormatter";
 import type { MergeOrder } from "./ContentService";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
 
@@ -10,6 +11,7 @@ export interface CreateWorkbenchStateOptions {
     defaultSortMode: MergeOrder;
     sortPriority?: SortPriority;
     previewExpanded?: boolean;
+    cardSeparator?: string | null;
 }
 
 export interface AppendWorkbenchSnapshotsResult {
@@ -38,6 +40,7 @@ export class PreviewWorkbenchService {
             isManualAdjusted,
             previewExpanded: options.previewExpanded ?? false,
             lastComputedContent: '',
+            cardSeparator: options.cardSeparator ?? null,
         };
     }
 
@@ -150,9 +153,13 @@ export class PreviewWorkbenchService {
     buildPreviewContent(state: WorkbenchState, sortPriority: SortPriority): string {
         const cards = this.getOrderedCards(state, sortPriority);
         const includeBadgePrefix = state.sortMode === 'badge';
-        return cards
-            .map((card) => includeBadgePrefix && card.badge ? `[${card.badge}] ${card.text}` : card.text)
-            .join('\n\n');
+        return formatMergedCardsContent(
+            cards.map(card => ({ text: card.text, badge: card.badge })),
+            {
+                includeBadgePrefix,
+                cardSeparator: state.cardSeparator
+            }
+        );
     }
 
     private getTextCards(cards: CardSnapshot[]): CardSnapshot[] {

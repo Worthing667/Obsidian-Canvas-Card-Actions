@@ -7,6 +7,7 @@ export const MAX_SPLIT_CARDS_PER_ROW = 20;
 
 export default interface CanvasLoomSettings {
 	canvasCardDelimiter: string;
+	insertDelimiterOnMerge: boolean;
 	splitCardsPerRow: number;
 	sortPriority: 'yx' | 'xy'; // yx表示倒N排序，xy表示Z字排序
 	enableBadges: boolean; // 是否启用标记功能
@@ -16,4 +17,15 @@ export default interface CanvasLoomSettings {
 	enablePerformanceDiagnostics: boolean;
 	largeCanvasNodeThreshold: number;
 	badgeUpdateDebounceMs: number;
+}
+
+export function resolveMergeCardSeparator(
+	settings: Pick<CanvasLoomSettings, "canvasCardDelimiter" | "insertDelimiterOnMerge">
+): string | null {
+	if (!settings.insertDelimiterOnMerge) {
+		return null;
+	}
+
+	const delimiter = settings.canvasCardDelimiter.trim();
+	return delimiter || null;
 }

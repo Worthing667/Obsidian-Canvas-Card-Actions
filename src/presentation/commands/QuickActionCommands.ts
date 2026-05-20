@@ -2,7 +2,7 @@ import { TFile } from "obsidian";
 import { ICommand } from "./ICommand";
 import { IContentService } from "../../services/ContentService";
 import { IMergeService } from "../../services/MergeService";
-import CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
+import CanvasLoomSettings, { resolveMergeCardSeparator } from "../../settings/ICanvasLoomSettings";
 import type { CanvasNode } from "../../types/canvas";
 
 export class QuickCopyCommand implements ICommand {
@@ -18,7 +18,8 @@ export class QuickCopyCommand implements ICommand {
             selection: this.selection,
             order,
             sortPriority: this.settings.sortPriority,
-            includeBadgePrefix: order === 'badge'
+            includeBadgePrefix: order === 'badge',
+            cardSeparator: resolveMergeCardSeparator(this.settings)
         }, '已执行一键复制');
     }
 
@@ -42,7 +43,8 @@ export class QuickMergeCommand implements ICommand {
         await this.mergeService.mergeToCanvasCard(this.selection, {
             order: this.settings.defaultSortMode,
             sortPriority: this.settings.sortPriority,
-            cleanupMode: this.settings.mergeCleanupMode
+            cleanupMode: this.settings.mergeCleanupMode,
+            cardSeparator: resolveMergeCardSeparator(this.settings)
         });
     }
 
@@ -67,7 +69,8 @@ export class OpenPreviewWorkbenchCommand implements ICommand {
         await this.mergeService.openWorkbench(this.selection, this.canvasFile, {
             order: this.settings.defaultSortMode,
             sortPriority: this.settings.sortPriority,
-            cleanupMode: this.settings.mergeCleanupMode
+            cleanupMode: this.settings.mergeCleanupMode,
+            cardSeparator: resolveMergeCardSeparator(this.settings)
         });
     }
 

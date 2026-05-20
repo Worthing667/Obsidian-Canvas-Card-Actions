@@ -2,7 +2,7 @@ import type { App } from "obsidian";
 import { TFile } from "obsidian";
 import { ICommand } from "./ICommand";
 import { IMergeService } from "../../services/MergeService";
-import CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
+import CanvasLoomSettings, { resolveMergeCardSeparator } from "../../settings/ICanvasLoomSettings";
 import { DragSortModal } from "../modals/DragSortModal";
 import type { CanvasNode } from "../../types/canvas";
 
@@ -18,7 +18,8 @@ export class MergeToCanvasCardCommand implements ICommand {
         await this.mergeService.mergeToCanvasCard(this.selection, {
             order,
             sortPriority: this.settings.sortPriority,
-            cleanupMode: this.settings.mergeCleanupMode
+            cleanupMode: this.settings.mergeCleanupMode,
+            cardSeparator: resolveMergeCardSeparator(this.settings)
         });
     }
 
@@ -43,7 +44,8 @@ export class MergeToSidebarPreviewCommand implements ICommand {
         await this.mergeService.mergeToSidebar(this.selection, this.canvasFile, {
             order: this.settings.defaultSortMode,
             sortPriority: this.settings.sortPriority,
-            cleanupMode: this.settings.mergeCleanupMode
+            cleanupMode: this.settings.mergeCleanupMode,
+            cardSeparator: resolveMergeCardSeparator(this.settings)
         });
     }
 
@@ -68,7 +70,8 @@ export class MergeToMarkdownCommand implements ICommand {
         const order = this.settings.defaultSortMode === 'badge' ? 'badge' : 'position';
         await this.mergeService.mergeToMarkdown(this.selection, this.canvasFile, {
             order,
-            sortPriority: this.settings.sortPriority
+            sortPriority: this.settings.sortPriority,
+            cardSeparator: resolveMergeCardSeparator(this.settings)
         });
     }
 
@@ -102,7 +105,8 @@ export class ManualMergeCommand implements ICommand {
                     onClick: async ({ nodes, modal }) => {
                         const success = await this.mergeService.mergeToCanvasCard(nodes, {
                             order: 'manual',
-                            cleanupMode: this.settings.mergeCleanupMode
+                            cleanupMode: this.settings.mergeCleanupMode,
+                            cardSeparator: resolveMergeCardSeparator(this.settings)
                         });
                         if (success) {
                             modal.close();
@@ -113,7 +117,10 @@ export class ManualMergeCommand implements ICommand {
                     text: "预览卡片组",
                     cls: "drag-sort-btn drag-sort-btn-secondary",
                     onClick: async ({ nodes, modal }) => {
-                        const success = await this.mergeService.mergeToSidebar(nodes, this.canvasFile, { order: 'manual' });
+                        const success = await this.mergeService.mergeToSidebar(nodes, this.canvasFile, {
+                            order: 'manual',
+                            cardSeparator: resolveMergeCardSeparator(this.settings)
+                        });
                         if (success) {
                             modal.close();
                         }
@@ -123,7 +130,10 @@ export class ManualMergeCommand implements ICommand {
                     text: "新建文稿",
                     cls: "drag-sort-btn drag-sort-btn-secondary",
                     onClick: async ({ nodes, modal }) => {
-                        const success = await this.mergeService.mergeToMarkdown(nodes, this.canvasFile, { order: 'manual' });
+                        const success = await this.mergeService.mergeToMarkdown(nodes, this.canvasFile, {
+                            order: 'manual',
+                            cardSeparator: resolveMergeCardSeparator(this.settings)
+                        });
                         if (success) {
                             modal.close();
                         }

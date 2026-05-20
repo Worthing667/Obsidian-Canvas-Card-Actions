@@ -38,6 +38,7 @@ import type { Canvas, CanvasNode } from "./types/canvas";
 
 const DEFAULT_SETTINGS: CanvasLoomSettings = {
     canvasCardDelimiter: '---',
+    insertDelimiterOnMerge: false,
     splitCardsPerRow: DEFAULT_SPLIT_CARDS_PER_ROW,
     sortPriority: 'yx',
     enableBadges: true,

@@ -3,6 +3,7 @@ import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { IClipboardAdapter } from "../adapters/ClipboardAdapter";
 import { BadgeData } from "../domain/models/Badge";
 import { IBadgeService } from "./BadgeService";
+import { formatMergedCardsContent } from "./MergedContentFormatter";
 import { Notice } from "obsidian";
 import type { CardSnapshot } from "../types/WorkbenchState";
 import type { CanvasNode } from "../types/canvas";
@@ -16,6 +17,7 @@ export interface BuildMergedContentOptions {
     sortPriority?: SortPriority;
     manualOrderIds?: string[];
     includeBadgePrefix?: boolean;
+    cardSeparator?: string | null;
 }
 
 export interface MergedContentResult {
@@ -112,11 +114,13 @@ export class ContentService implements IContentService {
         }
 
         const includeBadgePrefix = options.includeBadgePrefix ?? options.order === 'badge';
-        const content = includeBadgePrefix
-            ? this.formatBadgedCardsContent(
-                orderedCards.map(card => ({ text: card.text, badge: card.badge }))
-            )
-            : orderedCards.map(card => card.text).join('\n\n');
+        const content = formatMergedCardsContent(
+            orderedCards.map(card => ({ text: card.text, badge: card.badge })),
+            {
+                includeBadgePrefix,
+                cardSeparator: options.cardSeparator
+            }
+        );
 
         return {
             content,
@@ -176,9 +180,7 @@ export class ContentService implements IContentService {
     }
 
     formatBadgedCardsContent(cards: Array<{text: string, badge?: string}>): string {
-        return cards
-            .map(card => card.badge ? `[${card.badge}] ${card.text}` : card.text)
-            .join('\n\n');
+        return formatMergedCardsContent(cards, { includeBadgePrefix: true });
     }
 
     private resolveSelection(selection: CanvasNode[]): CanvasNode[] {

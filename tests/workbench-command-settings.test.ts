@@ -23,6 +23,7 @@ function textNode(id: string): CanvasNode {
 function settings(): CanvasLoomSettings {
   return {
     canvasCardDelimiter: '---',
+    insertDelimiterOnMerge: true,
     splitCardsPerRow: 5,
     sortPriority: 'xy',
     enableBadges: true,
@@ -52,6 +53,7 @@ async function testOpenPreviewWorkbenchUsesDefaultSortMode() {
     order: 'badge',
     sortPriority: 'xy',
     cleanupMode: 'delete-source',
+    cardSeparator: '---',
   });
 }
 
@@ -72,6 +74,7 @@ async function testExpandedPreviewUsesDefaultSortMode() {
     order: 'badge',
     sortPriority: 'xy',
     cleanupMode: 'delete-source',
+    cardSeparator: '---',
   });
 }
 
@@ -107,6 +110,7 @@ async function testSameColorWorkbenchUsesDefaultSortMode() {
     previewExpanded: true,
     scopeLabel: '同色卡片',
     cleanupMode: 'delete-source',
+    cardSeparator: '---',
   });
 }
 

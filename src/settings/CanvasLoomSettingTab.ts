@@ -21,12 +21,22 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('设置画布卡片分隔符')
-			.setDesc('输入用于拆分单张画布卡片的分隔符')
+			.setDesc('输入用于拆分单张画布卡片的分隔符，也可在拼合时作为卡片分隔线')
 			.addText(text => text
 				.setPlaceholder('---')
 				.setValue(this.plugin.settings.canvasCardDelimiter)
 				.onChange(async (value) => {
 					this.plugin.settings.canvasCardDelimiter = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('拼合时插入分隔线')
+			.setDesc('开启后，一键复制、拼合、新建文稿和工作台输出会在相邻卡片之间插入当前分隔符')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.insertDelimiterOnMerge)
+				.onChange(async (value) => {
+					this.plugin.settings.insertDelimiterOnMerge = value;
 					await this.plugin.saveSettings();
 				}));
 

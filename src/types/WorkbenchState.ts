@@ -21,4 +21,5 @@ export interface WorkbenchState {
     isManualAdjusted: boolean;
     previewExpanded: boolean;
     lastComputedContent: string;
+    cardSeparator: string | null;
 }

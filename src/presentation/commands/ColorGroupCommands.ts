@@ -1,6 +1,6 @@
 import { Notice, TFile } from "obsidian";
 import { ICommand } from "./ICommand";
-import CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
+import CanvasLoomSettings, { resolveMergeCardSeparator } from "../../settings/ICanvasLoomSettings";
 import type { CanvasNode } from "../../types/canvas";
 import { IColorGroupService } from "../../services/ColorGroupService";
 import { IMergeService } from "../../services/MergeService";
@@ -48,6 +48,7 @@ export class OpenSameColorGroupWorkbenchCommand implements ICommand {
             previewExpanded: true,
             scopeLabel: group.scopeLabel,
             cleanupMode: this.settings.mergeCleanupMode,
+            cardSeparator: resolveMergeCardSeparator(this.settings),
         });
     }
 
