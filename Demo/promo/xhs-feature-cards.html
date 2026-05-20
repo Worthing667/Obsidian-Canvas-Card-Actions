@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canvas Loom 小红书功能介绍卡</title>
+  <style>
+    :root {
+      --paper: #f8f6ef;
+      --ink: #171a21;
+      --muted: #58606d;
+      --line: rgba(23, 26, 33, 0.13);
+      --soft-line: rgba(23, 26, 33, 0.08);
+      --white: rgba(255, 255, 255, 0.82);
+      --shadow: 0 26px 78px rgba(18, 24, 38, 0.16);
+      --font: "PingFang SC", "PingFangSC-Semibold", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      background: #dce2e7;
+      font-family: var(--font);
+    }
+
+    body {
+      display: grid;
+      justify-content: center;
+      gap: 48px;
+      padding: 48px;
+    }
+
+    .poster {
+      position: relative;
+      width: 1080px;
+      height: 1440px;
+      overflow: hidden;
+      padding: 62px 66px 58px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    .poster::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      background:
+        linear-gradient(90deg, rgba(23, 26, 33, 0.04) 1px, transparent 1px) 0 0 / 54px 54px,
+        linear-gradient(rgba(23, 26, 33, 0.035) 1px, transparent 1px) 0 0 / 54px 54px,
+        var(--bg, var(--paper));
+    }
+
+    .poster::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 18px;
+      background: var(--accent, #ff5d4d);
+      z-index: 4;
+    }
+
+    .brand-row,
+    .footer-row,
+    .chip-row,
+    .workflow-row,
+    .action-row,
+    .stats-row {
+      display: flex;
+      align-items: center;
+    }
+
+    .brand-row {
+      justify-content: space-between;
+      margin-bottom: 34px;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 25px;
+    }
+
+    .logo {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 12px;
+      font-size: 25px;
+      font-weight: 920;
+      line-height: 1;
+    }
+
+    .tag {
+      padding: 10px 16px;
+      color: #3f4652;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      font-size: 20px;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      margin-bottom: 17px;
+      color: var(--accent-dark, #b9362d);
+      font-size: 25px;
+      font-weight: 860;
+    }
+
+    .kicker::before {
+      content: "";
+      width: 46px;
+      height: 6px;
+      background: var(--accent, #ff5d4d);
+      border-radius: 99px;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 900px;
+      font-size: 76px;
+      line-height: 1.04;
+      font-weight: 920;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 880px;
+      color: #424a56;
+      font-size: 29px;
+      line-height: 1.42;
+      font-weight: 560;
+    }
+
+    .footer-row {
+      position: absolute;
+      left: 66px;
+      right: 66px;
+      bottom: 42px;
+      justify-content: space-between;
+      color: #414954;
+      font-size: 21px;
+      font-weight: 720;
+    }
+
+    .page-no {
+      color: var(--accent-dark, #b9362d);
+      font-size: 24px;
+      font-weight: 850;
+    }
+
+    .media-frame,
+    .note-tile,
+    .step,
+    .stat,
+    .setting-tile {
+      border: 1.5px solid var(--line);
+      background: var(--white);
+      box-shadow: 0 18px 52px rgba(18, 24, 38, 0.11);
+    }
+
+    .media-frame {
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      border-radius: 24px;
+    }
+
+    .media-frame img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      min-height: 0;
+      object-fit: contain;
+      object-position: center;
+      background: #fff;
+      border-radius: 15px;
+    }
+
+    .media-frame img.contain {
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .label {
+      position: static;
+      justify-self: start;
+      padding: 9px 13px;
+      color: #fff;
+      background: rgba(23, 26, 33, 0.84);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 820;
+    }
+
+    .chip-row {
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .chip {
+      padding: 11px 16px;
+      color: #222833;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      font-size: 22px;
+      font-weight: 760;
+    }
+
+    .note-grid,
+    .setting-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .note-tile,
+    .setting-tile {
+      border-radius: 20px;
+      padding: 21px 22px;
+    }
+
+    .note-tile strong,
+    .setting-tile strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 28px;
+      line-height: 1.14;
+      font-weight: 900;
+    }
+
+    .note-tile span,
+    .setting-tile span {
+      display: block;
+      color: #535b67;
+      font-size: 20px;
+      line-height: 1.34;
+      font-weight: 560;
+    }
+
+    .workflow-row {
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .step {
+      flex: 1;
+      min-height: 132px;
+      display: grid;
+      align-content: center;
+      gap: 7px;
+      padding: 18px;
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    .step strong {
+      font-size: 27px;
+      font-weight: 920;
+    }
+
+    .step span {
+      color: #58616d;
+      font-size: 19px;
+      line-height: 1.28;
+      font-weight: 600;
+    }
+
+    .arrow {
+      width: 40px;
+      height: 4px;
+      background: var(--accent, #ff5d4d);
+      position: relative;
+      flex: 0 0 40px;
+    }
+
+    .arrow::after {
+      content: "";
+      position: absolute;
+      right: -2px;
+      top: 50%;
+      width: 15px;
+      height: 15px;
+      border-top: 4px solid var(--accent, #ff5d4d);
+      border-right: 4px solid var(--accent, #ff5d4d);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .stats-row {
+      gap: 15px;
+      margin-top: 24px;
+    }
+
+    .stat {
+      flex: 1;
+      min-height: 104px;
+      padding: 17px 18px;
+      border-radius: 20px;
+    }
+
+    .stat strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--accent-dark, #b9362d);
+      font-size: 26px;
+      line-height: 1.12;
+      font-weight: 920;
+    }
+
+    .stat span {
+      display: block;
+      color: #545c68;
+      font-size: 18px;
+      line-height: 1.28;
+      font-weight: 620;
+    }
+
+    .function-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 34px;
+    }
+
+    .function-card {
+      min-height: 150px;
+      padding: 24px 24px 22px;
+      border: 1.5px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 18px 48px rgba(18, 24, 38, 0.1);
+    }
+
+    .function-card strong {
+      display: block;
+      margin-bottom: 9px;
+      color: var(--accent-dark, #b9362d);
+      font-size: 31px;
+      line-height: 1.1;
+      font-weight: 920;
+    }
+
+    .function-card span {
+      display: block;
+      color: #535b67;
+      font-size: 22px;
+      line-height: 1.35;
+      font-weight: 580;
+    }
+
+    .install-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 30px;
+    }
+
+    .install-card {
+      min-height: 158px;
+      padding: 24px;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 24px;
+      box-shadow: 0 20px 58px rgba(18, 24, 38, 0.16);
+    }
+
+    .install-card strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 30px;
+      line-height: 1.1;
+      font-weight: 920;
+    }
+
+    .install-card span {
+      display: block;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 22px;
+      line-height: 1.34;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .flow-pair {
+      display: grid;
+      grid-template-columns: 0.44fr 74px 1fr;
+      gap: 18px;
+      align-items: center;
+      margin-top: 34px;
+    }
+
+    .flow-pair .long-shot {
+      height: 650px;
+    }
+
+    .flow-pair .group-shot {
+      height: 650px;
+    }
+
+    .flow-arrow {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      align-content: center;
+      min-height: 360px;
+    }
+
+    .flow-arrow strong {
+      width: 74px;
+      height: 74px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--accent, #18a058);
+      border-radius: 50%;
+      font-size: 25px;
+      font-weight: 920;
+    }
+
+    .flow-arrow span {
+      writing-mode: vertical-rl;
+      color: var(--accent-dark, #0d7441);
+      font-size: 22px;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .rule-layout {
+      display: grid;
+      grid-template-columns: 1.06fr 0.94fr;
+      gap: 22px;
+      margin-top: 34px;
+      align-items: stretch;
+    }
+
+    .rule-shot {
+      height: 534px;
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .rule-list .note-tile {
+      min-height: 118px;
+      padding: 19px 20px;
+    }
+
+    .rule-list .note-tile strong {
+      font-size: 26px;
+    }
+
+    .rule-list .note-tile span {
+      font-size: 19px;
+    }
+
+    .badge-detail-layout {
+      display: grid;
+      grid-template-columns: 1fr 0.92fr;
+      gap: 22px;
+      margin-top: 34px;
+      align-items: stretch;
+    }
+
+    .badge-detail-main,
+    .badge-detail-settings {
+      height: 560px;
+    }
+
+    .workbench-detail-layout {
+      display: grid;
+      grid-template-columns: 0.5fr 1fr;
+      gap: 24px;
+      margin-top: 34px;
+      align-items: stretch;
+    }
+
+    .workbench-detail-shot {
+      height: 650px;
+    }
+
+    .workbench-detail-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+      align-content: start;
+    }
+
+    .workbench-detail-actions .note-tile {
+      min-height: 136px;
+      padding: 18px 19px;
+    }
+
+    .workbench-detail-actions .note-tile strong {
+      font-size: 26px;
+    }
+
+    .workbench-detail-actions .note-tile span {
+      font-size: 19px;
+    }
+
+    .cover-stage {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 0.58fr;
+      gap: 22px;
+      height: 548px;
+      margin-top: 38px;
+    }
+
+    .cover-main {
+      height: 548px;
+    }
+
+    .cover-side {
+      height: 548px;
+    }
+
+    .hero-badge { display: none; }
+
+    .cover-features {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 26px;
+    }
+
+    .cover-features .note-tile {
+      min-height: 142px;
+      padding: 18px 16px;
+    }
+
+    .cover-features strong {
+      font-size: 25px;
+    }
+
+    .cover-features span {
+      font-size: 18px;
+      line-height: 1.28;
+    }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 22px;
+      margin-top: 34px;
+      align-items: stretch;
+    }
+
+    .split-layout .media-frame {
+      height: 542px;
+    }
+
+    .merge-layout {
+      display: grid;
+      grid-template-columns: 0.48fr 1fr;
+      gap: 22px;
+      margin-top: 36px;
+      align-items: stretch;
+    }
+
+    .merge-menu {
+      height: 548px;
+    }
+
+    .merge-preview {
+      height: 548px;
+    }
+
+    .workbench-layout {
+      display: grid;
+      grid-template-columns: 0.58fr 1fr;
+      gap: 24px;
+      margin-top: 34px;
+      align-items: stretch;
+    }
+
+    .workbench-shot {
+      height: 680px;
+    }
+
+    .workbench-shot img {
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .workbench-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-content: start;
+    }
+
+    .workbench-actions .note-tile {
+      min-height: 150px;
+    }
+
+    .sort-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-top: 36px;
+    }
+
+    .sort-layout .media-frame {
+      height: 570px;
+    }
+
+    .state-compare {
+      display: grid;
+      gap: 18px;
+      margin-top: 32px;
+    }
+
+    .state-source {
+      height: 300px;
+    }
+
+    .state-results {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .state-results .media-frame {
+      height: 340px;
+    }
+
+    .preview-state .state-source {
+      height: 638px;
+    }
+
+    .preview-state {
+      grid-template-columns: 0.72fr 1.28fr;
+      grid-template-areas: "source results";
+      align-items: stretch;
+    }
+
+    .preview-state .state-source {
+      grid-area: source;
+    }
+
+    .preview-state .state-results {
+      grid-area: results;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .preview-state .state-results .media-frame {
+      height: 638px;
+    }
+
+    .preview-state .state-source img {
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .preview-state .state-results img {
+      object-fit: cover;
+      object-position: center top;
+    }
+
+    .layout-state .state-source {
+      height: 626px;
+    }
+
+    .layout-state {
+      grid-template-columns: 1.12fr 0.88fr;
+      grid-template-areas: "source results";
+      align-items: stretch;
+    }
+
+    .layout-state .state-source {
+      grid-area: source;
+    }
+
+    .layout-state .state-source img {
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .layout-state .state-results {
+      grid-area: results;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .layout-state .state-results .media-frame {
+      height: 305px;
+    }
+
+    .badge-layout {
+      display: grid;
+      grid-template-columns: 1.04fr 0.96fr;
+      gap: 22px;
+      margin-top: 34px;
+    }
+
+    .badge-main,
+    .badge-settings {
+      height: 560px;
+    }
+
+    .clean-layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 34px;
+    }
+
+    .clean-layout .media-frame {
+      height: 368px;
+    }
+
+    .clean-layout .wide {
+      grid-column: 1 / -1;
+      height: 274px;
+    }
+
+    .property-layout {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 22px;
+      margin-top: 34px;
+    }
+
+    .property-layout .media-frame {
+      height: 615px;
+    }
+
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 24px;
+      margin-top: 34px;
+    }
+
+    .settings-shot {
+      height: 650px;
+    }
+
+    .settings-shot img {
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .setting-grid {
+      align-content: start;
+      grid-template-columns: 1fr;
+    }
+
+    .cta-band {
+      margin-top: 24px;
+      padding: 26px 30px;
+      color: #fff;
+      background: var(--ink);
+      border-radius: 24px;
+      font-size: 29px;
+      line-height: 1.28;
+      font-weight: 880;
+    }
+
+    .no-01 { --bg: #f5f2eb; --accent: #ff5d4d; --accent-dark: #b9362d; }
+    .no-02 { --bg: #edf6f1; --accent: #18a058; --accent-dark: #0d7441; }
+    .no-03 { --bg: #eef3fb; --accent: #2f80ed; --accent-dark: #1b5eb7; }
+    .no-04 { --bg: #f7f3ed; --accent: #d97706; --accent-dark: #9b4a00; }
+    .no-05 { --bg: #f6f1f7; --accent: #a855f7; --accent-dark: #7e22ce; }
+    .no-06 { --bg: #eef7f6; --accent: #0e9384; --accent-dark: #0b6f65; }
+    .no-07 { --bg: #f3f6ee; --accent: #84a424; --accent-dark: #607816; }
+    .no-08 { --bg: #f5f2ec; --accent: #b45309; --accent-dark: #854d0e; }
+    .no-09 { --bg: #eef4f5; --accent: #0891b2; --accent-dark: #0e7490; }
+
+    .poster[data-card="1"] h1 { font-size: 79px; }
+    .poster[data-card="2"] h1,
+    .poster[data-card="3"] h1 { font-size: 72px; }
+    .poster[data-card="4"] h1,
+    .poster[data-card="5"] h1,
+    .poster[data-card="6"] h1,
+    .poster[data-card="9"] h1 { font-size: 72px; }
+
+    @media print {
+      body {
+        display: block;
+        padding: 0;
+        background: #fff;
+      }
+
+      .poster {
+        box-shadow: none;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="poster no-01" data-card="1" aria-label="Canvas Loom 功能与安装">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">Obsidian Canvas 插件</div>
+    </div>
+
+    <div class="kicker">Canvas 卡片整理器</div>
+    <h1>Obsidian Canvas<br>终于能批量整理了</h1>
+    <p class="lead">Canvas Loom 把长文拆分、卡片拼合、编号排序、工作台预览、尺寸和间距整理，集中到 Canvas 的右键菜单、浮动工具栏和侧栏里。</p>
+
+    <div class="function-grid">
+      <div class="function-card"><strong>拆分长文</strong><span>按分隔符、空行或 Markdown 标题层级，把一张长卡片拆成多张卡片。</span></div>
+      <div class="function-card"><strong>拼合卡片</strong><span>把多张文本卡片按位置、标记或当前顺序，输出成完整内容。</span></div>
+      <div class="function-card"><strong>标记排序</strong><span>给卡片添加 1、2.1、10.3.2 这类层级标记，让输出顺序不靠猜。</span></div>
+      <div class="function-card"><strong>工作台预览</strong><span>侧栏里调整顺序、预览拼合内容，再复制、新建文稿或新建卡片。</span></div>
+      <div class="function-card"><strong>版面整理</strong><span>自适应高度、整理间距、查看和批量调整卡片属性。</span></div>
+      <div class="function-card"><strong>本地优先</strong><span>不需要账号，不上传内容，只在你触发命令时读写当前库。</span></div>
+    </div>
+
+    <div class="install-grid">
+      <div class="install-card"><strong>Obsidian 插件商店</strong><span>在社区插件中搜索 Canvas Loom，安装后启用。</span></div>
+      <div class="install-card"><strong>GitHub 安装</strong><span>github.com/woxin667/Canvas-Loom</span></div>
+    </div>
+
+    <div class="footer-row">
+      <span>适合：知识整理 / 会议记录 / 写作大纲 / 读书卡片</span>
+      <span class="page-no">01 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-02" data-card="2" aria-label="拆分和拼合前后">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">核心工作流</div>
+    </div>
+
+    <div class="kicker">拆分与拼合</div>
+    <h1>长文拆成卡片，<br>卡片再拼回文稿</h1>
+    <p class="lead">Canvas Loom 的核心是这组互逆动作：一张长文卡片拆成多张结构卡片；散落的卡片组也可以按顺序重新拼合成完整文本。</p>
+
+    <div class="flow-pair">
+      <div class="media-frame long-shot"><span class="label">长文卡片</span><img src="../Demo/长卡片.png" alt="一张长文 Canvas 卡片"></div>
+      <div class="flow-arrow"><strong>拆</strong><span>拆分 / 拼合</span><strong>合</strong></div>
+      <div class="media-frame group-shot"><span class="label">拆分后的卡片组</span><img src="../Demo/卡片组.png" alt="拆分后的 Canvas 卡片组"></div>
+    </div>
+
+    <div class="workflow-row">
+      <div class="step"><strong>拆分</strong><span>长内容变成可移动、可连线的结构卡片</span></div>
+      <div class="arrow"></div>
+      <div class="step"><strong>整理</strong><span>标记、移动、排序，保留画布思考痕迹</span></div>
+      <div class="arrow"></div>
+      <div class="step"><strong>拼合</strong><span>重新输出为剪贴板、Markdown 文稿或新卡片</span></div>
+    </div>
+
+    <div class="footer-row">
+      <span>先拆开思考，再拼回可发布、可归档的文本</span>
+      <span class="page-no">02 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-03" data-card="3" aria-label="拆分规则">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">规则说明</div>
+    </div>
+
+    <div class="kicker">拆分方式怎么判定</div>
+    <h1>规则先说清楚，<br>输出才稳定</h1>
+    <p class="lead">拆分不是随便切文本。Canvas Loom 会根据当前卡片内容自动计算每种方式会拆出多少张卡片，让你先判断再执行。</p>
+
+    <div class="rule-layout">
+      <div class="media-frame rule-shot"><span class="label">长卡片拆分规则</span><img src="../Demo/长卡片_三种卡片拆分方式（自动计算）.png" alt="长卡片三种拆分方式"></div>
+      <div class="rule-list">
+        <div class="note-tile"><strong>按分隔符</strong><span>适合已经用固定符号分段的会议纪要、访谈记录。</span></div>
+        <div class="note-tile"><strong>按空行</strong><span>适合自然段落清楚的笔记和摘录。</span></div>
+        <div class="note-tile"><strong>按二级标题</strong><span>适合 Markdown 提纲，二级标题成为新卡片起点。</span></div>
+        <div class="note-tile"><strong>按三级标题</strong><span>更细层级也可拆分，深层标题保留在所属卡片里。</span></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><strong>保留结构</strong><span>拆分后仍是 Canvas 卡片，可以继续移动和连线。</span></div>
+      <div class="stat"><strong>自动计算</strong><span>每种规则都会先显示预计拆分张数。</span></div>
+      <div class="stat"><strong>限制单行数量</strong><span>拆分后自动排布，避免一排卡片无限横向铺开。</span></div>
+    </div>
+
+    <div class="footer-row">
+      <span>把“怎么拆”提前算清楚，执行前就知道结果规模</span>
+      <span class="page-no">03 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-04" data-card="4" aria-label="卡片标记">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">标记功能</div>
+    </div>
+
+    <div class="kicker">标记方式与用途</div>
+    <h1>画布位置乱了，<br>输出顺序也不乱</h1>
+    <p class="lead">给卡片加上 1、2.1、10.3.2 这类数字层级标记。它既是画布上的顺序提示，也是工作台拼合时的稳定排序依据。</p>
+
+    <div class="badge-detail-layout">
+      <div class="media-frame badge-detail-settings"><span class="label">批量添加和移除标记</span><img src="../Demo/卡片组_批量添加和移除标记.png" alt="批量添加和移除卡片标记"></div>
+      <div class="media-frame badge-detail-main"><span class="label">画布上的标记效果</span><img src="../Demo/卡片标记效果.png" alt="卡片标记效果"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><strong>单卡片标记</strong><span>给关键节点补上明确顺序。</span></div>
+      <div class="stat"><strong>批量标记</strong><span>一次给多张卡片连续编号，也能统一移除。</span></div>
+      <div class="stat"><strong>按标记输出</strong><span>位置被挪动后，仍按编号拼合内容。</span></div>
+    </div>
+
+    <div class="footer-row">
+      <span>写作大纲、课程笔记、项目材料，都能先编号再输出</span>
+      <span class="page-no">04 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-05" data-card="5" aria-label="工作台预览">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">侧栏工作台</div>
+    </div>
+
+    <div class="kicker">预览卡片组</div>
+    <h1>先看拼合结果，<br>再决定怎么输出</h1>
+    <p class="lead">工作台常驻侧栏。你可以把卡片组放进来，手动拖动排序，预览拼合后的内容，再一键复制、新建卡片、新建文稿或清空列表。</p>
+
+    <div class="workbench-detail-layout">
+      <div class="media-frame workbench-detail-shot"><span class="label">Loom 工作台</span><img src="../Demo/侧栏工作台.png" alt="侧栏工作台"></div>
+      <div class="workbench-detail-actions">
+        <div class="note-tile"><strong>拖动排序</strong><span>卡片列表可以手动调整，当前顺序直接进入预览。</span></div>
+        <div class="note-tile"><strong>预览拼合</strong><span>先看完整文本，再决定是否输出。</span></div>
+        <div class="note-tile"><strong>一键复制</strong><span>把拼合后的内容放进系统剪贴板。</span></div>
+        <div class="note-tile"><strong>新建卡片</strong><span>在当前 Canvas 中生成一张拼合后的新卡片。</span></div>
+        <div class="note-tile"><strong>新建文稿</strong><span>输出为 Markdown 文稿，适合归档和继续写作。</span></div>
+        <div class="note-tile"><strong>一键清空</strong><span>整理完一组内容后，马上切到下一组。</span></div>
+      </div>
+    </div>
+
+    <div class="footer-row">
+      <span>不是只执行一次命令，而是把卡片组整理成一个流程</span>
+      <span class="page-no">05 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-06" data-card="6" aria-label="位置排序和标记排序">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">排序解释</div>
+    </div>
+
+    <div class="kicker">两种排序</div>
+    <h1>按画布位置，<br>也能按标记顺序</h1>
+    <p class="lead">同一组卡片，可以用不同逻辑进入工作台。位置排序跟随画布坐标，标记排序跟随编号，状态栏会直接说明当前排序规则。</p>
+
+    <div class="state-compare preview-state">
+      <div class="media-frame state-source"><span class="label">原始卡片组</span><img src="../Demo/预览_卡片组.png" alt="进入预览前的卡片组"></div>
+      <div class="state-results">
+        <div class="media-frame"><span class="label">按位置排序状态栏</span><img src="../Demo/预览_按位置排序（倒N）.png" alt="按位置排序的工作台状态栏"></div>
+        <div class="media-frame"><span class="label">按标记排序状态栏</span><img src="../Demo/预览_按标记排序.png" alt="按标记排序的工作台状态栏"></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><strong>原始状态</strong><span>先从同一组 Canvas 卡片出发。</span></div>
+      <div class="stat"><strong>位置排序</strong><span>从上到下、从左至右，适合规整画布。</span></div>
+      <div class="stat"><strong>标记排序</strong><span>按 1、2.1、3 等编号组织输出。</span></div>
+    </div>
+
+    <div class="footer-row">
+      <span>复杂画布里，排序规则比“看起来差不多”更可靠</span>
+      <span class="page-no">06 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-07" data-card="7" aria-label="版面整理">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">版面整理</div>
+    </div>
+
+    <div class="kicker">整理间距与高度</div>
+    <h1>卡片排布，<br>从能看懂到更规整</h1>
+    <p class="lead">同一组原始卡片，可以执行两类整理：统一卡片间距，或让卡片高度匹配文本内容。前后对比一眼能看出变化。</p>
+
+    <div class="state-compare layout-state">
+      <div class="media-frame state-source"><span class="label">原始卡片组</span><img src="../Demo/卡片组.png" alt="原始卡片组"></div>
+      <div class="state-results">
+        <div class="media-frame"><span class="label">自适应高度后</span><img src="../Demo/卡片组_自适应高度.png" alt="自适应高度后的卡片组"></div>
+        <div class="media-frame"><span class="label">整理间距后</span><img src="../Demo/卡片组_整理间距.png" alt="整理间距后的卡片组"></div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><strong>原始状态</strong><span>先选中同一组散乱卡片。</span></div>
+      <div class="stat"><strong>自适应高度</strong><span>卡片高度跟随真实文本内容。</span></div>
+      <div class="stat"><strong>整理间距</strong><span>水平或垂直方向对齐视觉节奏。</span></div>
+    </div>
+
+    <div class="footer-row">
+      <span>适合把临时脑暴画布，收拾成可以继续看的工作区</span>
+      <span class="page-no">07 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-08" data-card="8" aria-label="属性管理">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">属性管理</div>
+    </div>
+
+    <div class="kicker">单卡片与多卡片</div>
+    <h1>尺寸、坐标、比例，<br>不用一张张手改</h1>
+    <p class="lead">单卡片查看尺寸与位置，多卡片批量统一宽高、锁定宽高比、复制属性信息。做图谱时，版面控制可以更精确。</p>
+
+    <div class="property-layout">
+      <div class="media-frame"><span class="label">单卡片属性管理</span><img class="contain" src="../Demo/单卡片属性管理器.png" alt="单卡片属性管理器"></div>
+      <div class="media-frame"><span class="label">多卡片批量管理</span><img class="contain" src="../Demo/多卡片属性管理器.png" alt="多卡片属性管理器"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><strong>尺寸坐标</strong><span>宽、高、X、Y 一眼看清。</span></div>
+      <div class="stat"><strong>批量统一</strong><span>最小、最大、平均尺寸快速套用。</span></div>
+      <div class="stat"><strong>锁定比例</strong><span>调整尺寸时保持卡片比例。</span></div>
+    </div>
+
+    <div class="footer-row">
+      <span>卡片属性从“隐藏数据”变成可直接管理的面板</span>
+      <span class="page-no">08 / 09</span>
+    </div>
+  </section>
+
+  <section class="poster no-09" data-card="9" aria-label="设置与本地优先">
+    <div class="brand-row">
+      <div class="brand"><span class="logo">CL</span><span>Canvas Loom</span></div>
+      <div class="tag">设置与隐私</div>
+    </div>
+
+    <div class="kicker">设置与本地优先</div>
+    <h1>常用偏好，<br>都能提前设好</h1>
+    <p class="lead">排序优先级、拼合后是否删除原卡片、标记开关、大 Canvas 性能模式，都可以在设置里固定下来。插件本地运行，不上传你的内容。</p>
+
+    <div class="settings-layout">
+      <div class="media-frame settings-shot"><span class="label">设置界面</span><img src="../Demo/设置界面功能展示.png" alt="设置界面功能展示"></div>
+      <div class="setting-grid">
+        <div class="setting-tile"><strong>排序优先级</strong><span>按横向或纵向阅读顺序处理位置排序。</span></div>
+        <div class="setting-tile"><strong>拼合后处理</strong><span>创建新卡片后，选择保留或删除原卡片。</span></div>
+        <div class="setting-tile"><strong>标记开关</strong><span>控制标记渲染和大画布下的更新策略。</span></div>
+        <div class="setting-tile"><strong>本地优先</strong><span>无账号、无遥测、无主动联网，只在你触发命令时读写当前库。</span></div>
+      </div>
+    </div>
+
+    <div class="cta-band">如果你把 Obsidian Canvas 当成知识整理台，Canvas Loom 负责把重复整理动作变短。</div>
+
+    <div class="footer-row">
+      <span>Canvas Loom · MIT 开源 · 本地优先</span>
+      <span class="page-no">09 / 09</span>
+    </div>
+  </section>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const selectedCard = params.get("card");
+
+    if (selectedCard) {
+      document.body.style.padding = "0";
+      document.body.style.gap = "0";
+      document.body.style.background = "#ffffff";
+      document.querySelectorAll(".poster").forEach((poster) => {
+        poster.style.display = poster.dataset.card === selectedCard ? "block" : "none";
+        poster.style.boxShadow = "none";
+      });
+    }
+  </script>
+</body>
+</html>

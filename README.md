@@ -1,70 +1,72 @@
 # Canvas Loom
 
-中文版介绍请看这里：[README-ZH.md](./README-ZH.md)
+官方要求介绍必须是英文，中文版介绍请看：[README-ZH.md](./README-ZH.md)
 
-`Canvas Loom` is an Obsidian Canvas plugin for organizing text cards more efficiently. It focuses on common Canvas workflows:
+Multi-language versions will be launched in the future, so stay tuned!
 
-- Splitting a long text card into smaller cards
-- Copying, merging, and previewing content from multiple cards
-- Adding visible badges to cards
-- Inspecting, resizing, and arranging card properties
-- Selecting cards by color and previewing color-based groups
+Canvas Loom is an Obsidian Canvas plugin for splitting, sorting, merging, previewing, and cleaning up Canvas text cards.
+
+It turns scattered Canvas text cards into a repeatable workflow: split long notes into cards, sort selected cards by position or badge, preview the merged result, export it, and clean up the layout without leaving Canvas.
+
+## Hero Demo
+
+<video src="Demo/侧栏工作台：预览卡片组_复制_新建文稿_新建卡片_清空.mp4" controls muted width="100%"></video>
+
+## Core Workflows
+
+### Split Cards
+
+<video src="Demo/卡片拆分_三种拆分方式_限制拆分后的单行卡片数量.mp4" controls muted width="100%"></video>
+
+Split one long text card by a custom delimiter, blank lines, or Markdown heading level. Canvas Loom keeps the original card in place and creates the remaining content as new Canvas cards.
+
+### Merge Cards
+
+<video src="Demo/一键拼合：拼合后是否保存原卡片_按位置or标记顺序拼合.mp4" controls muted width="100%"></video>
+
+Merge selected cards directly, or send them to the Loom workspace first to sort, preview, and export the final text.
+
+### Sort by Position or Badge
+
+<video src="Demo/预览卡片组：按位置排序和按标记排序的区别.mp4" controls muted width="100%"></video>
+
+Position sorting follows the visual layout of the Canvas. Badge sorting follows numeric badges such as `1`, `2.1`, or `10.3.2`, so output order can stay stable even when card positions change.
+
+### Clean Layout
+
+<video src="Demo/自适应高度_调整间距.mp4" controls muted width="100%"></video>
+
+Resize cards to fit their text and arrange selected cards with cleaner horizontal or vertical spacing.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="Demo/侧栏预览_按标记顺序.png" alt="Preview workspace sorted by badge" /></td>
+    <td width="50%"><img src="Demo/卡片标记效果.png" alt="Canvas card badge rendering" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="Demo/多卡片属性管理器.png" alt="Multiple card property manager" /></td>
+    <td width="50%"><img src="Demo/设置界面功能展示.png" alt="Canvas Loom settings" /></td>
+  </tr>
+</table>
 
 ## Feature Overview
 
 - `Split card...`
   Split one text card by a custom delimiter, blank lines, or Markdown heading level.
-- `Copy card content`
-  Copy the plain text content of a selected text card.
-- `Quick copy` / `Quick merge`
-  Process multiple selected cards with the default sorting mode from settings.
 - `Preview card group`
-  Load the selected text cards into the Loom workspace; when the workspace stays open, run the action again to add more cards, then change sorting, drag-adjust the current order, preview merged output, and export it.
+  Load selected text cards into the Loom workspace, change sorting, drag-adjust the current order, preview merged output, and export it.
+- `Quick copy` / `Quick merge`
+  Process selected cards with the default sorting mode from settings.
 - `Add/Edit badge`
   Add numeric outline-style badges such as `1`, `2.1`, or `10.3.2`.
 - `Manage card properties`
   Inspect one card or batch-adjust selected card dimensions, width, height, aspect ratio, and layout.
+- `Arrange spacing` / `Auto-fit height`
+  Clean up selected Canvas cards with toolbar actions.
 - `Select same color cards`
   Select text cards with the same Canvas color and open them in the preview workflow.
-
-## Screenshots
-
-### 1. Split Text Cards
-
-<p align="center">
-  <img src="Demo/按标题_拆分卡片_选择器.png" alt="Split card mode selector" width="48%" />
-  <img src="Demo/按标题_拆分卡片.png" alt="Canvas cards after splitting by heading level" width="48%" />
-</p>
-
-A long text card can be split by choosing a split mode, then using a delimiter, paragraph blank lines, or Markdown heading level.
-
-### 2. Organize and Export Multiple Cards
-
-<p align="center">
-  <img src="Demo/一键拼合卡片.png" alt="Quick merge selected Canvas cards" width="48%" />
-  <img src="Demo/侧边栏工作台.png" alt="Workspace preview and export panel" width="48%" />
-</p>
-
-After selecting multiple cards, you can merge them immediately or load the card group into the Loom workspace to adjust sorting, preview the result, and export it.
-
-### 3. Context Menu Actions
-
-<p align="center">
-  <img src="Demo/单卡片右键菜单.png" alt="Single card context menu" width="31%" />
-  <img src="Demo/多卡片右键菜单.png" alt="Multiple card context menu" width="31%" />
-  <img src="Demo/一键统一卡片尺寸_3后.png" alt="Cards after batch size adjustment" width="31%" />
-</p>
-
-Canvas Loom provides different context menu actions for single-card and multi-card selections.
-
-### 4. Card Property Management
-
-<p align="center">
-  <img src="Demo/单卡片属性管理.png" alt="Single card property panel" width="48%" />
-  <img src="Demo/多卡片属性管理.png" alt="Multiple card property panel" width="48%" />
-</p>
-
-The property panel shows card size and position, supports copying position data, and can batch-adjust selected cards to minimum, maximum, or average dimensions.
 
 ## Settings
 
