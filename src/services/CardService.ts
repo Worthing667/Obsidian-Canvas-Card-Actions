@@ -478,6 +478,6 @@ export class CardService implements ICardService {
         });
 
         const dirLabel = options.direction === 'horizontal' ? '水平' : '垂直';
-        new Notice(`已整理 ${result.count} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);
+        new Notice(`已调整 ${result.count} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);
     }
 }

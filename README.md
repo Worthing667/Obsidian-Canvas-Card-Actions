@@ -34,7 +34,7 @@ Position sorting follows the visual layout of the Canvas. Badge sorting follows 
 
 ### Clean Layout
 
-<video src="Demo/自适应高度_调整间距.mp4" controls muted width="100%"></video>
+<video src="Demo/自适应高度_整理间距.mp4" controls muted width="100%"></video>
 
 Resize cards to fit their text and arrange selected cards with cleaner horizontal or vertical spacing.
 

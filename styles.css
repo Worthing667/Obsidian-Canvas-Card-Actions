@@ -1401,7 +1401,7 @@
     left: 50%;
     z-index: 20;
     display: flex;
-    min-width: 224px;
+    min-width: 248px;
     flex-direction: column;
     gap: 10px;
     padding: 10px;
@@ -1415,7 +1415,7 @@
 
 .canvas-loom-arrange-spacing {
     display: grid;
-    grid-template-columns: auto minmax(56px, 1fr) auto;
+    grid-template-columns: auto minmax(56px, 1fr) auto auto;
     align-items: center;
     gap: 6px;
     color: var(--text-muted);
@@ -1428,8 +1428,8 @@
     text-align: right;
 }
 
-.canvas-loom-arrange-submit {
-    width: 100%;
+.canvas-loom-arrange-axis-button {
+    min-width: 48px;
     height: 30px;
     font-size: 12px;
 }
