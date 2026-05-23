@@ -1,4 +1,4 @@
-import { Notice, setIcon, View, type App } from "obsidian";
+import { Notice, setIcon, View, type App, type EventRef } from "obsidian";
 import { CanvasAdapter } from "../adapters/CanvasAdapter";
 import type { CardSearchResult, SearchReplaceOptions, SearchReplaceScope } from "./SearchReplaceService";
 import { SearchReplaceService } from "./SearchReplaceService";
@@ -24,8 +24,41 @@ interface FlatSearchMatch {
     flatIndex: number;
 }
 
+/**
+ * 面板生命周期状态机：
+ *
+ *   closed: isOpen=false, pinnedContext=null
+ *     → 无 panel DOM，按钮无 is-active
+ *
+ *   open(ctx): isOpen=true, pinnedContext=ctx (非 null)
+ *     → panel 渲染在 ctx.rootEl 内，按钮为 is-active
+ *
+ * 不变量：
+ *   1. isOpen === (pinnedContext !== null)
+ *   2. 打开后始终绑定 pinnedContext；active view 暂时为空时不关闭/不移除/不重挂
+ *   3. 切换 canvas 标签时，面板保留在原画布；只有用户主动点击另一个 canvas
+ *      的查找按钮（进入 openForContext）才覆盖 pinnedContext
+ *   4. button.is-active 仅对 pinnedContext.rootEl 内的按钮为 true；
+ *      非 pinned canvas 上的按钮不显示 active 状态
+ *   5. positionPanel 仅在 isOpen 且 pinnedContext.rootEl 内 panel、button
+ *      都可解析时执行，否则安静 return
+ *
+ * 关闭触发条件（穷举）：
+ *   a. 用户点击关闭按钮 → close()
+ *   b. stop() / unload
+ *   c. pinnedContext.rootEl 已不在 DOM 中 → scheduleInjection 检测后 close()
+ *   d. 切到另一个 Canvas 并主动打开其查找面板 → openForContext 覆盖
+ *
+ * 注入同步触发路径：
+ *   1. layout-ready → 初始布局就绪
+ *   2. active-leaf-change → 切换标签页
+ *   3. layout-change → 布局变更（分屏等）
+ *   4. canvas rootEl 内 DOM 变化（窄范围 MutationObserver，仅监听当前 canvas 容器）
+ */
 export class CanvasGlobalFindReplaceToolbarService {
-    private observer: MutationObserver | null = null;
+    private workspaceEventRefs: EventRef[] = [];
+    private controlsObserver: MutationObserver | null = null;
+    private observedRootEl: HTMLElement | null = null;
     private pendingInjection = false;
     private isOpen = false;
     private replaceExpanded = true;
@@ -58,23 +91,33 @@ export class CanvasGlobalFindReplaceToolbarService {
 
     start(): void {
         this.stop();
-        this.observer = new MutationObserver(() => this.scheduleInjection());
-        this.observer.observe(activeDocument.body, {
-            childList: true,
-            subtree: true,
-        });
+
+        this.app.workspace.onLayoutReady(() => this.scheduleInjection());
+        this.workspaceEventRefs = [
+            this.app.workspace.on("active-leaf-change", () => this.scheduleInjection()),
+            this.app.workspace.on("layout-change", () => this.scheduleInjection()),
+        ];
+
         window.addEventListener("resize", this.onWindowResize);
         this.scheduleInjection();
     }
 
     stop(): void {
-        this.observer?.disconnect();
-        this.observer = null;
+        for (const ref of this.workspaceEventRefs) {
+            this.app.workspace.offref(ref);
+        }
+        this.workspaceEventRefs = [];
+
+        this.disconnectControlsObserver();
         window.removeEventListener("resize", this.onWindowResize);
         this.clearRefreshTimer();
-        activeDocument
-            .querySelectorAll(`.${BUTTON_CLASS}, .${PANEL_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
-            .forEach((element) => element.remove());
+        this.isOpen = false;
+        this.pinnedContext = null;
+
+        for (const rootEl of this.getKnownCanvasRoots()) {
+            rootEl.querySelectorAll(`.${BUTTON_CLASS}, .${PANEL_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
+                .forEach((element) => element.remove());
+        }
     }
 
     openForActiveCanvas(focusQuery = true): boolean {
@@ -119,23 +162,77 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.pendingInjection = true;
         window.requestAnimationFrame(() => {
             this.pendingInjection = false;
-            const context = this.getActiveCanvasContext();
-            if (!context) {
-                if (this.isOpen && this.pinnedContext?.rootEl.isConnected) {
-                    this.syncInjectedElements(this.pinnedContext);
-                    return;
-                }
 
-                if (!this.isOpen) {
-                    this.removeInjectedElements();
-                    this.pinnedContext = null;
-                }
+            // 面板打开但 pinned canvas 的 DOM 已被移除 → 关闭
+            if (this.isOpen && this.pinnedContext && !this.pinnedContext.rootEl.isConnected) {
+                this.close();
                 return;
             }
 
-            this.pinnedContext = context;
-            this.syncInjectedElements(context);
+            this.performInjection();
         });
+    }
+
+    private performInjection(): void {
+        const context = this.getActiveCanvasContext();
+
+        if (!context) {
+            // 无 active canvas view
+            if (this.isOpen && this.pinnedContext) {
+                // 面板打开 → 使用 pinnedContext，保持局部 observer 监听其 DOM 变化
+                this.syncInjectedElements(this.pinnedContext);
+            } else if (!this.isOpen) {
+                // 面板关闭 → 清理残留注入元素，停止 observer
+                this.removeInjectedElements();
+                this.disconnectControlsObserver();
+            }
+            return;
+        }
+
+        // 面板打开且 pinnedContext 仍有效 → 保持面板在原画布，不迁移
+        // 只有用户主动点击另一个 canvas 的按钮（进入 openForContext）才切换 pinnedContext
+        if (this.isOpen && this.pinnedContext?.rootEl.isConnected) {
+            this.syncInjectedElements(this.pinnedContext);
+            this.ensureButtonInContext(context);
+            this.observeCanvasControls(this.pinnedContext.rootEl);
+            return;
+        }
+
+        // 面板关闭 → 正常同步到 active canvas
+        this.pinnedContext = context;
+        this.observeCanvasControls(context.rootEl);
+        this.syncInjectedElements(context);
+    }
+
+    private ensureButtonInContext(context: ActiveCanvasContext): void {
+        this.removeStaleInjectedElements(context.rootEl);
+        this.injectControlButton(context);
+    }
+
+    private isContextPinned(context: ActiveCanvasContext): boolean {
+        return this.isOpen && this.pinnedContext?.rootEl === context.rootEl;
+    }
+
+    private observeCanvasControls(rootEl: HTMLElement): void {
+        if (this.observedRootEl === rootEl) {
+            return;
+        }
+        this.disconnectControlsObserver();
+
+        this.controlsObserver = new MutationObserver(() => {
+            this.scheduleInjection();
+        });
+        this.controlsObserver.observe(rootEl, {
+            childList: true,
+            subtree: true,
+        });
+        this.observedRootEl = rootEl;
+    }
+
+    private disconnectControlsObserver(): void {
+        this.controlsObserver?.disconnect();
+        this.controlsObserver = null;
+        this.observedRootEl = null;
     }
 
     private syncInjectedElements(context: ActiveCanvasContext): void {
@@ -180,14 +277,16 @@ export class CanvasGlobalFindReplaceToolbarService {
 
         context.rootEl.querySelector(`.${FALLBACK_CONTROL_CLASS}`)?.remove();
         const button = existingButton || this.createControlButton();
-        button.toggleClass("is-active", this.isOpen);
+        button.toggleClass("is-active", this.isContextPinned(context));
 
         if (!targetEl.contains(button)) {
             targetEl.appendChild(button);
         }
 
-        this.activeButtonEl = button;
-        this.activeControlsEl = controlsEl;
+        if (this.isContextPinned(context)) {
+            this.activeButtonEl = button;
+            this.activeControlsEl = controlsEl;
+        }
     }
 
     private injectFallbackControl(context: ActiveCanvasContext): void {
@@ -204,9 +303,11 @@ export class CanvasGlobalFindReplaceToolbarService {
             host.appendChild(button);
         }
 
-        button.toggleClass("is-active", this.isOpen);
-        this.activeButtonEl = button;
-        this.activeControlsEl = host;
+        button.toggleClass("is-active", this.isContextPinned(context));
+        if (this.isContextPinned(context)) {
+            this.activeButtonEl = button;
+            this.activeControlsEl = host;
+        }
     }
 
     private createControlButton(): HTMLButtonElement {
@@ -227,8 +328,11 @@ export class CanvasGlobalFindReplaceToolbarService {
             event.stopPropagation();
 
             if (this.isOpen) {
-                this.close();
-                return;
+                const buttonContext = this.getCanvasContextForElement(button);
+                if (!buttonContext || this.pinnedContext?.rootEl === buttonContext.rootEl) {
+                    this.close();
+                    return;
+                }
             }
 
             this.openForControlButton(button, true);
@@ -610,20 +714,15 @@ export class CanvasGlobalFindReplaceToolbarService {
     private focusNode(canvas: Canvas, nodeId: string): void {
         const node = canvas.nodes?.get(nodeId) || null;
         const internalCanvas = canvas as Canvas & {
-            zoomToSelection?: () => void;
             centerOnNode?: (node: CanvasNode) => void;
             requestFrame?: () => void;
         };
 
-        try {
-            if (node && typeof internalCanvas.centerOnNode === "function") {
-                internalCanvas.centerOnNode(node);
-            }
-
-            internalCanvas.requestFrame?.();
-        } catch (error) {
-            console.warn("定位查找结果失败:", error);
+        if (node && typeof internalCanvas.centerOnNode === "function") {
+            internalCanvas.centerOnNode(node);
         }
+
+        internalCanvas.requestFrame?.();
     }
 
     private createSearchReplaceService(canvas: Canvas): SearchReplaceService {
@@ -678,20 +777,17 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private positionPanel(): void {
-        const activeContext = this.getActiveCanvasContext() || (
-            this.pinnedContext?.rootEl.isConnected ? this.pinnedContext : null
-        );
-        const activeRootEl = activeContext?.rootEl || null;
-        const panel = (
-            activeRootEl?.querySelector(`.${PANEL_CLASS}`)
-            || activeDocument.querySelector(`.${PANEL_CLASS}`)
-        ) as HTMLElement | null;
-        const rootEl = activeRootEl || panel?.parentElement || null;
-        const button = (
-            (this.activeButtonEl && rootEl?.contains(this.activeButtonEl) ? this.activeButtonEl : null)
-            || rootEl?.querySelector(`.${BUTTON_CLASS}`)
-            || activeDocument.querySelector(`.${BUTTON_CLASS}`)
-        ) as HTMLElement | null;
+        if (!this.isOpen || !this.pinnedContext) {
+            return;
+        }
+
+        const rootEl = this.pinnedContext.rootEl;
+        const panel = rootEl.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
+        const button =
+            (this.activeButtonEl && rootEl.contains(this.activeButtonEl)
+                ? this.activeButtonEl
+                : rootEl.querySelector(`.${BUTTON_CLASS}`)) as HTMLElement | null;
+
         if (!panel || !button) {
             return;
         }
@@ -752,30 +848,53 @@ export class CanvasGlobalFindReplaceToolbarService {
     private close(): void {
         this.isOpen = false;
         this.pinnedContext = null;
+        this.activeButtonEl = null;
+        this.activeControlsEl = null;
+        this.disconnectControlsObserver();
         this.removePanel();
-        activeDocument
-            .querySelectorAll(`.${BUTTON_CLASS}`)
-            .forEach((button) => button.removeClass("is-active"));
+        for (const rootEl of this.getKnownCanvasRoots()) {
+            rootEl.querySelectorAll(`.${BUTTON_CLASS}`)
+                .forEach((button) => button.removeClass("is-active"));
+        }
     }
 
     private removePanel(): void {
-        activeDocument.querySelectorAll(`.${PANEL_CLASS}`).forEach((element) => element.remove());
+        for (const rootEl of this.getKnownCanvasRoots()) {
+            rootEl.querySelectorAll(`.${PANEL_CLASS}`)
+                .forEach((element) => element.remove());
+        }
     }
 
     private removeInjectedElements(): void {
-        activeDocument
-            .querySelectorAll(`.${BUTTON_CLASS}, .${PANEL_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
-            .forEach((element) => element.remove());
+        for (const rootEl of this.getKnownCanvasRoots()) {
+            rootEl.querySelectorAll(`.${BUTTON_CLASS}, .${PANEL_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
+                .forEach((element) => element.remove());
+        }
     }
 
     private removeStaleInjectedElements(rootEl: HTMLElement): void {
-        activeDocument
-            .querySelectorAll(`.${BUTTON_CLASS}, .${PANEL_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
-            .forEach((element) => {
-                if (!rootEl.contains(element)) {
-                    element.remove();
-                }
-            });
+        const buttons = rootEl.querySelectorAll(`.${BUTTON_CLASS}`);
+        const controlsEl = this.getCanvasControlsElement(rootEl);
+        const targetEl = this.getButtonTargetElement(controlsEl);
+
+        buttons.forEach((btn) => {
+            const isInFallback = btn.closest(`.${FALLBACK_CONTROL_CLASS}`);
+            if (targetEl && !isInFallback && !targetEl.contains(btn)) {
+                btn.remove();
+            }
+        });
+    }
+
+    private getKnownCanvasRoots(): HTMLElement[] {
+        const roots: HTMLElement[] = [];
+        const leaves = this.app.workspace.getLeavesOfType?.("canvas") || [];
+        for (const leaf of leaves) {
+            const view = leaf.view as View & { containerEl?: HTMLElement };
+            if (view.containerEl) {
+                roots.push(view.containerEl);
+            }
+        }
+        return roots;
     }
 
     private clearRefreshTimer(): void {
