@@ -24,7 +24,7 @@ Split one long text card by a custom delimiter, blank lines, or Markdown heading
 
 <video src="Demo/一键拼合：拼合后是否保存原卡片_按位置or标记顺序拼合.mp4" controls muted width="100%"></video>
 
-Merge selected cards directly, or send them to the Loom workspace first to sort, preview, and export the final text.
+Merge selected cards directly, or send them to the Loom workspace first — a three-panel sidebar (Preview, Sort, Find & Replace) where you can sort, preview, search, and export the final text.
 
 ### Sort by Position or Badge
 
@@ -37,6 +37,10 @@ Position sorting follows the visual layout of the Canvas. Badge sorting follows 
 <video src="Demo/自适应高度_调整间距.mp4" controls muted width="100%"></video>
 
 Resize cards to fit their text and arrange selected cards with cleaner horizontal or vertical spacing.
+
+### Find & Replace in Canvas
+
+Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or the `Ctrl+F` (macOS) hotkey. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
 
 ## Screenshots
 
@@ -56,7 +60,9 @@ Resize cards to fit their text and arrange selected cards with cleaner horizonta
 - `Split card...`
   Split one text card by a custom delimiter, blank lines, or Markdown heading level.
 - `Preview card group`
-  Load selected text cards into the Loom workspace, change sorting, drag-adjust the current order, preview merged output, and export it.
+  Load selected text cards into the Loom workspace. Switch between Preview, Sort, and Find & Replace tabs; change sorting; drag-adjust the current order; preview merged output; and export it.
+- `Find & Replace in Canvas`
+  Search across all canvas text cards or within the current selection, with case-sensitive and regex matching. Navigate matches one by one, replace the current match, all matches in a card, or all matches across the canvas.
 - `Quick copy` / `Quick merge`
   Process selected cards with the default sorting mode from settings.
 - `Add/Edit badge`
@@ -121,6 +127,7 @@ Suggested reading:
 - `docs/功能-卡片内容复制与排序.md`
 - `docs/功能-卡片标记.md`
 - `docs/功能-查看和编辑卡片属性.md`
+- `docs/功能-Canvas卡片查找替换.md`
 - `docs/技术实现细节.md`
 - `docs/技术实现-Obsidian官方上架与发布流程.md`
 

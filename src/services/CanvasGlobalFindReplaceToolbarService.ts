@@ -31,7 +31,7 @@ interface FlatSearchMatch {
  *     → 无 panel DOM，按钮无 is-active
  *
  *   open(ctx): isOpen=true, pinnedContext=ctx (非 null)
- *     → panel 渲染在 ctx.rootEl 内，按钮为 is-active
+ *     → panel 渲染在 document.body 内（position:fixed 避免受祖先 CSS transform 影响），按钮为 is-active
  *
  * 不变量：
  *   1. isOpen === (pinnedContext !== null)
@@ -40,8 +40,7 @@ interface FlatSearchMatch {
  *      的查找按钮（进入 openForContext）才覆盖 pinnedContext
  *   4. button.is-active 仅对 pinnedContext.rootEl 内的按钮为 true；
  *      非 pinned canvas 上的按钮不显示 active 状态
- *   5. positionPanel 仅在 isOpen 且 pinnedContext.rootEl 内 panel、button
- *      都可解析时执行，否则安静 return
+ *   5. positionPanel 仅在 isOpen 且 body 内 panel 与按钮都可解析时执行，否则安静 return
  *
  * 关闭触发条件（穷举）：
  *   a. 用户点击关闭按钮 → close()
@@ -59,6 +58,8 @@ export class CanvasGlobalFindReplaceToolbarService {
     private workspaceEventRefs: EventRef[] = [];
     private controlsObserver: MutationObserver | null = null;
     private observedRootEl: HTMLElement | null = null;
+    private resizeObserver: ResizeObserver | null = null;
+    private resizeObservedRootEl: HTMLElement | null = null;
     private pendingInjection = false;
     private isOpen = false;
     private replaceExpanded = true;
@@ -109,15 +110,17 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.workspaceEventRefs = [];
 
         this.disconnectControlsObserver();
+        this.disconnectResizeObserver();
         window.removeEventListener("resize", this.onWindowResize);
         this.clearRefreshTimer();
         this.isOpen = false;
         this.pinnedContext = null;
 
         for (const rootEl of this.getKnownCanvasRoots()) {
-            rootEl.querySelectorAll(`.${BUTTON_CLASS}, .${PANEL_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
+            rootEl.querySelectorAll(`.${BUTTON_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
                 .forEach((element) => element.remove());
         }
+        this.removePanel();
     }
 
     openForActiveCanvas(focusQuery = true): boolean {
@@ -235,6 +238,27 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.observedRootEl = null;
     }
 
+    private observeCanvasResize(rootEl: HTMLElement): void {
+        if (this.resizeObservedRootEl === rootEl) {
+            return;
+        }
+        this.disconnectResizeObserver();
+
+        this.resizeObserver = new ResizeObserver(() => {
+            if (this.isOpen) {
+                this.positionPanel();
+            }
+        });
+        this.resizeObserver.observe(rootEl);
+        this.resizeObservedRootEl = rootEl;
+    }
+
+    private disconnectResizeObserver(): void {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
+        this.resizeObservedRootEl = null;
+    }
+
     private syncInjectedElements(context: ActiveCanvasContext): void {
         this.removeStaleInjectedElements(context.rootEl);
         this.injectControlButton(context);
@@ -244,7 +268,7 @@ export class CanvasGlobalFindReplaceToolbarService {
             return;
         }
 
-        if (!context.rootEl.querySelector(`.${PANEL_CLASS}`)) {
+        if (!activeDocument.body.querySelector(`.${PANEL_CLASS}`)) {
             this.renderForContext(context);
             return;
         }
@@ -342,7 +366,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private renderPanel(context: ActiveCanvasContext): void {
-        let panel = context.rootEl.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
+        let panel = activeDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
         if (!panel) {
             panel = activeDocument.createElement("div");
             panel.className = PANEL_CLASS;
@@ -355,7 +379,7 @@ export class CanvasGlobalFindReplaceToolbarService {
                     this.close();
                 }
             });
-            context.rootEl.appendChild(panel);
+            activeDocument.body.appendChild(panel);
         }
 
         panel.empty();
@@ -456,7 +480,8 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.statusEl = panel.createDiv({ cls: "canvas-loom-global-fr-status" });
         this.updateStatus();
         this.updateActionButtons();
-        this.positionPanel();
+        this.observeCanvasResize(context.rootEl);
+        requestAnimationFrame(() => this.positionPanel());
 
         if (this.focusQueryOnRender) {
             this.focusQueryOnRender = false;
@@ -782,7 +807,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         const rootEl = this.pinnedContext.rootEl;
-        const panel = rootEl.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
+        const panel = activeDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
         const button =
             (this.activeButtonEl && rootEl.contains(this.activeButtonEl)
                 ? this.activeButtonEl
@@ -851,6 +876,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.activeButtonEl = null;
         this.activeControlsEl = null;
         this.disconnectControlsObserver();
+        this.disconnectResizeObserver();
         this.removePanel();
         for (const rootEl of this.getKnownCanvasRoots()) {
             rootEl.querySelectorAll(`.${BUTTON_CLASS}`)
@@ -859,17 +885,16 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private removePanel(): void {
-        for (const rootEl of this.getKnownCanvasRoots()) {
-            rootEl.querySelectorAll(`.${PANEL_CLASS}`)
-                .forEach((element) => element.remove());
-        }
+        activeDocument.body.querySelectorAll(`.${PANEL_CLASS}`)
+            .forEach((element) => element.remove());
     }
 
     private removeInjectedElements(): void {
         for (const rootEl of this.getKnownCanvasRoots()) {
-            rootEl.querySelectorAll(`.${BUTTON_CLASS}, .${PANEL_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
+            rootEl.querySelectorAll(`.${BUTTON_CLASS}, .${FALLBACK_CONTROL_CLASS}`)
                 .forEach((element) => element.remove());
         }
+        this.removePanel();
     }
 
     private removeStaleInjectedElements(rootEl: HTMLElement): void {
