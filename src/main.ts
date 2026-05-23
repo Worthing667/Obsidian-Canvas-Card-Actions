@@ -12,6 +12,7 @@ import {
     PerformanceService,
     BadgeRenderScheduler,
     CanvasSelectionToolbarService,
+    CanvasGlobalFindReplaceToolbarService,
     SearchReplaceService
 } from './services';
 import {
@@ -67,6 +68,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private performanceService: PerformanceService;
     private badgeRenderScheduler: BadgeRenderScheduler;
     private canvasSelectionToolbarService: CanvasSelectionToolbarService;
+    private canvasGlobalFindReplaceToolbarService: CanvasGlobalFindReplaceToolbarService;
     private commandRegistry: CommandRegistry;
     private badgeStyleManager: BadgeStyleManager;
     private vaultAdapter: VaultAdapter;
@@ -95,6 +97,10 @@ export default class CanvasLoomPlugin extends Plugin {
         this.performanceService = new PerformanceService(() => this.settings);
         this.badgeRenderScheduler = new BadgeRenderScheduler();
         this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(this.app);
+        this.canvasGlobalFindReplaceToolbarService = new CanvasGlobalFindReplaceToolbarService(
+            this.app,
+            this.performanceService
+        );
     }
 
     private registerSettingTab(): void {
@@ -112,6 +118,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.registerMergePreviewView();
         this.canvasSelectionToolbarService.start();
+        this.canvasGlobalFindReplaceToolbarService.start();
     }
 
     private registerMergePreviewView(): void {
@@ -605,6 +612,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.stopCanvasEdgeLayerInteractionObserver();
         this.badgeRenderScheduler.cancelAll();
         this.canvasSelectionToolbarService.stop();
+        this.canvasGlobalFindReplaceToolbarService.stop();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         activeDocument.body.classList.remove("canvas-loom-edges-above-cards");
         activeDocument.body.classList.remove("canvas-loom-card-interaction-active");
@@ -627,20 +635,8 @@ export default class CanvasLoomPlugin extends Plugin {
                     return false;
                 }
 
-                this.setupCanvasServices(context.canvas);
-                const command = new OpenFindReplaceWorkbenchCommand(
-                    this.mergeService,
-                    context.selection,
-                    context.file,
-                    this.settings
-                );
-
-                if (command.canExecute && !command.canExecute()) {
-                    return false;
-                }
-
                 if (!checking) {
-                    void command.execute();
+                    this.canvasGlobalFindReplaceToolbarService.openForActiveCanvas(true);
                 }
 
                 return true;
@@ -707,6 +703,12 @@ export default class CanvasLoomPlugin extends Plugin {
             'open-merge-workbench',
             '预览选中卡片组',
             ({ selection, file }) => new OpenPreviewWorkbenchCommand(this.mergeService, selection, file, this.settings)
+        );
+
+        this.registerCanvasSelectionCommand(
+            'find-replace-selected-canvas-cards',
+            '在工作台查找替换当前选区',
+            ({ selection, file }) => new OpenFindReplaceWorkbenchCommand(this.mergeService, selection, file, this.settings)
         );
 
         this.registerCanvasSelectionCommand(

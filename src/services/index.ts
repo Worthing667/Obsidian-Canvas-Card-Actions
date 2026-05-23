@@ -9,4 +9,5 @@ export * from './PerformanceService';
 export * from './CanvasArrangementService';
 export * from './CanvasAutoFitService';
 export * from './CanvasSelectionToolbarService';
+export * from './CanvasGlobalFindReplaceToolbarService';
 export * from './SearchReplaceService';
