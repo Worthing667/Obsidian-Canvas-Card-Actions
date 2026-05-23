@@ -1034,53 +1034,12 @@
     gap: 0;
 }
 
-.canvas-loom-workbench-preview-toggle {
-    width: 100%;
-    min-height: 60px;
-    padding: 10px 12px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: center;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-    background: var(--background-secondary);
-    color: var(--text-normal);
-    text-align: left;
-    box-shadow: none;
-}
-
-.canvas-loom-workbench-preview-section.is-expanded .canvas-loom-workbench-preview-toggle {
-    border-bottom-color: transparent;
-    border-radius: 8px 8px 0 0;
-}
-
-.canvas-loom-workbench-preview-toggle strong {
-    display: block;
-    font-size: 13px;
-    line-height: 1.3;
-    font-weight: 650;
-}
-
 .canvas-loom-workbench-preview-hint {
     display: block;
     margin-top: 3px;
     color: var(--text-muted);
     font-size: 11px;
     line-height: 1.4;
-}
-
-.canvas-loom-workbench-chevron {
-    width: 8px;
-    height: 8px;
-    border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor;
-    transform: rotate(45deg);
-    color: var(--text-muted);
-}
-
-.canvas-loom-workbench-preview-section.is-expanded .canvas-loom-workbench-chevron {
-    transform: rotate(225deg);
 }
 
 .canvas-loom-workbench-preview-content {
@@ -1090,17 +1049,12 @@
     padding: 12px;
     background: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    border-top: 0;
-    border-radius: 0 0 8px 8px;
+    border-radius: 8px;
     color: var(--text-normal);
     white-space: pre-wrap;
     overflow: auto;
     font-size: 12px;
     line-height: 1.6;
-}
-
-.canvas-loom-workbench-preview-content.is-collapsed {
-    display: none;
 }
 
 .canvas-loom-workbench-actions {
@@ -1663,7 +1617,6 @@
 }
 
 .canvas-loom-fr-options,
-.canvas-loom-fr-scope,
 .canvas-loom-fr-footer,
 .canvas-loom-fr-footer-group {
     display: flex;
@@ -1685,38 +1638,6 @@
 
 .canvas-loom-fr-checkbox input {
     margin: 0;
-}
-
-.canvas-loom-fr-scope {
-    padding: 4px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background: var(--background-secondary);
-}
-
-.canvas-loom-fr-scope button {
-    flex: 1;
-    min-width: 0;
-    border-radius: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.canvas-loom-fr-scope button.is-active {
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-}
-
-.canvas-loom-fr-nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.canvas-loom-fr-nav button {
-    min-height: 34px;
-    white-space: nowrap;
 }
 
 .canvas-loom-fr-results-section {

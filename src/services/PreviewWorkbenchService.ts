@@ -21,8 +21,6 @@ export interface AppendWorkbenchSnapshotsResult {
 }
 
 export class PreviewWorkbenchService {
-    readonly previewCollapseThreshold = 30;
-
     createState(options: CreateWorkbenchStateOptions): WorkbenchState {
         const initialSortMode = options.defaultSortMode === 'badge' ? 'badge' : 'position';
         const isManualAdjusted = options.defaultSortMode === 'manual';

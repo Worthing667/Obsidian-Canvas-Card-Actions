@@ -67,10 +67,6 @@ export class MergeWorkbenchView extends ItemView {
     private findQueryInput: HTMLInputElement | null = null;
     private findStatusEl: HTMLElement | null = null;
     private findResultListEl: HTMLElement | null = null;
-    private findCanvasScopeButton: HTMLButtonElement | null = null;
-    private findSelectionScopeButton: HTMLButtonElement | null = null;
-    private findPreviousButton: HTMLButtonElement | null = null;
-    private findNextButton: HTMLButtonElement | null = null;
     private findReplaceCurrentButton: HTMLButtonElement | null = null;
     private findReplaceCardButton: HTMLButtonElement | null = null;
     private findReplaceAllButton: HTMLButtonElement | null = null;
@@ -180,9 +176,9 @@ export class MergeWorkbenchView extends ItemView {
 
     private renderPanelTabs(container: HTMLElement): void {
         const tabs = container.createDiv({ cls: "canvas-loom-workbench-panel-tabs" });
-        this.createPanelButton(tabs, "sort", "排序");
-        this.createPanelButton(tabs, "findReplace", "查找替换", !this.context.findReplace);
         this.createPanelButton(tabs, "preview", "预览");
+        this.createPanelButton(tabs, "sort", "排序");
+        this.createPanelButton(tabs, "findReplace", "查找", !this.context.findReplace);
     }
 
     private createPanelButton(container: HTMLElement, panel: WorkbenchPanel, label: string, disabled = false): void {
@@ -225,9 +221,26 @@ export class MergeWorkbenchView extends ItemView {
 
     private renderPreviewPanel(container: HTMLElement): void {
         const panel = container.createDiv({ cls: "canvas-loom-workbench-panel canvas-loom-workbench-preview-panel" });
-        this.renderOrderSummary(panel);
+        this.renderPreviewSummary(panel);
         this.renderPreviewArea(panel);
         this.renderOutputActions(panel);
+    }
+
+    private renderPreviewSummary(container: HTMLElement): void {
+        const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+        const summary = container.createDiv({ cls: "canvas-loom-workbench-order-summary" });
+        const text = summary.createDiv({ cls: "canvas-loom-workbench-order-text" });
+        text.createEl("strong", { text: "卡片组预览" });
+        const hint = text.createSpan({
+            text: orderedCards.length === 0
+                ? "等待卡片渲染进工作台。"
+                : "当前内容由工作台顺序生成，输出按钮使用同一份结果。"
+        });
+        hint.addClass("canvas-loom-workbench-preview-hint");
+
+        const snapshot = summary.createDiv({ cls: "canvas-loom-workbench-snapshot" });
+        snapshot.createSpan({ text: `快照 ${this.context.state.selectionSnapshot.length} 张` });
+        snapshot.createSpan({ text: `当前顺序 ${this.getCurrentOrderLabel()}` });
     }
 
     private renderOrderSummary(container: HTMLElement): void {
@@ -289,46 +302,11 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private renderPreviewArea(container: HTMLElement): void {
-        const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const section = container.createDiv({ cls: "canvas-loom-workbench-preview-section" });
-        if (this.context.state.previewExpanded) {
-            section.addClass("is-expanded");
-        }
-
-        const toggle = section.createEl("button", {
-            cls: "canvas-loom-workbench-preview-toggle"
-        });
-        toggle.setAttribute("type", "button");
-        const toggleText = toggle.createSpan();
-        toggleText.createEl("strong", { text: "卡片组预览" });
-        const toggleHint = toggleText.createSpan({
-            text: orderedCards.length === 0
-                ? "等待卡片渲染进工作台。"
-                : this.context.state.previewExpanded
-                    ? "当前内容由工作台顺序生成，输出按钮使用同一份结果。"
-                    : orderedCards.length >= this.workbenchService.previewCollapseThreshold
-                        ? "内容较多，展开后再渲染合并文本。"
-                        : "已折叠，展开后生成当前顺序的合并文本。"
-        });
-        toggleHint.addClass("canvas-loom-workbench-preview-hint");
-        toggle.createSpan({ cls: "canvas-loom-workbench-chevron" });
-
-        toggle.addEventListener("click", () => {
-            this.context.state = this.workbenchService.setPreviewExpanded(
-                this.context.state,
-                !this.context.state.previewExpanded
-            );
-            this.render();
-        });
 
         const preview = section.createEl("pre", { cls: "canvas-loom-workbench-preview-content" });
-        if (this.context.state.previewExpanded) {
-            preview.setText(this.context.state.lastComputedContent || "正在生成预览...");
-            this.schedulePreviewRender(preview);
-        } else {
-            preview.addClass("is-collapsed");
-            preview.setText("");
-        }
+        preview.setText(this.context.state.lastComputedContent || "正在生成预览...");
+        this.schedulePreviewRender(preview);
 
     }
 
@@ -361,14 +339,10 @@ export class MergeWorkbenchView extends ItemView {
 
         panel.createDiv({
             cls: "canvas-loom-fr-subtitle",
-            text: findContext.selectedTextCardCount > 0
-                ? `可在当前画布或${findContext.selectedScopeLabel}中查找。`
-                : "当前没有选中的文本卡片，将在整个画布中查找。"
+            text: this.getFindScopeSubtitle(findContext)
         });
 
         this.createFindControls(panel);
-        this.createFindScopeControls(panel, findContext);
-        this.createFindNavigation(panel);
         this.createFindResultSection(panel);
         this.createFindFooter(panel);
         this.renderFindResults();
@@ -436,32 +410,6 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
-    private createFindScopeControls(container: HTMLElement, findContext: FindReplaceWorkbenchContext): void {
-        const scopeRow = container.createDiv({ cls: "canvas-loom-fr-scope" });
-        this.findCanvasScopeButton = scopeRow.createEl("button", { text: "当前画布" });
-        this.findCanvasScopeButton.setAttribute("type", "button");
-
-        this.findSelectionScopeButton = scopeRow.createEl("button", {
-            text: `${findContext.selectedScopeLabel} ${findContext.selectedTextCardCount}`
-        });
-        this.findSelectionScopeButton.setAttribute("type", "button");
-        this.findSelectionScopeButton.disabled = findContext.selectedTextCardCount === 0;
-
-        this.findCanvasScopeButton.addEventListener("click", () => this.setFindScope("canvas"));
-        this.findSelectionScopeButton.addEventListener("click", () => this.setFindScope("selection"));
-        this.updateFindScopeButtons();
-    }
-
-    private createFindNavigation(container: HTMLElement): void {
-        const nav = container.createDiv({ cls: "canvas-loom-fr-nav" });
-        this.findPreviousButton = nav.createEl("button", { text: "上一个" });
-        this.findNextButton = nav.createEl("button", { text: "下一个" });
-        this.findPreviousButton.setAttribute("type", "button");
-        this.findNextButton.setAttribute("type", "button");
-        this.findPreviousButton.addEventListener("click", () => this.selectPreviousFindMatch());
-        this.findNextButton.addEventListener("click", () => this.selectNextFindMatch());
-    }
-
     private createFindResultSection(container: HTMLElement): void {
         const section = container.createDiv({ cls: "canvas-loom-fr-results-section" });
         this.findStatusEl = section.createDiv({ cls: "canvas-loom-fr-status" });
@@ -497,27 +445,6 @@ export class MergeWorkbenchView extends ItemView {
         const input = label.createEl("input", { type: "checkbox" });
         label.createSpan({ text: labelText });
         return input;
-    }
-
-    private setFindScope(scope: SearchReplaceScope): void {
-        const findContext = this.context.findReplace;
-        if (!findContext) {
-            return;
-        }
-
-        if (scope === "selection" && findContext.selectedTextCardCount === 0) {
-            return;
-        }
-
-        this.findScope = scope;
-        this.findCurrentFlatIndex = 0;
-        this.updateFindScopeButtons();
-        this.renderFindResults();
-    }
-
-    private updateFindScopeButtons(): void {
-        this.findCanvasScopeButton?.toggleClass("is-active", this.findScope === "canvas");
-        this.findSelectionScopeButton?.toggleClass("is-active", this.findScope === "selection");
     }
 
     private scheduleFindRefresh(): void {
@@ -778,8 +705,6 @@ export class MergeWorkbenchView extends ItemView {
     private updateFindActionButtons(): void {
         const hasMatches = this.getFlatFindMatches().length > 0;
         [
-            this.findPreviousButton,
-            this.findNextButton,
             this.findReplaceCurrentButton,
             this.findReplaceCardButton,
             this.findReplaceAllButton
@@ -963,6 +888,16 @@ export class MergeWorkbenchView extends ItemView {
             query: ""
         });
         return result.totalCards || this.findTotalCards;
+    }
+
+    private getFindScopeSubtitle(findContext: FindReplaceWorkbenchContext): string {
+        if (this.findScope === "selection") {
+            return `在${findContext.selectedScopeLabel}中查找。`;
+        }
+
+        return findContext.selectedTextCardCount > 0
+            ? "在当前画布中查找。"
+            : "当前没有选中的文本卡片，将在整个画布中查找。";
     }
 
     private getCurrentOrderLabel(): string {
