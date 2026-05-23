@@ -1,4 +1,4 @@
-import { Menu, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
+import { Menu, Platform, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
 import CanvasLoomSettings, { DEFAULT_SPLIT_CARDS_PER_ROW } from "./settings/ICanvasLoomSettings";
 import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
 
@@ -11,7 +11,8 @@ import {
     MergeService,
     PerformanceService,
     BadgeRenderScheduler,
-    CanvasSelectionToolbarService
+    CanvasSelectionToolbarService,
+    SearchReplaceService
 } from './services';
 import {
     CommandRegistry,
@@ -28,6 +29,7 @@ import {
     OpenPreviewWorkbenchCommand,
     QuickCopyCommand,
     QuickMergeCommand,
+    OpenFindReplaceWorkbenchCommand,
     ICommand
 } from './presentation/commands';
 import { BadgeModal, BatchBadgeModal } from './presentation/modals';
@@ -61,6 +63,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private contentService: ContentService;
     private colorGroupService: ColorGroupService;
     private mergeService: MergeService;
+    private searchReplaceService: SearchReplaceService;
     private performanceService: PerformanceService;
     private badgeRenderScheduler: BadgeRenderScheduler;
     private canvasSelectionToolbarService: CanvasSelectionToolbarService;
@@ -167,11 +170,13 @@ export default class CanvasLoomPlugin extends Plugin {
         this.badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
         this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
         this.colorGroupService = new ColorGroupService(canvasAdapter);
+        this.searchReplaceService = new SearchReplaceService(canvasAdapter);
         this.mergeService = new MergeService(
             this.app,
             canvasAdapter,
             this.contentService,
             this.vaultAdapter,
+            this.searchReplaceService,
             this.performanceService,
             () => this.settings.mergeCleanupMode
         );
@@ -609,6 +614,40 @@ export default class CanvasLoomPlugin extends Plugin {
 
     private registerHotkeys() {
         this.addCommand({
+            id: 'find-replace-canvas-cards',
+            name: '查找替换当前画布卡片',
+            hotkeys: Platform.isMacOS ? [{ modifiers: ["Ctrl"], key: "f" }] : [],
+            checkCallback: (checking: boolean) => {
+                const context = this.getActiveCanvasContext();
+                if (!context) {
+                    return false;
+                }
+
+                if (this.shouldIgnoreFindReplaceCommandContext()) {
+                    return false;
+                }
+
+                this.setupCanvasServices(context.canvas);
+                const command = new OpenFindReplaceWorkbenchCommand(
+                    this.mergeService,
+                    context.selection,
+                    context.file,
+                    this.settings
+                );
+
+                if (command.canExecute && !command.canExecute()) {
+                    return false;
+                }
+
+                if (!checking) {
+                    void command.execute();
+                }
+
+                return true;
+            }
+        });
+
+        this.addCommand({
             id: 'open-card-properties',
             name: '管理卡片属性',
             checkCallback: (checking: boolean) => {
@@ -752,24 +791,62 @@ export default class CanvasLoomPlugin extends Plugin {
         });
     }
 
-    private getActiveCanvasSelectionContext(): { canvas: Canvas; selection: CanvasNode[]; file: TFile | null } | null {
+    private shouldIgnoreFindReplaceCommandContext(): boolean {
+        if (!this.getActiveCanvasContext()) {
+            return true;
+        }
+
+        return this.isCanvasCardEditorFocused();
+    }
+
+    private isCanvasCardEditorFocused(): boolean {
+        const activeElement = activeDocument.activeElement;
+        if (activeElement instanceof HTMLElement) {
+            if (activeElement.closest(".canvas-node.is-editing")) {
+                return true;
+            }
+
+            if (activeElement.closest(".canvas-node .cm-editor, .canvas-node textarea, .canvas-node [contenteditable='true']")) {
+                return true;
+            }
+        }
+
+        return Boolean(activeDocument.querySelector(
+            [
+                ".canvas-node.is-editing",
+                ".canvas-node .cm-focused",
+                ".canvas-node textarea:focus",
+                ".canvas-node [contenteditable='true']:focus"
+            ].join(", ")
+        ));
+    }
+
+    private getActiveCanvasContext(): { canvas: Canvas; selection: CanvasNode[]; file: TFile | null } | null {
         const activeView = this.app.workspace.getActiveViewOfType(View);
 
         if (!activeView || activeView.getViewType?.() !== 'canvas' || !activeView.canvas) {
             return null;
         }
 
-        const selection = Array.from(activeView.canvas.selection || []);
-        if (selection.length === 0) {
-            return null;
-        }
-
         const file = activeView.file instanceof TFile ? activeView.file : null;
         return {
             canvas: activeView.canvas,
-            selection,
+            selection: Array.from(activeView.canvas.selection || []),
             file
         };
+    }
+
+    private getActiveCanvasSelectionContext(): { canvas: Canvas; selection: CanvasNode[]; file: TFile | null } | null {
+        const context = this.getActiveCanvasContext();
+        if (!context) {
+            return null;
+        }
+
+        if (context.selection.length === 0) {
+            return null;
+        }
+
+        return context;
     }
 
     private resolveNodeMenuSelection(node: CanvasNode): CanvasNode[] {

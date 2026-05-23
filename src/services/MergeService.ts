@@ -4,9 +4,10 @@ import { IVaultAdapter } from "../adapters/VaultAdapter";
 import { IContentService, MergeOrder } from "./ContentService";
 import { SortPriority } from "../domain/strategies";
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from "../presentation/views";
-import type { MergeWorkbenchContext } from "../presentation/views";
+import type { FindReplaceWorkbenchContext, MergeWorkbenchContext, WorkbenchPanel } from "../presentation/views";
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
 import { PerformanceService } from "./PerformanceService";
+import { SearchReplaceScope, SearchReplaceService } from "./SearchReplaceService";
 import type { MergeCleanupMode } from "../settings/ICanvasLoomSettings";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
 import type { CanvasNode, CanvasNodeData } from "../types/canvas";
@@ -23,6 +24,7 @@ export interface MergeExecutionOptions {
 export interface OpenWorkbenchOptions {
     order?: MergeOrder;
     sortPriority?: SortPriority;
+    panel?: WorkbenchPanel;
     previewExpanded?: boolean;
     scopeLabel?: string;
     cleanupMode?: MergeCleanupMode;
@@ -34,6 +36,7 @@ export interface IMergeService {
     mergeToSidebar(selection: CanvasNode[], canvasFile: TFile | null, options?: MergeExecutionOptions): Promise<boolean>;
     mergeToMarkdown(selection: CanvasNode[], canvasFile: TFile | null, options?: MergeExecutionOptions): Promise<boolean>;
     openWorkbench(selection: CanvasNode[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean>;
+    openFindReplaceWorkbench(selection: CanvasNode[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean>;
     openWorkbenchFromSnapshots(snapshots: CardSnapshot[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean>;
     mergeSnapshotsToCanvasCard(snapshots: CardSnapshot[], canvasFilePath: string | null, options?: MergeExecutionOptions): Promise<boolean>;
     mergeSnapshotsToMarkdown(snapshots: CardSnapshot[], canvasFilePath: string | null, options?: MergeExecutionOptions): Promise<boolean>;
@@ -47,6 +50,7 @@ export class MergeService implements IMergeService {
         private canvasAdapter: ICanvasAdapter,
         private contentService: IContentService,
         private vaultAdapter: IVaultAdapter,
+        private searchReplaceService?: SearchReplaceService,
         private performanceService?: PerformanceService,
         private getMergeCleanupMode?: () => MergeCleanupMode
     ) {}
@@ -114,6 +118,7 @@ export class MergeService implements IMergeService {
         return this.openWorkbench(selection, canvasFile, {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
+            panel: 'preview',
             previewExpanded: true,
             cleanupMode: options?.cleanupMode,
             cardSeparator: options?.cardSeparator
@@ -160,6 +165,63 @@ export class MergeService implements IMergeService {
         return this.openWorkbenchFromSnapshots(snapshots, canvasFile, options);
     }
 
+    async openFindReplaceWorkbench(selection: CanvasNode[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean> {
+        if (!this.searchReplaceService) {
+            new Notice('查找替换服务尚未初始化');
+            return false;
+        }
+
+        if (!this.searchReplaceService.hasTextCards()) {
+            new Notice('当前画布没有可查找的文本卡片');
+            return false;
+        }
+
+        const selectedNodeIds = this.getSelectedTextNodeIds(selection);
+        const selectedSnapshots = selectedNodeIds.size > 0
+            ? this.searchReplaceService.getTextCardSnapshots(selectedNodeIds)
+            : [];
+        const selectedTextCardCount = selectedSnapshots.length;
+        const defaultScope = selectedTextCardCount > 0 ? 'selection' : 'canvas';
+        const selectedScopeLabel = '当前选区';
+        const view = await this.measure("workbench.activateFindReplaceView", {
+            selectedTextCardCount,
+            scope: defaultScope
+        }, () => this.activateMergePreviewView());
+        const sortPriority = options?.sortPriority || 'yx';
+        const canvasFilePath = canvasFile?.path || null;
+        const existingState = view.getWorkbenchState();
+        const shouldPreserveExistingState = selectedSnapshots.length === 0
+            && canvasFilePath
+            && existingState.canvasFilePath === canvasFilePath
+            && existingState.selectionSnapshot.length > 0;
+        const state = shouldPreserveExistingState
+            ? existingState
+            : this.workbenchService.createState({
+                canvasFilePath,
+                canvasFileBasename: canvasFile?.basename || '当前画布',
+                scopeLabel: selectedSnapshots.length > 0 ? selectedScopeLabel : '当前画布',
+                selectionSnapshot: selectedSnapshots,
+                defaultSortMode: options?.order || 'position',
+                sortPriority,
+                previewExpanded: options?.previewExpanded ?? false,
+                cardSeparator: options?.cardSeparator
+            });
+        const findReplace: FindReplaceWorkbenchContext = {
+            service: this.searchReplaceService,
+            selectedNodeIds,
+            selectedTextCardCount,
+            selectedScopeLabel,
+            defaultScope
+        };
+
+        view.setWorkbenchContext(
+            this.createWorkbenchContext(state, sortPriority, options, findReplace),
+            { panel: 'findReplace', focusFindInput: true }
+        );
+
+        return true;
+    }
+
     async openWorkbenchFromSnapshots(snapshots: CardSnapshot[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean> {
         if (snapshots.length === 0) {
             new Notice('没有可预览的文本卡片');
@@ -173,9 +235,14 @@ export class MergeService implements IMergeService {
         const canvasFilePath = canvasFile?.path || null;
         const existingState = view.getWorkbenchState();
 
+        const findReplace = this.buildFindReplaceContextFromSnapshots(snapshots);
+
         if (canvasFilePath && existingState.canvasFilePath === canvasFilePath && existingState.selectionSnapshot.length > 0) {
             const appendResult = this.workbenchService.appendSnapshots(existingState, snapshots, sortPriority);
-            view.setWorkbenchContext(this.createWorkbenchContext(appendResult.state, sortPriority, options));
+            view.setWorkbenchContext(
+                this.createWorkbenchContext(appendResult.state, sortPriority, options, findReplace),
+                { panel: options?.panel || 'sort' }
+            );
 
             if (appendResult.addedCount > 0) {
                 new Notice(`已向 Loom工作台添加 ${appendResult.addedCount} 张卡片（共 ${appendResult.state.selectionSnapshot.length} 张）`);
@@ -197,7 +264,10 @@ export class MergeService implements IMergeService {
             cardSeparator: options?.cardSeparator
         });
 
-        view.setWorkbenchContext(this.createWorkbenchContext(state, sortPriority, options));
+        view.setWorkbenchContext(
+            this.createWorkbenchContext(state, sortPriority, options, findReplace),
+            { panel: options?.panel || 'sort' }
+        );
 
         new Notice(`已在 Loom工作台载入卡片组（${state.scopeLabel}，${snapshots.length} 张卡片）`);
         return true;
@@ -206,7 +276,8 @@ export class MergeService implements IMergeService {
     private createWorkbenchContext(
         state: WorkbenchState,
         sortPriority: SortPriority,
-        options?: OpenWorkbenchOptions
+        options?: OpenWorkbenchOptions,
+        findReplace?: FindReplaceWorkbenchContext
     ): MergeWorkbenchContext {
         const contextState = {
             ...state,
@@ -216,6 +287,7 @@ export class MergeService implements IMergeService {
         return {
             state: contextState,
             sortPriority,
+            findReplace,
             onCopy: async (currentState: WorkbenchState) => {
                 const order = currentState.isManualAdjusted ? 'manual' : currentState.sortMode;
                 await this.contentService.copyMergedContent({
@@ -249,6 +321,41 @@ export class MergeService implements IMergeService {
                 });
             }
         };
+    }
+
+    private buildFindReplaceContextFromSnapshots(snapshots: CardSnapshot[]): FindReplaceWorkbenchContext | undefined {
+        if (!this.searchReplaceService) {
+            return undefined;
+        }
+
+        const selectedNodeIds = new Set(snapshots.map((s) => s.id));
+        const selectedTextCardCount = snapshots.length;
+        const defaultScope: SearchReplaceScope = selectedTextCardCount > 0 ? 'selection' : 'canvas';
+
+        return {
+            service: this.searchReplaceService,
+            selectedNodeIds,
+            selectedTextCardCount,
+            selectedScopeLabel: '当前选区',
+            defaultScope
+        };
+    }
+
+    private getSelectedTextNodeIds(selection: CanvasNode[]): Set<string> {
+        const ids = new Set<string>();
+
+        selection.forEach((node) => {
+            try {
+                const nodeData = node.getData?.();
+                if (nodeData?.type === 'text' && typeof nodeData.text === 'string') {
+                    ids.add(nodeData.id);
+                }
+            } catch (error) {
+                console.warn("读取选中卡片数据失败:", error);
+            }
+        });
+
+        return ids;
     }
 
     async mergeSnapshotsToCanvasCard(snapshots: CardSnapshot[], canvasFilePath: string | null, options?: MergeExecutionOptions): Promise<boolean> {

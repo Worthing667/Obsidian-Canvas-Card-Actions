@@ -6,3 +6,4 @@ export * from './BadgeCommands';
 export * from './ColorGroupCommands';
 export * from './MergeCommands';
 export * from './QuickActionCommands';
+export * from './FindReplaceCommands';

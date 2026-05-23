@@ -30,7 +30,7 @@
 
 ### 整理版面
 
-<video src="Demo/自适应高度_整理间距.mp4" controls muted width="100%"></video>
+<video src="Demo/自适应高度_调整间距.mp4" controls muted width="100%"></video>
 
 让卡片高度适配文本内容，并对选中的多张卡片整理水平或垂直间距，减少重复拖拽。
 
@@ -38,7 +38,7 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="Demo/侧栏预览_按标记顺序.png" alt="按标记顺序预览卡片组" /></td>
+    <td width="50%"><img src="Demo/预览_按标记排序.png" alt="按标记顺序预览卡片组" /></td>
     <td width="50%"><img src="Demo/卡片标记效果.png" alt="Canvas 卡片标记效果" /></td>
   </tr>
   <tr>
