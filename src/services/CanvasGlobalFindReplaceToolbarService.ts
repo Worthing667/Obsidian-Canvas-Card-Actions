@@ -45,6 +45,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     private statusEl: HTMLElement | null = null;
     private activeButtonEl: HTMLElement | null = null;
     private activeControlsEl: HTMLElement | null = null;
+    private pinnedContext: ActiveCanvasContext | null = null;
     private previousButton: HTMLButtonElement | null = null;
     private nextButton: HTMLButtonElement | null = null;
     private replaceCurrentButton: HTMLButtonElement | null = null;
@@ -77,7 +78,17 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     openForActiveCanvas(focusQuery = true): boolean {
-        const context = this.getActiveCanvasContext();
+        return this.openForContext(this.getActiveCanvasContext(), focusQuery);
+    }
+
+    private openForControlButton(button: HTMLElement, focusQuery = true): boolean {
+        return this.openForContext(
+            this.getCanvasContextForElement(button) || this.getActiveCanvasContext(),
+            focusQuery
+        );
+    }
+
+    private openForContext(context: ActiveCanvasContext | null, focusQuery: boolean): boolean {
         if (!context) {
             new Notice("请在打开画布文件时使用查找替换");
             return false;
@@ -89,6 +100,7 @@ export class CanvasGlobalFindReplaceToolbarService {
             return false;
         }
 
+        this.pinnedContext = context;
         this.isOpen = true;
         this.focusQueryOnRender = focusQuery;
         this.renderForContext(context);
@@ -109,10 +121,19 @@ export class CanvasGlobalFindReplaceToolbarService {
             this.pendingInjection = false;
             const context = this.getActiveCanvasContext();
             if (!context) {
-                this.removeInjectedElements();
+                if (this.isOpen && this.pinnedContext?.rootEl.isConnected) {
+                    this.syncInjectedElements(this.pinnedContext);
+                    return;
+                }
+
+                if (!this.isOpen) {
+                    this.removeInjectedElements();
+                    this.pinnedContext = null;
+                }
                 return;
             }
 
+            this.pinnedContext = context;
             this.syncInjectedElements(context);
         });
     }
@@ -210,7 +231,7 @@ export class CanvasGlobalFindReplaceToolbarService {
                 return;
             }
 
-            this.openForActiveCanvas(true);
+            this.openForControlButton(button, true);
         });
 
         return button;
@@ -597,8 +618,6 @@ export class CanvasGlobalFindReplaceToolbarService {
         try {
             if (node && typeof internalCanvas.centerOnNode === "function") {
                 internalCanvas.centerOnNode(node);
-            } else if (typeof internalCanvas.zoomToSelection === "function") {
-                internalCanvas.zoomToSelection();
             }
 
             internalCanvas.requestFrame?.();
@@ -624,6 +643,22 @@ export class CanvasGlobalFindReplaceToolbarService {
         };
     }
 
+    private getCanvasContextForElement(element: HTMLElement): ActiveCanvasContext | null {
+        const leaves = this.app.workspace.getLeavesOfType?.("canvas") || [];
+        for (const leaf of leaves) {
+            const view = leaf.view as View & { canvas?: Canvas; containerEl?: HTMLElement };
+            const rootEl = view.containerEl;
+            if (view.canvas && rootEl?.contains(element)) {
+                return {
+                    canvas: view.canvas,
+                    rootEl
+                };
+            }
+        }
+
+        return null;
+    }
+
     private getCanvasControlsElement(rootEl: HTMLElement): HTMLElement | null {
         const controls = rootEl.querySelector(".canvas-controls");
         return controls instanceof HTMLElement ? controls : null;
@@ -643,7 +678,9 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private positionPanel(): void {
-        const activeContext = this.getActiveCanvasContext();
+        const activeContext = this.getActiveCanvasContext() || (
+            this.pinnedContext?.rootEl.isConnected ? this.pinnedContext : null
+        );
         const activeRootEl = activeContext?.rootEl || null;
         const panel = (
             activeRootEl?.querySelector(`.${PANEL_CLASS}`)
@@ -714,6 +751,7 @@ export class CanvasGlobalFindReplaceToolbarService {
 
     private close(): void {
         this.isOpen = false;
+        this.pinnedContext = null;
         this.removePanel();
         activeDocument
             .querySelectorAll(`.${BUTTON_CLASS}`)
