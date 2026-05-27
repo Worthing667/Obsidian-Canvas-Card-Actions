@@ -1057,6 +1057,39 @@
     line-height: 1.6;
 }
 
+.canvas-loom-workbench-render-action {
+    flex: 0 0 auto;
+    padding: 10px 12px 0;
+    border-top: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+}
+
+.canvas-loom-workbench-render-action button {
+    width: 100%;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid var(--interactive-accent);
+    border-radius: 8px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    box-shadow: none;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.canvas-loom-workbench-render-action button svg {
+    width: 14px;
+    height: 14px;
+}
+
+.canvas-loom-workbench-render-action button:disabled {
+    opacity: 0.55;
+}
+
 .canvas-loom-workbench-actions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

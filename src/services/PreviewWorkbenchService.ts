@@ -56,6 +56,7 @@ export class PreviewWorkbenchService {
             sortMode,
             manualOrderIds: [],
             isManualAdjusted: false,
+            lastComputedContent: '',
         };
     }
 
@@ -138,6 +139,7 @@ export class PreviewWorkbenchService {
             ...state,
             manualOrderIds: ids,
             isManualAdjusted: true,
+            lastComputedContent: '',
         };
     }
 

@@ -117,8 +117,52 @@ function testPreviewContentUsesCardSeparator() {
   assert.equal(service.buildPreviewContent(state, 'xy'), 'first\n\n---\n\nsecond');
 }
 
+function testManualReorderClearsCachedPreviewContent() {
+  const service = new PreviewWorkbenchService();
+  const state = service.setLastComputedContent(
+    service.createState({
+      canvasFilePath: 'test.canvas',
+      canvasFileBasename: 'test',
+      selectionSnapshot: [
+        card('first', 0, 0),
+        card('second', 100, 0),
+      ],
+      defaultSortMode: 'position',
+      sortPriority: 'xy',
+    }),
+    'cached preview'
+  );
+
+  const adjusted = service.reorderManual(state, 0, 1, 'xy');
+
+  assert.equal(adjusted.lastComputedContent, '');
+}
+
+function testSortModeChangeClearsCachedPreviewContent() {
+  const service = new PreviewWorkbenchService();
+  const state = service.setLastComputedContent(
+    service.createState({
+      canvasFilePath: 'test.canvas',
+      canvasFileBasename: 'test',
+      selectionSnapshot: [
+        card('first', 0, 0),
+        card('second', 100, 0),
+      ],
+      defaultSortMode: 'position',
+      sortPriority: 'xy',
+    }),
+    'cached preview'
+  );
+
+  const changed = service.setSortMode(state, 'badge', 'xy');
+
+  assert.equal(changed.lastComputedContent, '');
+}
+
 testPositionModeFollowsLatestSortPriorityUntilManuallyAdjusted();
 testManualAdjustmentKeepsExplicitOrderAcrossSortPriorityChanges();
 testClearStateEmptiesWorkbenchButKeepsSourceContext();
 testPreviewContentUsesCardSeparator();
+testManualReorderClearsCachedPreviewContent();
+testSortModeChangeClearsCachedPreviewContent();
 console.log('preview workbench service tests passed');

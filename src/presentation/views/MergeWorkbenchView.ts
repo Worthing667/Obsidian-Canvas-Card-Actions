@@ -210,6 +210,7 @@ export class MergeWorkbenchView extends ItemView {
         this.renderSortModeControls(panel);
         this.renderOrderSummary(panel);
         this.renderList(panel);
+        this.renderPreviewAction(panel);
         this.renderOutputActions(panel);
     }
 
@@ -308,6 +309,19 @@ export class MergeWorkbenchView extends ItemView {
         preview.setText(this.context.state.lastComputedContent || "正在生成预览...");
         this.schedulePreviewRender(preview);
 
+    }
+
+    private renderPreviewAction(container: HTMLElement): void {
+        const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+        const action = container.createDiv({ cls: "canvas-loom-workbench-render-action" });
+        const button = action.createEl("button");
+        button.setAttribute("type", "button");
+        button.setAttribute("aria-label", "重新生成预览");
+        button.setAttribute("title", "重新生成预览");
+        button.disabled = orderedCards.length === 0;
+        setIcon(button, "refresh-cw");
+        button.createSpan({ text: "渲染" });
+        button.addEventListener("click", () => this.renderSortPreview());
     }
 
     private renderOutputActions(container: HTMLElement): void {
@@ -755,10 +769,30 @@ export class MergeWorkbenchView extends ItemView {
     private schedulePreviewRender(previewEl: HTMLElement): void {
         this.clearPreviewTimer();
         this.previewTimer = window.setTimeout(() => {
-            const content = this.workbenchService.buildPreviewContent(this.context.state, this.context.sortPriority);
-            this.context.state = this.workbenchService.setLastComputedContent(this.context.state, content);
+            this.previewTimer = null;
+            const content = this.renderPreviewContentNow();
             previewEl.setText(content || "没有可预览的内容");
         }, 200);
+    }
+
+    private renderPreviewContentNow(): string {
+        const content = this.workbenchService.buildPreviewContent(this.context.state, this.context.sortPriority);
+        this.context.state = this.workbenchService.setLastComputedContent(this.context.state, content);
+        return content;
+    }
+
+    private renderSortPreview(): void {
+        const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
+        if (orderedCards.length === 0) {
+            new Notice(EMPTY_WORKBENCH_CARD_NOTICE);
+            return;
+        }
+
+        this.clearPreviewTimer();
+        this.renderPreviewContentNow();
+        this.context.state = this.workbenchService.setPreviewExpanded(this.context.state, true);
+        this.activePanel = "preview";
+        this.render();
     }
 
     private createSortModeButton(container: HTMLElement, mode: MergeOrder, label: string): void {
