@@ -1606,6 +1606,51 @@
     color: var(--text-error);
 }
 
+.canvas-loom-global-fr-current-preview {
+    display: -webkit-box;
+    overflow: hidden;
+    padding: 6px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s, 6px);
+    background: var(--background-secondary);
+    color: var(--text-normal);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.canvas-loom-global-fr-current-preview.is-empty {
+    display: none;
+}
+
+.canvas-loom-global-fr-current-preview mark {
+    padding: 0 2px;
+    border-radius: 3px;
+    background: var(--text-highlight-bg);
+    color: var(--text-normal);
+}
+
+.canvas-node.canvas-loom-find-active-card .canvas-node-content {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+
+.canvas-node.canvas-loom-find-pulse .canvas-node-content {
+    animation: canvas-loom-find-pulse 0.48s ease-out;
+}
+
+@keyframes canvas-loom-find-pulse {
+    from {
+        box-shadow: 0 0 0 0 var(--interactive-accent);
+    }
+
+    to {
+        box-shadow: 0 0 0 8px transparent;
+    }
+}
+
 @media (max-width: 700px) {
     .canvas-loom-global-fr-panel {
         width: min(300px, calc(100vw - 24px));

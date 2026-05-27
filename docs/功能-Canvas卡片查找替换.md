@@ -122,7 +122,7 @@ Obsidian 命令热键里的 `Mod` 会按平台映射：macOS 是 `Command`，Win
 - 工作台结构使用 `createEl` / `createDiv`
 - 不直接使用 `innerHTML`
 - 结果片段中的命中高亮只在工作台中渲染
-- 不向 Canvas 卡片 DOM 注入高亮，避免依赖 Obsidian Canvas 未公开的内部结构
+- Canvas 中只添加卡片级外框/脉冲反馈，不改写卡片正文 DOM，避免依赖 Obsidian Canvas 未公开的内部结构
 
 ## 后续可选项
 

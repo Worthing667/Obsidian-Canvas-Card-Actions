@@ -4,10 +4,13 @@ import type { CardSearchResult, SearchReplaceOptions, SearchReplaceScope } from 
 import { SearchReplaceService } from "./SearchReplaceService";
 import type { Canvas, CanvasNode } from "../types/canvas";
 import type { CanvasDiagnostics } from "../adapters/CanvasAdapter";
+import { renderSearchMatchPreview } from "../utils/SearchMatchPreview";
 
 const BUTTON_CLASS = "canvas-loom-global-fr-button";
 const PANEL_CLASS = "canvas-loom-global-fr-panel";
 const FALLBACK_CONTROL_CLASS = "canvas-loom-global-fr-fallback-control";
+const ACTIVE_CARD_CLASS = "canvas-loom-find-active-card";
+const ACTIVE_CARD_PULSE_CLASS = "canvas-loom-find-pulse";
 const PANEL_MARGIN = 8;
 const PANEL_MIN_WIDTH = 220;
 const PANEL_PREFERRED_WIDTH_WITH_REPLACE = 320;
@@ -76,10 +79,13 @@ export class CanvasGlobalFindReplaceToolbarService {
     private queryInput: HTMLInputElement | null = null;
     private replacementInput: HTMLInputElement | null = null;
     private countEl: HTMLElement | null = null;
+    private currentPreviewEl: HTMLElement | null = null;
     private statusEl: HTMLElement | null = null;
     private activeButtonEl: HTMLElement | null = null;
     private activeControlsEl: HTMLElement | null = null;
     private pinnedContext: ActiveCanvasContext | null = null;
+    private highlightedNodeId: string | null = null;
+    private highlightPulseTimer: number | null = null;
     private previousButton: HTMLButtonElement | null = null;
     private nextButton: HTMLButtonElement | null = null;
     private replaceCurrentButton: HTMLButtonElement | null = null;
@@ -113,6 +119,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.disconnectResizeObserver();
         window.removeEventListener("resize", this.onWindowResize);
         this.clearRefreshTimer();
+        this.clearActiveMatchHighlight();
         this.isOpen = false;
         this.pinnedContext = null;
 
@@ -144,6 +151,10 @@ export class CanvasGlobalFindReplaceToolbarService {
         if (!service.hasTextCards()) {
             new Notice("当前画布没有可查找的文本卡片");
             return false;
+        }
+
+        if (this.pinnedContext?.rootEl !== context.rootEl) {
+            this.clearActiveMatchHighlight();
         }
 
         this.pinnedContext = context;
@@ -395,6 +406,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.queryInput.addEventListener("input", () => {
             this.query = this.queryInput?.value || "";
             this.currentFlatIndex = -1;
+            this.clearActiveMatchHighlight();
             this.scheduleRefresh(context.canvas);
         });
         this.queryInput.addEventListener("focus", () => this.queryInput?.select());
@@ -465,6 +477,7 @@ export class CanvasGlobalFindReplaceToolbarService {
             const caseButton = this.createTextToggleButton(replaceActionRow, "Aa", "区分大小写", this.caseSensitive, () => {
                 this.caseSensitive = !this.caseSensitive;
                 this.currentFlatIndex = -1;
+                this.clearActiveMatchHighlight();
                 this.renderForContext(context);
             });
             caseButton.setAttribute("aria-pressed", String(this.caseSensitive));
@@ -472,13 +485,16 @@ export class CanvasGlobalFindReplaceToolbarService {
             const regexButton = this.createTextToggleButton(replaceActionRow, ".*", "正则表达式", this.regex, () => {
                 this.regex = !this.regex;
                 this.currentFlatIndex = -1;
+                this.clearActiveMatchHighlight();
                 this.renderForContext(context);
             });
             regexButton.setAttribute("aria-pressed", String(this.regex));
         }
 
+        this.currentPreviewEl = panel.createDiv({ cls: "canvas-loom-global-fr-current-preview is-empty" });
         this.statusEl = panel.createDiv({ cls: "canvas-loom-global-fr-status" });
         this.updateStatus();
+        this.updateCurrentPreview();
         this.updateActionButtons();
         this.observeCanvasResize(context.rootEl);
         requestAnimationFrame(() => this.positionPanel());
@@ -544,6 +560,7 @@ export class CanvasGlobalFindReplaceToolbarService {
             this.refreshTimer = null;
             this.refreshResults(canvas);
             this.updateStatus();
+            this.updateCurrentPreview();
             this.updateActionButtons();
         }, 120);
     }
@@ -558,6 +575,10 @@ export class CanvasGlobalFindReplaceToolbarService {
         const matches = this.getFlatMatches();
         if (this.currentFlatIndex >= matches.length) {
             this.currentFlatIndex = Math.max(0, matches.length - 1);
+        }
+
+        if (matches.length === 0) {
+            this.clearActiveMatchHighlight();
         }
     }
 
@@ -647,9 +668,11 @@ export class CanvasGlobalFindReplaceToolbarService {
         const service = this.createSearchReplaceService(canvas);
         if (service.selectNode(match.card.nodeId)) {
             this.focusNode(canvas, match.card.nodeId);
+            this.applyActiveMatchHighlight(canvas, match.card.nodeId);
         }
 
         this.updateStatus();
+        this.updateCurrentPreview();
     }
 
     private async replaceCurrentMatch(canvas: Canvas): Promise<void> {
@@ -697,9 +720,36 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         this.currentFlatIndex = -1;
+        this.clearActiveMatchHighlight();
         this.refreshResults(canvas);
         this.updateStatus();
+        this.updateCurrentPreview();
         this.updateActionButtons();
+    }
+
+    private updateCurrentPreview(): void {
+        if (!this.currentPreviewEl) {
+            return;
+        }
+
+        this.currentPreviewEl.empty();
+        const current = this.getCurrentMatch();
+        if (!current || this.error || !this.query) {
+            this.currentPreviewEl.addClass("is-empty");
+            return;
+        }
+
+        const range = current.card.ranges[current.matchIndex];
+        if (!range) {
+            this.currentPreviewEl.addClass("is-empty");
+            return;
+        }
+
+        this.currentPreviewEl.removeClass("is-empty");
+        renderSearchMatchPreview(this.currentPreviewEl, current.card.text, range, {
+            before: 28,
+            after: 36
+        });
     }
 
     private getQueryOptions(): Omit<SearchReplaceOptions, "replacement"> {
@@ -748,6 +798,54 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         internalCanvas.requestFrame?.();
+    }
+
+    private applyActiveMatchHighlight(canvas: Canvas, nodeId: string): void {
+        const node = canvas.nodes?.get(nodeId) || null;
+        const nodeEl = node?.nodeEl || null;
+        if (!nodeEl) {
+            this.clearActiveMatchHighlight();
+            return;
+        }
+
+        if (this.highlightedNodeId && this.highlightedNodeId !== nodeId) {
+            this.clearNodeHighlight(canvas, this.highlightedNodeId);
+        }
+
+        nodeEl.addClass(ACTIVE_CARD_CLASS);
+        nodeEl.removeClass(ACTIVE_CARD_PULSE_CLASS);
+        void nodeEl.offsetWidth;
+        nodeEl.addClass(ACTIVE_CARD_PULSE_CLASS);
+        this.highlightedNodeId = nodeId;
+
+        if (this.highlightPulseTimer !== null) {
+            window.clearTimeout(this.highlightPulseTimer);
+        }
+        this.highlightPulseTimer = window.setTimeout(() => {
+            this.highlightPulseTimer = null;
+            nodeEl.removeClass(ACTIVE_CARD_PULSE_CLASS);
+        }, 480);
+    }
+
+    private clearActiveMatchHighlight(): void {
+        if (this.highlightPulseTimer !== null) {
+            window.clearTimeout(this.highlightPulseTimer);
+            this.highlightPulseTimer = null;
+        }
+
+        if (!this.highlightedNodeId || !this.pinnedContext) {
+            this.highlightedNodeId = null;
+            return;
+        }
+
+        this.clearNodeHighlight(this.pinnedContext.canvas, this.highlightedNodeId);
+        this.highlightedNodeId = null;
+    }
+
+    private clearNodeHighlight(canvas: Canvas, nodeId: string): void {
+        const node = canvas.nodes?.get(nodeId) || null;
+        node?.nodeEl?.removeClass(ACTIVE_CARD_CLASS);
+        node?.nodeEl?.removeClass(ACTIVE_CARD_PULSE_CLASS);
     }
 
     private createSearchReplaceService(canvas: Canvas): SearchReplaceService {
@@ -872,6 +970,7 @@ export class CanvasGlobalFindReplaceToolbarService {
 
     private close(): void {
         this.isOpen = false;
+        this.clearActiveMatchHighlight();
         this.pinnedContext = null;
         this.activeButtonEl = null;
         this.activeControlsEl = null;

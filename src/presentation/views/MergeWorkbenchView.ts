@@ -10,6 +10,7 @@ import {
 } from "../../services/SearchReplaceService";
 import { MergeOrder } from "../../services/ContentService";
 import type { WorkbenchState } from "../../types/WorkbenchState";
+import { renderSearchMatchPreview, type SearchMatchPreviewRange } from "../../utils/SearchMatchPreview";
 
 export const MERGE_PREVIEW_VIEW_TYPE = "canvas-loom-merge-preview";
 const MERGE_PREVIEW_VIEW_ICON = "panel-right";
@@ -589,22 +590,9 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
-    private renderFindPreview(container: HTMLElement, text: string, range: { start: number; end: number; value: string }): void {
+    private renderFindPreview(container: HTMLElement, text: string, range: SearchMatchPreviewRange): void {
         const preview = container.createDiv({ cls: "canvas-loom-fr-preview" });
-        const start = Math.max(0, range.start - 36);
-        const end = Math.min(text.length, range.end + 56);
-
-        if (start > 0) {
-            preview.createSpan({ text: "..." });
-        }
-
-        preview.createSpan({ text: text.slice(start, range.start) });
-        preview.createEl("mark", { text: range.value });
-        preview.createSpan({ text: text.slice(range.end, end) });
-
-        if (end < text.length) {
-            preview.createSpan({ text: "..." });
-        }
+        renderSearchMatchPreview(preview, text, range);
     }
 
     private setCurrentFindMatch(index: number, selectCard: boolean): void {
