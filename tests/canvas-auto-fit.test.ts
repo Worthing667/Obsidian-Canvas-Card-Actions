@@ -8,7 +8,8 @@ import type { Canvas, CanvasNode, CanvasResizeHandle } from '../src/types/canvas
 function node(
   id: string,
   type = 'text',
-  onResizeDblclick?: (event: MouseEvent, resizeHandle: CanvasResizeHandle) => void
+  onResizeDblclick?: (event: MouseEvent, resizeHandle: CanvasResizeHandle) => void,
+  nodeEl?: HTMLElement | null
 ): CanvasNode {
   return {
     id,
@@ -22,6 +23,7 @@ function node(
       text: type === 'text' ? id : undefined,
     }),
     onResizeDblclick,
+    nodeEl,
   };
 }
 
@@ -34,8 +36,8 @@ function canvas(selection: CanvasNode[], onSave: () => void = () => undefined): 
   };
 }
 
-function testToolbarButtonRequiresOneTextCard() {
-  const textNode = node('text');
+function testToolbarButtonRequiresOneResizableCard() {
+  const textNode = node('text', 'text', () => undefined);
   const fileNode = node('file', 'file');
 
   assert.equal(shouldShowAutoHeightToolbarButton(), false);
@@ -44,7 +46,25 @@ function testToolbarButtonRequiresOneTextCard() {
   assert.equal(shouldShowAutoHeightToolbarButton(new Set([textNode, fileNode])), true);
 }
 
-async function testFitsSelectedTextCardsOnly() {
+function testToolbarButtonSupportsThumbnailCardsWithResizeHandler() {
+  const thumbnailNode = node('thumb', 'file', () => undefined);
+
+  assert.equal(shouldShowAutoHeightToolbarButton(new Set([thumbnailNode])), true);
+}
+
+function testToolbarButtonHidesForEditingCards() {
+  const editingEl = {
+    classList: { contains: (className: string) => className === 'is-editing' },
+    querySelector: () => null,
+  } as unknown as HTMLElement;
+  const editingNode = node('editing', 'text', () => undefined, editingEl);
+  const normalNode = node('normal', 'text', () => undefined);
+
+  assert.equal(shouldShowAutoHeightToolbarButton(new Set([editingNode])), false);
+  assert.equal(shouldShowAutoHeightToolbarButton(new Set([editingNode, normalNode])), false);
+}
+
+async function testFitsSelectedResizableCards() {
   const calls: string[] = [];
   let saveCount = 0;
   const textA = node('a', 'text', (event, resizeHandle) => {
@@ -61,9 +81,63 @@ async function testFitsSelectedTextCardsOnly() {
     saveCount += 1;
   }));
 
-  assert.equal(result.count, 2);
-  assert.deepEqual(calls, ['a:bottom', 'b:bottom']);
+  assert.equal(result.count, 3);
+  assert.deepEqual(calls, ['a:bottom', 'file', 'b:bottom']);
   assert.equal(saveCount, 1);
+}
+
+async function testFitsSelectedThumbnailCards() {
+  const calls: string[] = [];
+  let saveCount = 0;
+  const thumbnailNode = node('thumb', 'file', (event, resizeHandle) => {
+    event.preventDefault();
+    calls.push(`thumb:${resizeHandle}`);
+  });
+
+  const result = await fitSelectedTextCardsToHeight(canvas([thumbnailNode], () => {
+    saveCount += 1;
+  }));
+
+  assert.equal(result.count, 1);
+  assert.deepEqual(calls, ['thumb:bottom']);
+  assert.equal(saveCount, 1);
+}
+
+async function testSkipsEditingCardsDuringFit() {
+  const calls: string[] = [];
+  const editingEl = {
+    classList: { contains: (className: string) => className === 'is-editing' },
+    querySelector: () => null,
+  } as unknown as HTMLElement;
+  const editingNode = node('editing', 'text', () => {
+    calls.push('editing');
+  }, editingEl);
+
+  await assert.rejects(
+    () => fitSelectedTextCardsToHeight(canvas([editingNode])),
+    /请先退出卡片编辑状态/
+  );
+  assert.deepEqual(calls, []);
+}
+
+async function testRejectsMixedSelectionWithEditingCardsDuringFit() {
+  const calls: string[] = [];
+  const editingEl = {
+    classList: { contains: (className: string) => className === 'is-editing' },
+    querySelector: () => null,
+  } as unknown as HTMLElement;
+  const editingNode = node('editing', 'text', () => {
+    calls.push('editing');
+  }, editingEl);
+  const normalNode = node('normal', 'text', () => {
+    calls.push('normal');
+  });
+
+  await assert.rejects(
+    () => fitSelectedTextCardsToHeight(canvas([editingNode, normalNode])),
+    /请先退出卡片编辑状态/
+  );
+  assert.deepEqual(calls, []);
 }
 
 async function testRejectsUnsupportedRuntimeNodes() {
@@ -74,8 +148,13 @@ async function testRejectsUnsupportedRuntimeNodes() {
 }
 
 void (async () => {
-  testToolbarButtonRequiresOneTextCard();
-  await testFitsSelectedTextCardsOnly();
+  testToolbarButtonRequiresOneResizableCard();
+  testToolbarButtonSupportsThumbnailCardsWithResizeHandler();
+  testToolbarButtonHidesForEditingCards();
+  await testFitsSelectedResizableCards();
+  await testFitsSelectedThumbnailCards();
+  await testSkipsEditingCardsDuringFit();
+  await testRejectsMixedSelectionWithEditingCardsDuringFit();
   await testRejectsUnsupportedRuntimeNodes();
   console.log('canvas auto fit tests passed');
 })();

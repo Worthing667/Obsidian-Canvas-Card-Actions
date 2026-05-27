@@ -31,6 +31,8 @@ export class CanvasSelectionToolbarService {
         this.observer = new MutationObserver(() => this.scheduleInjection());
         this.observer.observe(activeDocument.body, {
             childList: true,
+            attributes: true,
+            attributeFilter: ["class"],
             subtree: true,
         });
         this.scheduleInjection();
@@ -80,15 +82,11 @@ export class CanvasSelectionToolbarService {
             menuEl.querySelector(`.${POPOVER_CLASS}`)?.remove();
         }
 
-        if (!shouldShowAutoHeight) {
-            return;
-        }
-
         if (shouldShowArrangement && !existingArrangeButton) {
             menuEl.appendChild(this.createArrangeButton(canvas, menuEl));
         }
 
-        if (!existingAutoHeightButton) {
+        if (shouldShowAutoHeight && !existingAutoHeightButton) {
             const arrangeButton = menuEl.querySelector(`.${BUTTON_CLASS}`);
             const autoHeightButton = this.createAutoHeightButton(canvas);
             if (arrangeButton) {
