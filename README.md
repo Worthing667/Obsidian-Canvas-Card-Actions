@@ -10,31 +10,31 @@ It turns scattered Canvas text cards into a repeatable workflow: split long note
 
 ## Hero Demo
 
-<video src="Demo/侧栏工作台：预览卡片组_复制_新建文稿_新建卡片_清空.mp4" controls muted width="100%"></video>
+[![Canvas Loom preview workspace](Demo/侧栏工作台.png)](Demo/侧栏工作台：预览卡片组_复制_新建文稿_新建卡片_清空.mp4)
 
 ## Core Workflows
 
 ### Split Cards
 
-<video src="Demo/卡片拆分_三种拆分方式_限制拆分后的单行卡片数量.mp4" controls muted width="100%"></video>
+[![Split cards by delimiter, blank lines, or headings](Demo/长卡片_三种卡片拆分方式（自动计算）.png)](Demo/卡片拆分_三种拆分方式_限制拆分后的单行卡片数量.mp4)
 
 Split one long text card by a custom delimiter, blank lines, or Markdown heading level. Canvas Loom keeps the original card in place and creates the remaining content as new Canvas cards.
 
 ### Merge Cards
 
-<video src="Demo/一键拼合：拼合后是否保存原卡片_按位置or标记顺序拼合.mp4" controls muted width="100%"></video>
+[![Merge selected Canvas cards](Demo/卡片组.png)](Demo/一键拼合：拼合后是否保存原卡片_按位置or标记顺序拼合.mp4)
 
 Merge selected cards directly, or send them to the Loom workspace first — a three-panel sidebar (Preview, Sort, Find & Replace) where you can sort, preview, search, and export the final text.
 
 ### Sort by Position or Badge
 
-<video src="Demo/预览卡片组：按位置排序和按标记排序的区别.mp4" controls muted width="100%"></video>
+[![Sort card group by position or badge](Demo/预览_按标记排序.png)](Demo/预览卡片组：按位置排序和按标记排序的区别.mp4)
 
 Position sorting follows the visual layout of the Canvas. Badge sorting follows numeric badges such as `1`, `2.1`, or `10.3.2`, so output order can stay stable even when card positions change.
 
 ### Clean Layout
 
-<video src="Demo/自适应高度_调整间距.mp4" controls muted width="100%"></video>
+[![Auto-fit card height and arrange spacing](Demo/卡片组_整理间距.png)](Demo/自适应高度_调整间距.mp4)
 
 Resize cards to fit their text and arrange selected cards with cleaner horizontal or vertical spacing.
 

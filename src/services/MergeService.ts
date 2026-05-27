@@ -475,11 +475,16 @@ export class MergeService implements IMergeService {
         }
 
         const first = snapshots[0];
+        const totalHeight = snapshots.reduce((sum, snapshot) => {
+            const height = snapshot.height > 0 ? snapshot.height : fallback.height;
+            return sum + height;
+        }, 0);
+
         return {
             x: first.x,
             y: first.y,
             width: first.width || fallback.width,
-            height: first.height || fallback.height
+            height: totalHeight || fallback.height
         };
     }
 
