@@ -599,7 +599,10 @@ export class MergeWorkbenchView extends ItemView {
         this.findCurrentFlatIndex = index;
         const current = this.getCurrentFindMatch();
         if (selectCard && current) {
-            this.context.findReplace?.service.selectNode(current.card.nodeId);
+            const service = this.context.findReplace?.service;
+            if (service?.selectNode(current.card.nodeId)) {
+                service.locateNode(current.card.nodeId);
+            }
         }
 
         this.renderFindResults();

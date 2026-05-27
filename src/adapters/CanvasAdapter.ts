@@ -19,6 +19,10 @@ export interface ICanvasAdapter {
     removeNodes(ids: Set<string>): Promise<void>;
 }
 
+export interface LocateNodeOptions {
+    padding?: number;
+}
+
 export class CanvasAdapter implements ICanvasAdapter {
     constructor(
         private canvas: Canvas,
@@ -94,6 +98,41 @@ export class CanvasAdapter implements ICanvasAdapter {
         }
     }
 
+    locateNode(id: string, options: LocateNodeOptions = {}): boolean {
+        const node = this.findNodeById(id);
+        if (!node) {
+            return false;
+        }
+
+        const data = node.getData();
+        const padding = Math.max(0, options.padding ?? 120);
+        const bbox = {
+            minX: (data.x ?? 0) - padding,
+            minY: (data.y ?? 0) - padding,
+            maxX: (data.x ?? 0) + (data.width ?? 0) + padding,
+            maxY: (data.y ?? 0) + (data.height ?? 0) + padding,
+        };
+
+        try {
+            if (typeof this.canvas.zoomToBbox === "function") {
+                this.canvas.zoomToBbox(bbox);
+                this.canvas.requestFrame?.();
+                return true;
+            }
+
+            if (typeof this.canvas.zoomToSelection === "function") {
+                this.canvas.zoomToSelection();
+                this.canvas.requestFrame?.();
+                return true;
+            }
+
+            return this.locateNodeWithViewport(data.x ?? 0, data.y ?? 0, data.width ?? 0, data.height ?? 0);
+        } catch (error) {
+            console.warn("Failed to locate canvas node:", error);
+            return false;
+        }
+    }
+
     async requestSave(): Promise<void> {
         const startedAt = performance.now();
         try {
@@ -132,6 +171,39 @@ export class CanvasAdapter implements ICanvasAdapter {
 
     private log(operation: string, details: Record<string, unknown>): void {
         this.diagnostics?.log(operation, details);
+    }
+
+    private locateNodeWithViewport(x: number, y: number, width: number, height: number): boolean {
+        if (typeof this.canvas.setViewport !== "function") {
+            return false;
+        }
+
+        const viewportRect = this.getViewportRect();
+        if (!viewportRect) {
+            return false;
+        }
+
+        const zoom = this.canvas.tZoom || this.canvas.zoom || 1;
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        const tx = viewportRect.width / 2 - centerX * zoom;
+        const ty = viewportRect.height / 2 - centerY * zoom;
+
+        this.canvas.setViewport(tx, ty, zoom);
+        this.canvas.requestFrame?.();
+        return true;
+    }
+
+    private getViewportRect(): DOMRect | null {
+        if (this.canvas.canvasRect) {
+            return this.canvas.canvasRect;
+        }
+
+        if (this.canvas.wrapperEl) {
+            return this.canvas.wrapperEl.getBoundingClientRect();
+        }
+
+        return null;
     }
 
     private getDurationMs(startedAt: number): number {

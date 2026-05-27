@@ -198,6 +198,22 @@ function testInvalidRegexReturnsErrorWithoutThrowing() {
   assert.equal(result.totalMatches, 0);
 }
 
+function testLocateNodeDelegatesToCanvasAdapterWhenAvailable() {
+  const adapter = adapterFor(sampleData()) as ReturnType<typeof adapterFor> & {
+    locatedNodeId: string | null;
+    locateNode: (id: string) => boolean;
+  };
+  adapter.locatedNodeId = null;
+  adapter.locateNode = (id) => {
+    adapter.locatedNodeId = id;
+    return true;
+  };
+  const service = new SearchReplaceService(adapter);
+
+  assert.equal(service.locateNode('a'), true);
+  assert.equal(adapter.locatedNodeId, 'a');
+}
+
 void (async () => {
   testFindAcrossCanvasTextCardsOnly();
   testSelectionScopeOnlySearchesCapturedSelection();
@@ -205,5 +221,6 @@ void (async () => {
   await testReplaceAllUsesLiteralReplacementInPlainMode();
   await testReplaceCurrentOnlyUpdatesOneMatch();
   testInvalidRegexReturnsErrorWithoutThrowing();
+  testLocateNodeDelegatesToCanvasAdapterWhenAvailable();
   console.log('search replace service tests passed');
 })();

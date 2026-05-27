@@ -146,6 +146,16 @@ export class SearchReplaceService {
         return true;
     }
 
+    locateNode(nodeId: string): boolean {
+        const locator = this.canvasAdapter as ICanvasAdapter & {
+            locateNode?: (id: string) => boolean;
+        };
+
+        return typeof locator.locateNode === "function"
+            ? locator.locateNode(nodeId)
+            : false;
+    }
+
     private async applyReplacement(
         options: SearchReplaceOptions,
         includeNode: (nodeData: CanvasNodeData) => boolean,

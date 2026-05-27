@@ -54,11 +54,21 @@ export interface CanvasNode {
 export interface Canvas {
     selection?: Set<CanvasNode>;
     nodes?: Map<string, CanvasNode>;
+    tx?: number;
+    ty?: number;
+    tZoom?: number;
+    zoom?: number;
+    wrapperEl?: HTMLElement;
+    canvasRect?: DOMRect;
     getSelectionData?(): CanvasData;
     getData(): CanvasData;
     setData(data: CanvasData): Promise<void> | void;
     requestSave(): Promise<void> | void;
     updateSelection?(selectionUpdater: () => void): void;
+    requestFrame?(): void;
+    setViewport?(tx: number, ty: number, tZoom: number): void;
+    zoomToBbox?(bbox: { minX: number; maxX: number; minY: number; maxY: number }): void;
+    zoomToSelection?(): void;
 }
 
 export interface CanvasView extends View {

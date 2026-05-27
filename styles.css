@@ -1641,6 +1641,14 @@
     animation: canvas-loom-find-pulse 0.48s ease-out;
 }
 
+.canvas-node .canvas-node-content mark.canvas-loom-find-active-match {
+    padding: 0 2px;
+    border-radius: 3px;
+    background: var(--text-highlight-bg);
+    color: var(--text-normal);
+    box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
 @keyframes canvas-loom-find-pulse {
     from {
         box-shadow: 0 0 0 0 var(--interactive-accent);
