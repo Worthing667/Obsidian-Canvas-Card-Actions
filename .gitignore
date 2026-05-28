@@ -5,6 +5,7 @@ main.js
 .env
 .DS_Store
 *.tmp
+AGENTS.md
 CLAUDE.md
 .claude
 .github/

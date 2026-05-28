@@ -373,7 +373,24 @@ export class CanvasSelectionToolbarService {
     }
 
     private isInvalidCardSizeMessage(message: string): boolean {
-        return /^Card size is invalid/.test(message);
+        const templates = [
+            this.translate("errors.invalidCardSize", { width: "__WIDTH__", height: "__HEIGHT__" }),
+            t("errors.invalidCardSize", { width: "__WIDTH__", height: "__HEIGHT__" }, { settings: { language: "en" } }),
+            t("errors.invalidCardSize", { width: "__WIDTH__", height: "__HEIGHT__" }, { settings: { language: "zh-CN" } })
+        ];
+
+        return templates.some((template) => this.matchesInvalidCardSizeTemplate(message, template));
+    }
+
+    private matchesInvalidCardSizeTemplate(message: string, template: string): boolean {
+        const pattern = `^${this.escapeRegExp(template)
+            .replace(/__WIDTH__|__HEIGHT__/g, "[-+]?\\d+(?:\\.\\d+)?")}$`;
+
+        return new RegExp(pattern).test(message);
+    }
+
+    private escapeRegExp(value: string): string {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
     private getActiveCanvas(): Canvas | null {

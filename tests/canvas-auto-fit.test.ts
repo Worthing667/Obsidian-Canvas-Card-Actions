@@ -115,7 +115,7 @@ async function testSkipsEditingCardsDuringFit() {
 
   await assert.rejects(
     () => fitSelectedTextCardsToHeight(canvas([editingNode])),
-    /请先退出卡片编辑状态/
+    /Exit card editing before using auto height/
   );
   assert.deepEqual(calls, []);
 }
@@ -135,7 +135,7 @@ async function testRejectsMixedSelectionWithEditingCardsDuringFit() {
 
   await assert.rejects(
     () => fitSelectedTextCardsToHeight(canvas([editingNode, normalNode])),
-    /请先退出卡片编辑状态/
+    /Exit card editing before using auto height/
   );
   assert.deepEqual(calls, []);
 }
@@ -143,7 +143,7 @@ async function testRejectsMixedSelectionWithEditingCardsDuringFit() {
 async function testRejectsUnsupportedRuntimeNodes() {
   await assert.rejects(
     () => fitSelectedTextCardsToHeight(canvas([node('a')])),
-    /不支持批量自适应高度/
+    /does not support batch auto height/
   );
 }
 

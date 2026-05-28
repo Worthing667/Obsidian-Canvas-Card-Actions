@@ -1,5 +1,7 @@
 # Canvas Loom
 
+Canvas Loom supports English and Simplified Chinese, and automatically switches with the user's Obsidian language setting.
+
 Simplified Chinese documentation is available in [README-ZH.md](./README-ZH.md).
 
 Canvas Loom is an Obsidian Canvas plugin for splitting, sorting, merging, previewing, and cleaning up Canvas text cards.
@@ -8,7 +10,7 @@ It turns scattered Canvas text cards into a repeatable workflow: split long note
 
 ## Language Support
 
-Canvas Loom includes built-in English and Simplified Chinese UI. The default language is **Auto**: Simplified Chinese is used when Obsidian is running in Chinese, and English is used for other Obsidian languages. You can also choose **English** or **Simplified Chinese** manually in the plugin settings.
+The default language is **Auto**: Simplified Chinese is used when Obsidian is running in Chinese, and English is used for other Obsidian languages. You can also choose **English** or **Simplified Chinese** manually in the plugin settings.
 
 ## Hero Demo
 
@@ -42,7 +44,7 @@ Resize cards to fit their text and arrange selected cards with cleaner horizonta
 
 ### Find & Replace in Canvas
 
-Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or the `Ctrl+F` (macOS) hotkey. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
+Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or the `Ctrl+F` (macOS) hotkey. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can jump to matched cards with temporary match highlighting. You can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
 
 ## Screenshots
 
@@ -64,7 +66,7 @@ Search and replace text across all text cards on the current canvas or within a 
 - `Preview card group`
   Load selected text cards into the Loom workspace. Switch between Preview, Sort, and Find & Replace tabs; change sorting; drag-adjust the current order; preview merged output; and export it.
 - `Find & Replace in Canvas`
-  Search across all canvas text cards or within the current selection, with case-sensitive and regex matching. Navigate matches one by one, replace the current match, all matches in a card, or all matches across the canvas.
+  Search across all canvas text cards or within the current selection, with case-sensitive and regex matching. Navigate matches one by one, jump to matched cards with temporary highlighting, replace the current match, all matches in a card, or all matches across the canvas.
 - `Quick copy` / `Quick merge`
   Process selected cards with the default sorting mode from settings.
 - `Add/Edit badge`

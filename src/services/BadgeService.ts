@@ -70,7 +70,7 @@ export class BadgeService implements IBadgeService {
             await this.persistBadgeToCanvas(node, badge);
             new Notice(t("notice.badgeSet", { badge: badgeText }));
         } catch (error) {
-            console.error("设置标记时出错:", error);
+            console.error("Failed to set badge:", error);
             new Notice(t("notice.badgeSetFailed"));
             throw error;
         }
@@ -82,7 +82,7 @@ export class BadgeService implements IBadgeService {
             await this.persistBadgeToCanvas(node, null);
             new Notice(t("notice.badgeRemoved"));
         } catch (error) {
-            console.error("移除标记时出错:", error);
+            console.error("Failed to remove badge:", error);
             new Notice(t("notice.badgeRemoveFailed"));
             throw error;
         }
@@ -150,7 +150,7 @@ export class BadgeService implements IBadgeService {
             new Notice(t("notice.batchBadgesSet", { count: updatedCount }));
             return updatedCount;
         } catch (error) {
-            console.error("批量设置标记时出错:", error);
+            console.error("Failed to set badges in batch:", error);
             new Notice(t("notice.batchBadgesSetFailed"));
             throw error;
         }
@@ -191,7 +191,7 @@ export class BadgeService implements IBadgeService {
             new Notice(t("notice.batchBadgesRemoved", { count: updatedCount }));
             return updatedCount;
         } catch (error) {
-            console.error("批量移除标记时出错:", error);
+            console.error("Failed to remove badges in batch:", error);
             new Notice(t("notice.batchBadgesRemoveFailed"));
             throw error;
         }
@@ -242,7 +242,7 @@ export class BadgeService implements IBadgeService {
             });
             this.appliedBadgesByNodeId.clear();
         } catch (error) {
-            console.error("清理 Canvas 标记显示时出错:", error);
+            console.error("Failed to clear Canvas badge display:", error);
         }
     }
 
@@ -256,7 +256,7 @@ export class BadgeService implements IBadgeService {
             entries.forEach((entry) => this.applyBadgeByNodeId(entry.id, entry.badge));
             this.clearStaleBadgeDom(new Set(entries.map((entry) => entry.id)));
         } catch (error) {
-            console.error("加载画布标记时出错:", error);
+            console.error("Failed to load Canvas badges:", error);
         }
 
         return Promise.resolve();

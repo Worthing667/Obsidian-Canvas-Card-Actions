@@ -51,7 +51,7 @@ export class OpenCardPropertiesCommand {
       }
       
     } catch (error) {
-      console.error("打开卡片属性查看器失败:", error);
+      console.error("Failed to open card properties:", error);
       new Notice(t("notice.openPropertiesFailed", undefined, { settings: this.settings }));
     }
   }
@@ -127,7 +127,7 @@ export class CopyCardDimensionsCommand {
       );
       
     } catch (error) {
-      console.error("复制尺寸信息失败:", error);
+      console.error("Failed to copy card dimensions:", error);
       new Notice(t("notice.copyFailedRetry", undefined, { settings: this.settings }));
     }
   }

@@ -19,13 +19,18 @@ interface DragSortActionContext {
     modal: DragSortModal;
 }
 
+type DragSortMode = "copy" | "merge";
+type DragSortActionTextKey = Parameters<typeof modalT>[1];
+
 interface DragSortAction {
-    text: string;
+    text?: string;
+    textKey?: DragSortActionTextKey;
     cls: string;
     onClick: (context: DragSortActionContext) => Promise<void>;
 }
 
 interface DragSortModalOptions {
+    mode?: DragSortMode;
     title?: string;
     description?: (count: number) => string;
     actions?: DragSortAction[];
@@ -41,16 +46,18 @@ export class DragSortModal extends Modal {
     private readonly descriptionBuilder?: (count: number) => string;
     private readonly actions: DragSortAction[];
     private readonly sortPriority: SortPriority;
+    private readonly mode: DragSortMode;
 
     constructor(app: App, cards: CanvasNode[], options: DragSortModalOptions = {}) {
         super(app);
         this.cards = cards;
+        this.mode = options.mode || "copy";
         this.title = options.title;
         this.descriptionBuilder = options.description;
         this.sortPriority = options.sortPriority || 'yx';
         this.actions = options.actions || [
             {
-                text: this.t("modal.dragSort.copy"),
+                textKey: "modal.dragSort.copy",
                 cls: "drag-sort-btn drag-sort-btn-primary",
                 onClick: async ({ items, modal }) => {
                     const content = items.map((item) => item.text).join("\n\n");
@@ -124,7 +131,7 @@ export class DragSortModal extends Modal {
 
         this.actions.forEach((action) => {
             const actionBtn = footer.createEl("button", {
-                text: this.getActionText(action.text),
+                text: this.getActionText(action),
                 cls: action.cls,
             });
             actionBtn.addEventListener("click", () => {
@@ -238,42 +245,31 @@ export class DragSortModal extends Modal {
     }
 
     private getTitle(): string {
-        if (!this.title || this.title === "\u624b\u52a8\u6392\u5e8f\u590d\u5236") {
-            return this.t("modal.dragSort.defaultTitle");
+        if (this.title) {
+            return this.title;
         }
 
-        if (this.title === "\u624b\u52a8\u6392\u5e8f\u62fc\u5408") {
-            return this.t("modal.dragSort.manualMergeTitle");
-        }
-
-        return this.title;
+        return this.mode === "merge"
+            ? this.t("modal.dragSort.manualMergeTitle")
+            : this.t("modal.dragSort.defaultTitle");
     }
 
     private getDescription(count: number): string {
-        if (!this.descriptionBuilder) {
-            return this.t("modal.dragSort.defaultDescription", { count });
+        if (this.descriptionBuilder) {
+            return this.descriptionBuilder(count);
         }
 
-        if (this.title === "\u624b\u52a8\u6392\u5e8f\u62fc\u5408") {
-            return this.t("modal.dragSort.manualMergeDescription", { count });
-        }
-
-        return this.descriptionBuilder(count);
+        return this.mode === "merge"
+            ? this.t("modal.dragSort.manualMergeDescription", { count })
+            : this.t("modal.dragSort.defaultDescription", { count });
     }
 
-    private getActionText(text: string): string {
-        switch (text) {
-            case "\u590d\u5236":
-                return this.t("modal.dragSort.copy");
-            case "\u6dfb\u52a0\u4e3a\u65b0\u5361\u7247":
-                return this.t("modal.dragSort.addAsCard");
-            case "\u9884\u89c8\u5361\u7247\u7ec4":
-                return this.t("modal.dragSort.previewGroup");
-            case "\u65b0\u5efa\u6587\u7a3f":
-                return this.t("modal.dragSort.newDocument");
-            default:
-                return text;
+    private getActionText(action: DragSortAction): string {
+        if (action.textKey) {
+            return this.t(action.textKey);
         }
+
+        return action.text || "";
     }
 
     private t(key: Parameters<typeof modalT>[1], params?: Parameters<typeof modalT>[2]): string {

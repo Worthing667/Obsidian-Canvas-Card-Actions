@@ -17,8 +17,6 @@ import { renderSearchMatchPreview, type SearchMatchPreviewRange } from "../../ut
 
 export const MERGE_PREVIEW_VIEW_TYPE = "canvas-loom-merge-preview";
 const MERGE_PREVIEW_VIEW_ICON = "panel-right";
-const SEARCH_ERROR_MATCHES_EMPTY = "\u67e5\u627e\u6761\u4ef6\u4e0d\u80fd\u5339\u914d\u7a7a\u5b57\u7b26\u4e32";
-const SEARCH_ERROR_INVALID_REGEX_PREFIX = "\u6b63\u5219\u8868\u8fbe\u5f0f\u65e0\u6548\uff1a";
 
 export type WorkbenchPanel = "sort" | "findReplace" | "preview";
 
@@ -511,7 +509,7 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         if (result.error) {
-            this.findStatusEl.setText(this.localizeSearchError(result.error));
+            this.findStatusEl.setText(result.error);
             this.findStatusEl.addClass("is-error");
             this.findResultListEl.empty();
             this.updateFindActionButtons();
@@ -705,7 +703,7 @@ export class MergeWorkbenchView extends ItemView {
 
     private handleFindReplaceResult(result: ReplaceResult): void {
         if (result.error) {
-            new Notice(this.localizeSearchError(result.error));
+            new Notice(result.error);
             this.renderFindResults();
             return;
         }
@@ -728,20 +726,6 @@ export class MergeWorkbenchView extends ItemView {
             changedNodeCount: result.changedNodeCount
         }));
         this.renderFindResults();
-    }
-
-    private localizeSearchError(error: string): string {
-        if (error === SEARCH_ERROR_MATCHES_EMPTY) {
-            return this.translate("errors.regexCannotMatchEmpty");
-        }
-
-        if (error.startsWith(SEARCH_ERROR_INVALID_REGEX_PREFIX)) {
-            return this.translate("errors.regexInvalid", {
-                message: error.slice(SEARCH_ERROR_INVALID_REGEX_PREFIX.length)
-            });
-        }
-
-        return error;
     }
 
     private refreshWorkbenchSnapshotsFromCanvas(): void {

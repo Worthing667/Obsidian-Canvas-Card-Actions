@@ -3,6 +3,7 @@ import { StorageAdapter } from '../src/adapters/StorageAdapter';
 import type CanvasLoomSettings from '../src/settings/ICanvasLoomSettings';
 
 const DEFAULT_SETTINGS: CanvasLoomSettings = {
+  language: 'auto',
   canvasCardDelimiter: '---',
   insertDelimiterOnMerge: false,
   splitCardsPerRow: 5,

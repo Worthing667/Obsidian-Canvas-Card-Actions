@@ -360,7 +360,7 @@ export class MergeService implements IMergeService {
                     ids.add(nodeData.id);
                 }
             } catch (error) {
-                console.warn("读取选中卡片数据失败:", error);
+                console.warn("Failed to read selected card data:", error);
             }
         });
 
@@ -505,7 +505,7 @@ export class MergeService implements IMergeService {
         try {
             return this.getMergeCleanupMode?.() || fallback || 'keep-source';
         } catch (error) {
-            console.error("读取拼合后处理方式失败:", error);
+            console.error("Failed to read merge cleanup mode:", error);
             return fallback || 'keep-source';
         }
     }

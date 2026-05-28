@@ -96,12 +96,11 @@ export class ManualMergeCommand implements ICommand {
 
     execute(): Promise<void> {
         new DragSortModal(this.app, this.selection, {
-            title: "手动排序拼合",
-            description: (count) => `拖拽卡片调整拼合顺序（共 ${count} 张卡片）`,
+            mode: "merge",
             sortPriority: this.settings.sortPriority,
             actions: [
                 {
-                    text: "添加为新卡片",
+                    textKey: "modal.dragSort.addAsCard",
                     cls: "drag-sort-btn drag-sort-btn-primary",
                     onClick: async ({ nodes, modal }) => {
                         const success = await this.mergeService.mergeToCanvasCard(nodes, {
@@ -115,7 +114,7 @@ export class ManualMergeCommand implements ICommand {
                     }
                 },
                 {
-                    text: "预览卡片组",
+                    textKey: "modal.dragSort.previewGroup",
                     cls: "drag-sort-btn drag-sort-btn-secondary",
                     onClick: async ({ nodes, modal }) => {
                         const success = await this.mergeService.mergeToSidebar(nodes, this.canvasFile, {
@@ -128,7 +127,7 @@ export class ManualMergeCommand implements ICommand {
                     }
                 },
                 {
-                    text: "新建文稿",
+                    textKey: "modal.dragSort.newDocument",
                     cls: "drag-sort-btn drag-sort-btn-secondary",
                     onClick: async ({ nodes, modal }) => {
                         const success = await this.mergeService.mergeToMarkdown(nodes, this.canvasFile, {

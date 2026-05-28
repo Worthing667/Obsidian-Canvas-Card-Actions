@@ -52,7 +52,7 @@ export class ContentService implements IContentService {
                 sortPriority
             }, t("notice.copyByPositionSuccess"));
         } catch (error) {
-            console.error("按位置复制失败:", error);
+            console.error("Failed to copy content by position:", error);
             new Notice(t("notice.copyGenericFailed"));
         }
     }
@@ -66,7 +66,7 @@ export class ContentService implements IContentService {
                 includeBadgePrefix: true
             }, t("notice.copyByBadgeSuccess"));
         } catch (error) {
-            console.error("按标记顺序复制失败:", error);
+            console.error("Failed to copy content by badge order:", error);
             new Notice(t("notice.copyGenericFailed"));
         }
     }
@@ -89,7 +89,7 @@ export class ContentService implements IContentService {
             }
 
         } catch (error) {
-            console.error("复制单卡内容失败:", error);
+            console.error("Failed to copy single card content:", error);
             new Notice(t("notice.copyGenericFailed"));
         }
     }

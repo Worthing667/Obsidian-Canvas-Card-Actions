@@ -9,10 +9,25 @@ export { normalizeLanguageSetting, resolveLanguage } from "./language";
 export type { ResolvedCanvasLoomLanguage } from "./language";
 export type { TranslationKey, TranslationParams } from "./types";
 
+interface TranslationRuntimeContext {
+	getSettings?: () => Partial<CanvasLoomSettings> | undefined;
+	getApp?: () => App | undefined;
+}
+
 const dictionaries: Record<string, TranslationDictionary> = {
 	en: enDictionary,
 	"zh-CN": zhCNDictionary
 };
+
+let runtimeContext: TranslationRuntimeContext = {};
+
+export function configureTranslationRuntimeContext(context: TranslationRuntimeContext): void {
+	runtimeContext = context;
+}
+
+export function clearTranslationRuntimeContext(): void {
+	runtimeContext = {};
+}
 
 function getDictionaryValue(dictionary: TranslationDictionary, key: TranslationKey): string | null {
 	const value = key
@@ -51,7 +66,9 @@ export function t(
 		app?: App;
 	}
 ): string {
-	const language = getCurrentLanguage(options?.settings, options?.app);
+	const settings = options?.settings ?? runtimeContext.getSettings?.();
+	const app = options?.app ?? runtimeContext.getApp?.();
+	const language = getCurrentLanguage(settings, app);
 	const dictionary = dictionaries[language] ?? enDictionary;
 	const value = getDictionaryValue(dictionary, key) ?? getDictionaryValue(enDictionary, key) ?? key;
 

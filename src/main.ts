@@ -1,5 +1,5 @@
 import { Menu, Platform, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
-import CanvasLoomSettings, { DEFAULT_SPLIT_CARDS_PER_ROW } from "./settings/ICanvasLoomSettings";
+import CanvasLoomSettings, { DEFAULT_LANGUAGE, DEFAULT_SPLIT_CARDS_PER_ROW } from "./settings/ICanvasLoomSettings";
 import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
 
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
@@ -39,10 +39,11 @@ import { BadgeStyleManager } from './presentation/styles';
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 import type { Canvas, CanvasNode } from "./types/canvas";
-import { t } from "./i18n";
+import { clearTranslationRuntimeContext, configureTranslationRuntimeContext, t } from "./i18n";
 import type { TranslationKey, TranslationParams } from "./i18n";
 
 const DEFAULT_SETTINGS: CanvasLoomSettings = {
+    language: DEFAULT_LANGUAGE,
     canvasCardDelimiter: '---',
     insertDelimiterOnMerge: false,
     splitCardsPerRow: DEFAULT_SPLIT_CARDS_PER_ROW,
@@ -96,12 +97,16 @@ export default class CanvasLoomPlugin extends Plugin {
         this.vaultAdapter = new VaultAdapter(this.app);
 
         await this.loadSettings();
+        configureTranslationRuntimeContext({
+            getSettings: () => this.settings,
+            getApp: () => this.app
+        });
 
         this.commandRegistry = new CommandRegistry();
         this.badgeStyleManager = new BadgeStyleManager();
         this.performanceService = new PerformanceService(() => this.settings);
         this.badgeRenderScheduler = new BadgeRenderScheduler();
-        this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(this.app);
+        this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(this.app, () => this.settings);
         this.canvasGlobalFindReplaceToolbarService = new CanvasGlobalFindReplaceToolbarService(
             this.app,
             this.performanceService
@@ -403,7 +408,7 @@ export default class CanvasLoomPlugin extends Plugin {
                         performanceService: this.performanceService
                     });
                 } catch (error) {
-                    console.error("加载 Canvas 标记时出错:", error);
+                    console.error("Failed to load Canvas badges:", error);
                 }
             }
         }
@@ -445,7 +450,7 @@ export default class CanvasLoomPlugin extends Plugin {
             const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
             void badgeService.loadCanvasBadges();
         } catch (error) {
-            console.error("刷新 Canvas 标记显示时出错:", error);
+            console.error("Failed to refresh Canvas badge display:", error);
         }
     }
 
@@ -468,7 +473,7 @@ export default class CanvasLoomPlugin extends Plugin {
                 const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
                 badgeService.clearCanvasBadgeDom();
             } catch (error) {
-                console.error("清理 Canvas 标记显示时出错:", error);
+                console.error("Failed to clear Canvas badge display:", error);
             }
         });
     }
@@ -652,6 +657,7 @@ export default class CanvasLoomPlugin extends Plugin {
         activeDocument.body.classList.remove("canvas-loom-card-interaction-active");
         this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
+        clearTranslationRuntimeContext();
     }
 
     private registerHotkeys() {

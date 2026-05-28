@@ -12,7 +12,7 @@ export class ClipboardAdapter implements IClipboardAdapter {
             await navigator.clipboard.writeText(text);
             return true;
         } catch (error) {
-            console.error('复制到剪贴板失败:', error);
+            console.error('Failed to copy to clipboard:', error);
             return false;
         }
     }
@@ -27,7 +27,7 @@ export class ClipboardAdapter implements IClipboardAdapter {
             }
             return success;
         } catch (error) {
-            console.error('复制到剪贴板失败:', error);
+            console.error('Failed to copy to clipboard:', error);
             new Notice(t("notice.clipboardCopyFailedWithMessage", {
                 message: (error as Error).message
             }));

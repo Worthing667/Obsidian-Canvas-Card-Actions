@@ -174,7 +174,7 @@ export class CardService implements ICardService {
 
             new Notice(successMessage);
         } catch (error) {
-            console.error("拆分卡片失败:", error);
+            console.error("Failed to split card:", error);
             new Notice(t("notice.splitFailed"));
         }
     }
@@ -402,7 +402,7 @@ export class CardService implements ICardService {
             }
 
         } catch (error) {
-            console.error("尺寸调整操作失败:", error);
+            console.error("Failed to resize card:", error);
             
             const message = error instanceof Error ? error.message : String(error);
             if (message.includes("Canvas")) {
