@@ -10,6 +10,8 @@ import {
     shouldShowAutoHeightToolbarButton
 } from "./CanvasAutoFitService";
 import { t } from "../i18n";
+import type { TranslationKey, TranslationParams } from "../i18n";
+import type CanvasLoomSettings from "../settings/ICanvasLoomSettings";
 import type { Canvas } from "../types/canvas";
 
 const BUTTON_CLASS = "canvas-loom-arrange-toolbar-button";
@@ -22,9 +24,17 @@ export class CanvasSelectionToolbarService {
     private readonly arrangePreferenceStore: ArrangeSessionPreferenceStore;
 
     constructor(
-        private readonly app: App
+        private readonly app: App,
+        private readonly getSettings?: () => Partial<CanvasLoomSettings>
     ) {
         this.arrangePreferenceStore = new ArrangeSessionPreferenceStore();
+    }
+
+    private translate(key: TranslationKey, params?: TranslationParams): string {
+        return t(key, params, {
+            settings: this.getSettings?.(),
+            app: this.app
+        });
     }
 
     start(): void {
@@ -102,13 +112,13 @@ export class CanvasSelectionToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = `clickable-icon ${AUTO_HEIGHT_BUTTON_CLASS}`;
-        button.setAttribute("aria-label", t("toolbar.autoHeight.label"));
-        button.setAttribute("title", t("toolbar.autoHeight.label"));
+        button.setAttribute("aria-label", this.translate("toolbar.autoHeight.label"));
+        button.setAttribute("title", this.translate("toolbar.autoHeight.label"));
 
         try {
             setIcon(button, "move-vertical");
         } catch {
-            button.textContent = t("toolbar.autoHeight.fallbackText");
+            button.textContent = this.translate("toolbar.autoHeight.fallbackText");
         }
 
         button.addEventListener("click", (event) => {
@@ -125,11 +135,12 @@ export class CanvasSelectionToolbarService {
 
         try {
             const result = await fitSelectedTextCardsToHeight(canvas);
-            new Notice(t("notice.autoHeightDone", { count: result.count }));
+            new Notice(this.translate("notice.autoHeightDone", { count: result.count }));
         } catch (error) {
-            console.error("自适应卡片高度失败:", error);
-            const message = error instanceof Error ? error.message : String(error);
-            new Notice(t("notice.autoHeightFailed", { message }));
+            console.error("Auto height failed:", error);
+            new Notice(this.translate("notice.autoHeightFailed", {
+                message: this.localizeAutoHeightError(error)
+            }));
         } finally {
             button.disabled = false;
         }
@@ -139,13 +150,13 @@ export class CanvasSelectionToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = `clickable-icon ${BUTTON_CLASS}`;
-        button.setAttribute("aria-label", t("toolbar.arrange.label"));
-        button.setAttribute("title", t("toolbar.arrange.label"));
+        button.setAttribute("aria-label", this.translate("toolbar.arrange.label"));
+        button.setAttribute("title", this.translate("toolbar.arrange.label"));
 
         try {
             setIcon(button, "rows-3");
         } catch {
-            button.textContent = t("toolbar.arrange.fallbackText");
+            button.textContent = this.translate("toolbar.arrange.fallbackText");
         }
 
         button.addEventListener("click", (event) => {
@@ -177,8 +188,8 @@ export class CanvasSelectionToolbarService {
         const horizontalInput = this.createSpacingInput(preference.horizontalSpacing);
         const verticalInput = this.createSpacingInput(preference.verticalSpacing);
 
-        popover.appendChild(this.createSpacingRow(t("toolbar.arrange.horizontalSpacing"), horizontalInput, "horizontal", canvas));
-        popover.appendChild(this.createSpacingRow(t("toolbar.arrange.verticalSpacing"), verticalInput, "vertical", canvas));
+        popover.appendChild(this.createSpacingRow(this.translate("toolbar.arrange.horizontalSpacing"), horizontalInput, "horizontal", canvas));
+        popover.appendChild(this.createSpacingRow(this.translate("toolbar.arrange.verticalSpacing"), verticalInput, "vertical", canvas));
 
         return popover;
     }
@@ -208,7 +219,7 @@ export class CanvasSelectionToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = "mod-cta canvas-loom-arrange-axis-button";
-        button.textContent = t("toolbar.arrange.adjust");
+        button.textContent = this.translate("toolbar.arrange.adjust");
         button.addEventListener("click", (event) => {
             event.preventDefault();
             void this.applyArrangement(canvas, input, direction, button);
@@ -240,12 +251,12 @@ export class CanvasSelectionToolbarService {
 
         const spacing = this.parseSpacing(input);
         if (!this.isValidSpacing(spacing)) {
-            new Notice(t("notice.spacingInvalid"));
+            new Notice(this.translate("notice.spacingInvalid"));
             return;
         }
 
         if (spacing === 0) {
-            new Notice(t("notice.spacingZero"));
+            new Notice(this.translate("notice.spacingZero"));
             return;
         }
 
@@ -266,15 +277,16 @@ export class CanvasSelectionToolbarService {
                     ? { horizontalSpacing: spacing }
                     : { verticalSpacing: spacing }),
             });
-            new Notice(t("notice.spacingArranged", {
+            new Notice(this.translate("notice.spacingArranged", {
                 count: result.count,
                 direction: label,
                 spacing
             }));
         } catch (error) {
-            console.error("调整卡片间距失败:", error);
-            const message = error instanceof Error ? error.message : String(error);
-            new Notice(t("notice.spacingFailed", { message }));
+            console.error("Spacing arrangement failed:", error);
+            new Notice(this.translate("notice.spacingFailed", {
+                message: this.localizeArrangementError(error)
+            }));
         } finally {
             button.disabled = false;
         }
@@ -294,9 +306,74 @@ export class CanvasSelectionToolbarService {
     }
 
     private getDirectionLabel(direction: ArrangeDirection): string {
-        return t(direction === "horizontal"
+        return this.translate(direction === "horizontal"
             ? "toolbar.arrange.direction.horizontal"
             : "toolbar.arrange.direction.vertical");
+    }
+
+    private localizeAutoHeightError(error: unknown): string {
+        const message = error instanceof Error ? error.message : String(error);
+
+        if (this.isTranslatedMessage(message, "errors.autoHeightEditing")) {
+            return this.translate("errors.autoHeightEditing");
+        }
+
+        if (this.isTranslatedMessage(message, "errors.autoHeightNoCards")) {
+            return this.translate("errors.autoHeightNoCards");
+        }
+
+        if (this.isTranslatedMessage(message, "errors.autoHeightUnsupported")) {
+            return this.translate("errors.autoHeightUnsupported");
+        }
+
+        return this.translate("errors.canvasOperationFailed");
+    }
+
+    private localizeArrangementError(error: unknown): string {
+        const message = error instanceof Error ? error.message : String(error);
+
+        if (this.isTranslatedMessage(message, "errors.arrangementNeedTwoTextCards")) {
+            return this.translate("errors.arrangementNeedTwoTextCards");
+        }
+
+        if (this.isTranslatedMessage(message, "errors.arrangementInsufficientCards")) {
+            return this.translate("errors.arrangementInsufficientCards");
+        }
+
+        if (this.isSpacingOutOfRangeMessage(message)) {
+            return this.translate("notice.spacingInvalid");
+        }
+
+        if (this.isInvalidCardSizeMessage(message)) {
+            return this.translate("errors.canvasOperationFailed");
+        }
+
+        return this.translate("errors.canvasOperationFailed");
+    }
+
+    private isTranslatedMessage(message: string, key: TranslationKey, params?: TranslationParams): boolean {
+        return [
+            this.translate(key, params),
+            t(key, params, { settings: { language: "en" } }),
+            t(key, params, { settings: { language: "zh-CN" } })
+        ].includes(message);
+    }
+
+    private isSpacingOutOfRangeMessage(message: string): boolean {
+        const labels = [
+            this.translate("toolbar.arrange.horizontalSpacing"),
+            this.translate("toolbar.arrange.verticalSpacing"),
+            t("toolbar.arrange.horizontalSpacing", undefined, { settings: { language: "en" } }),
+            t("toolbar.arrange.verticalSpacing", undefined, { settings: { language: "en" } }),
+            t("toolbar.arrange.horizontalSpacing", undefined, { settings: { language: "zh-CN" } }),
+            t("toolbar.arrange.verticalSpacing", undefined, { settings: { language: "zh-CN" } })
+        ];
+
+        return labels.some((label) => this.isTranslatedMessage(message, "errors.spacingOutOfRange", { label }));
+    }
+
+    private isInvalidCardSizeMessage(message: string): boolean {
+        return /^Card size is invalid/.test(message);
     }
 
     private getActiveCanvas(): Canvas | null {

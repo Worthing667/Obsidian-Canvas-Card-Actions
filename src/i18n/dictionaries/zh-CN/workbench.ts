@@ -5,7 +5,8 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 	title: "Loom工作台",
 	scope: {
 		selection: "当前选区",
-		canvas: "当前画布"
+		canvas: "当前画布",
+		waiting: "等待卡片组"
 	},
 	colorGroup: {
 		sameColor: "同色卡片分组",
@@ -42,6 +43,7 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 		previewReady: "当前内容由工作台顺序生成，输出按钮使用同一份结果。",
 		snapshot: "快照 {count} 张",
 		currentOrder: "当前顺序 {order}",
+		orderDescription: "，{description}",
 		emptyList: "选择多张文本卡片后，使用右键菜单“预览卡片组”载入当前选区。",
 		renderingPreview: "正在生成预览...",
 		emptyPreview: "没有可预览的内容",

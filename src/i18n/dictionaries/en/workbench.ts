@@ -2,7 +2,8 @@ const workbench = {
 	title: "Loom workbench",
 	scope: {
 		selection: "Current selection",
-		canvas: "Current Canvas"
+		canvas: "Current Canvas",
+		waiting: "Waiting for card group"
 	},
 	colorGroup: {
 		sameColor: "Same-color card group",
@@ -39,6 +40,7 @@ const workbench = {
 		previewReady: "The current content is generated from the workbench order; output buttons use the same result.",
 		snapshot: "Snapshot {count} cards",
 		currentOrder: "Current order {order}",
+		orderDescription: ", {description}",
 		emptyList: "Select multiple text cards, then use the right-click menu \"Preview card group\" to load the current selection.",
 		renderingPreview: "Generating preview...",
 		emptyPreview: "No content to preview",

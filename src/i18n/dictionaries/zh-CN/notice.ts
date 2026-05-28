@@ -53,6 +53,7 @@ const notice: WidenTranslationValues<typeof enNotice> = {
 	workbenchCardsAdded: "已向 Loom工作台添加 {addedCount} 张卡片（共 {totalCount} 张）",
 	workbenchCardsRefreshed: "选中卡片已在 Loom工作台中，已刷新 {updatedCount} 张卡片快照",
 	workbenchLoaded: "已在 Loom工作台载入卡片组（{scopeLabel}，{count} 张卡片）",
+	workbenchCleared: "已清空 Loom工作台",
 	workbenchCurrentOrderCopied: "已复制工作台当前顺序的内容",
 	cannotLocateOriginalCanvas: "无法定位原始画布，未能创建新卡片",
 	originalCanvasFileNotFound: "找不到原始画布文件，无法创建文稿",
@@ -63,6 +64,7 @@ const notice: WidenTranslationValues<typeof enNotice> = {
 	spacingArranged: "已调整 {count} 张卡片（{direction} {spacing} px）",
 	spacingFailed: "整理间距失败: {message}",
 	findReplaceNoReplacement: "没有找到可替换的内容",
+	findReplaceNoChange: "命中内容未发生变化",
 	findReplaceCurrentReplaced: "已替换当前命中",
 	findReplaceAllReplaced: "已替换 {changedCount} 处，更新 {changedNodeCount} 张卡片"
 };

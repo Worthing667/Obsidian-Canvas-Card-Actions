@@ -17,6 +17,8 @@ import { renderSearchMatchPreview, type SearchMatchPreviewRange } from "../../ut
 
 export const MERGE_PREVIEW_VIEW_TYPE = "canvas-loom-merge-preview";
 const MERGE_PREVIEW_VIEW_ICON = "panel-right";
+const SEARCH_ERROR_MATCHES_EMPTY = "\u67e5\u627e\u6761\u4ef6\u4e0d\u80fd\u5339\u914d\u7a7a\u5b57\u7b26\u4e32";
+const SEARCH_ERROR_INVALID_REGEX_PREFIX = "\u6b63\u5219\u8868\u8fbe\u5f0f\u65e0\u6548\uff1a";
 
 export type WorkbenchPanel = "sort" | "findReplace" | "preview";
 
@@ -261,7 +263,9 @@ export class MergeWorkbenchView extends ItemView {
         const summary = container.createDiv({ cls: "canvas-loom-workbench-order-summary" });
         const text = summary.createDiv({ cls: "canvas-loom-workbench-order-text" });
         text.createEl("strong", { text: this.getListTitle() });
-        text.createSpan({ text: `, ${this.getSortDescription()}` });
+        text.createSpan({
+            text: this.translate("workbench.panel.orderDescription", { description: this.getSortDescription() })
+        });
 
         const snapshot = summary.createDiv({ cls: "canvas-loom-workbench-snapshot" });
         snapshot.createSpan({
@@ -727,14 +731,13 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private localizeSearchError(error: string): string {
-        if (error === "查找条件不能匹配空字符串") {
+        if (error === SEARCH_ERROR_MATCHES_EMPTY) {
             return this.translate("errors.regexCannotMatchEmpty");
         }
 
-        const invalidRegexPrefix = "正则表达式无效：";
-        if (error.startsWith(invalidRegexPrefix)) {
+        if (error.startsWith(SEARCH_ERROR_INVALID_REGEX_PREFIX)) {
             return this.translate("errors.regexInvalid", {
-                message: error.slice(invalidRegexPrefix.length)
+                message: error.slice(SEARCH_ERROR_INVALID_REGEX_PREFIX.length)
             });
         }
 
@@ -1046,7 +1049,7 @@ export class MergeWorkbenchView extends ItemView {
         const state = this.workbenchService.createState({
             canvasFilePath: null,
             canvasFileBasename: this.translate("workbench.title"),
-            scopeLabel: this.translate("workbench.panel.emptyList"),
+            scopeLabel: this.translate("workbench.scope.waiting"),
             selectionSnapshot: [],
             defaultSortMode: "position",
             sortPriority: "yx",

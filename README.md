@@ -1,12 +1,14 @@
 # Canvas Loom
 
-官方要求介绍必须是英文，中文版介绍请看：[README-ZH.md](./README-ZH.md)
-
-Multi-language versions will be launched in the future, so stay tuned!
+Simplified Chinese documentation is available in [README-ZH.md](./README-ZH.md).
 
 Canvas Loom is an Obsidian Canvas plugin for splitting, sorting, merging, previewing, and cleaning up Canvas text cards.
 
 It turns scattered Canvas text cards into a repeatable workflow: split long notes into cards, sort selected cards by position or badge, preview the merged result, export it, and clean up the layout without leaving Canvas.
+
+## Language Support
+
+Canvas Loom includes built-in English and Simplified Chinese UI. The default language is **Auto**: Simplified Chinese is used when Obsidian is running in Chinese, and English is used for other Obsidian languages. You can also choose **English** or **Simplified Chinese** manually in the plugin settings.
 
 ## Hero Demo
 
@@ -76,6 +78,7 @@ Search and replace text across all text cards on the current canvas or within a 
 
 ## Settings
 
+- `Language`: controls whether the plugin follows Obsidian automatically or uses English / Simplified Chinese explicitly.
 - `Canvas card delimiter`: controls the delimiter used when splitting cards.
 - `Card sorting priority`: controls whether position-based sorting prioritizes vertical or horizontal order.
 - `Quick action sorting mode`: controls the default sorting mode for quick copy and quick merge.
