@@ -1,5 +1,6 @@
 import type { Plugin } from "obsidian";
 import CanvasLoomSettings from "../settings/ICanvasLoomSettings";
+import { normalizeLanguageSetting, t } from "../i18n";
 
 type LegacyStorageData = Partial<CanvasLoomSettings> & {
     mergeDefaultOrder?: CanvasLoomSettings["defaultSortMode"];
@@ -99,8 +100,16 @@ export class StorageAdapter implements IStorageAdapter {
             migratedData.defaultSortMode = migratedData.mergeDefaultOrder;
         }
 
+        migratedData.language = normalizeLanguageSetting(migratedData.language);
         delete migratedData.mergeDefaultOrder;
         return migratedData;
+    }
+
+    private normalizeSettings(settings: CanvasLoomSettings): CanvasLoomSettings {
+        return {
+            ...settings,
+            language: normalizeLanguageSetting(settings.language)
+        };
     }
 
     private hasSettingsData(data: LegacyStorageData): boolean {
@@ -138,7 +147,7 @@ export class StorageAdapter implements IStorageAdapter {
             const mergedData = this.migrateLegacySettings(
                 shouldRestoreBackup ? backupData : { ...backupData, ...pluginData }
             );
-            const settings = Object.assign({}, this.defaultSettings, mergedData);
+            const settings = this.normalizeSettings(Object.assign({}, this.defaultSettings, mergedData));
 
             if (shouldRestoreBackup) {
                 await this.rehydratePluginSettings(settings);
@@ -148,17 +157,18 @@ export class StorageAdapter implements IStorageAdapter {
             return settings;
         } catch (error) {
             console.error("Failed to load settings:", error);
-            return this.defaultSettings;
+            return this.normalizeSettings(this.defaultSettings);
         }
     }
 
     async saveSettings(settings: CanvasLoomSettings): Promise<void> {
+        const normalizedSettings = this.normalizeSettings(settings);
         try {
-            await this.plugin.saveData({ ...settings });
-            this.saveBackupSettings(settings);
+            await this.plugin.saveData({ ...normalizedSettings });
+            this.saveBackupSettings(normalizedSettings);
         } catch (error) {
             console.error("Failed to save settings:", error);
-            throw new Error("保存设置失败");
+            throw new Error(t("errors.saveSettingsFailed", undefined, { settings: normalizedSettings }));
         }
     }
 }

@@ -8,6 +8,10 @@ export class Notice {
 
 export class App {}
 
+export const moment = {
+  locale: () => 'en',
+};
+
 export class TFile {
   path: string;
   basename: string;

@@ -1,11 +1,14 @@
 export type MergeOrderSetting = 'position' | 'badge';
 export type MergeCleanupMode = 'keep-source' | 'delete-source';
+export type CanvasLoomLanguageSetting = 'auto' | 'en' | 'zh-CN';
 
 export const DEFAULT_SPLIT_CARDS_PER_ROW = 5;
 export const MIN_SPLIT_CARDS_PER_ROW = 1;
 export const MAX_SPLIT_CARDS_PER_ROW = 20;
+export const DEFAULT_LANGUAGE: CanvasLoomLanguageSetting = 'auto';
 
 export default interface CanvasLoomSettings {
+	language?: CanvasLoomLanguageSetting;
 	canvasCardDelimiter: string;
 	insertDelimiterOnMerge: boolean;
 	splitCardsPerRow: number;

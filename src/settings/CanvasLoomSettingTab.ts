@@ -1,6 +1,9 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
 import CanvasLoomPlugin from "../main";
+import { normalizeLanguageSetting, t } from "../i18n";
+import type { TranslationKey, TranslationParams } from "../i18n";
 import {
+	type CanvasLoomLanguageSetting,
 	MAX_SPLIT_CARDS_PER_ROW,
 	MIN_SPLIT_CARDS_PER_ROW,
 	type MergeCleanupMode
@@ -19,9 +22,27 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		const translate = (key: TranslationKey, params?: TranslationParams): string => {
+			return t(key, params, {settings: this.plugin.settings, app: this.app});
+		};
+
 		new Setting(containerEl)
-			.setName('设置画布卡片分隔符')
-			.setDesc('输入用于拆分单张画布卡片的分隔符，也可在拼合时作为卡片分隔线')
+			.setName(translate("settings.language.name"))
+			.setDesc(translate("settings.language.desc"))
+			.addDropdown(dropdown => dropdown
+				.addOption("auto", translate("settings.language.option.auto"))
+				.addOption("en", translate("settings.language.option.en"))
+				.addOption("zh-CN", translate("settings.language.option.zhCN"))
+				.setValue(normalizeLanguageSetting(this.plugin.settings.language))
+				.onChange(async (value: CanvasLoomLanguageSetting) => {
+					this.plugin.settings.language = normalizeLanguageSetting(value);
+					await this.plugin.saveSettings();
+					this.display();
+				}));
+
+		new Setting(containerEl)
+			.setName(translate("settings.canvasCardDelimiter.name"))
+			.setDesc(translate("settings.canvasCardDelimiter.desc"))
 			.addText(text => text
 				.setPlaceholder('---')
 				.setValue(this.plugin.settings.canvasCardDelimiter)
@@ -31,8 +52,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('拼合时插入分隔线')
-			.setDesc('开启后，一键复制、拼合、新建文稿和工作台输出会在相邻卡片之间插入当前分隔符')
+			.setName(translate("settings.insertDelimiterOnMerge.name"))
+			.setDesc(translate("settings.insertDelimiterOnMerge.desc"))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.insertDelimiterOnMerge)
 				.onChange(async (value) => {
@@ -41,8 +62,11 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('拆分后每行卡片数')
-			.setDesc(`控制单张卡片拆分后每行最多排列多少张卡片，包含原卡片。超过数量后会自动换到下一行，并按卡片高度和间距下移。请输入 ${MIN_SPLIT_CARDS_PER_ROW}-${MAX_SPLIT_CARDS_PER_ROW} 的整数。`)
+			.setName(translate("settings.splitCardsPerRow.name"))
+			.setDesc(translate("settings.splitCardsPerRow.desc", {
+				min: MIN_SPLIT_CARDS_PER_ROW,
+				max: MAX_SPLIT_CARDS_PER_ROW
+			}))
 			.addText(text => {
 				text.inputEl.type = 'number';
 				text.inputEl.min = String(MIN_SPLIT_CARDS_PER_ROW);
@@ -65,11 +89,11 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName('设置卡片排序优先级')
-			.setDesc('选择多张卡片按位置排序时的阅读走向')
+			.setName(translate("settings.sortPriority.name"))
+			.setDesc(translate("settings.sortPriority.desc"))
 			.addDropdown(dropdown => dropdown
-				.addOption('yx', '倒 N 排序（从上到下，再从左到右）')
-				.addOption('xy', 'Z 字排序（从左到右，再从上到下）')
+				.addOption('yx', translate("settings.sortPriority.option.yx"))
+				.addOption('xy', translate("settings.sortPriority.option.xy"))
 				.setValue(this.plugin.settings.sortPriority)
 				.onChange(async (value: 'yx' | 'xy') => {
 					this.plugin.settings.sortPriority = value;
@@ -77,8 +101,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('启用标记显示')
-			.setDesc('在画布卡片右上角显示数字标记，关闭后不会删除已有标记')
+			.setName(translate("settings.enableBadges.name"))
+			.setDesc(translate("settings.enableBadges.desc"))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enableBadges)
 				.onChange(async (value) => {
@@ -86,8 +110,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('连线显示在卡片上方')
-			.setDesc('空闲时让 Canvas 连线显示在普通卡片上方；选中或编辑卡片时会临时让卡片压过连线，避免影响文字编辑。不修改 Canvas 文件')
+			.setName(translate("settings.showEdgesAboveCards.name"))
+			.setDesc(translate("settings.showEdgesAboveCards.desc"))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showEdgesAboveCards)
 				.onChange(async (value) => {
@@ -95,8 +119,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('连线标签和 Group 标题不跟随画布缩放')
-			.setDesc('开启后使用 Advanced Canvas 同款缩放补偿，让连线标签和 Group 标题在缩放时保持可读大小')
+			.setName(translate("settings.disableCanvasLabelFontSizeRelativeToZoom.name"))
+			.setDesc(translate("settings.disableCanvasLabelFontSizeRelativeToZoom.desc"))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.disableCanvasLabelFontSizeRelativeToZoom)
 				.onChange(async (value) => {
@@ -104,11 +128,11 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('一键排序方式')
-			.setDesc('设置一键复制、一键拼合默认按位置还是按标记处理')
+			.setName(translate("settings.defaultSortMode.name"))
+			.setDesc(translate("settings.defaultSortMode.desc"))
 			.addDropdown(dropdown => dropdown
-				.addOption('position', '按位置顺序')
-				.addOption('badge', '按标记顺序')
+				.addOption('position', translate("settings.defaultSortMode.option.position"))
+				.addOption('badge', translate("settings.defaultSortMode.option.badge"))
 				.setValue(this.plugin.settings.defaultSortMode)
 				.onChange(async (value: 'position' | 'badge') => {
 					this.plugin.settings.defaultSortMode = value;
@@ -116,11 +140,11 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('拼合后处理方式')
-			.setDesc('设置一键拼合后是否保留原卡片')
+			.setName(translate("settings.mergeCleanupMode.name"))
+			.setDesc(translate("settings.mergeCleanupMode.desc"))
 			.addDropdown(dropdown => dropdown
-				.addOption('keep-source', '拼合后新建卡片（保留原卡片）')
-				.addOption('delete-source', '拼合后新建并删除原卡片')
+				.addOption('keep-source', translate("settings.mergeCleanupMode.option.keepSource"))
+				.addOption('delete-source', translate("settings.mergeCleanupMode.option.deleteSource"))
 				.setValue(this.plugin.settings.mergeCleanupMode)
 				.onChange(async (value: MergeCleanupMode) => {
 					this.plugin.settings.mergeCleanupMode = value;
@@ -128,8 +152,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('启用 Canvas 性能模式')
-			.setDesc('减少 Canvas-Loom 在大型 Canvas 中的附加渲染开销')
+			.setName(translate("settings.enablePerformanceMode.name"))
+			.setDesc(translate("settings.enablePerformanceMode.desc"))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enablePerformanceMode)
 				.onChange(async (value) => {
@@ -137,8 +161,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('启用性能诊断日志')
-			.setDesc('在开发者控制台输出 Canvas-Loom 操作耗时和节点统计')
+			.setName(translate("settings.enablePerformanceDiagnostics.name"))
+			.setDesc(translate("settings.enablePerformanceDiagnostics.desc"))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.enablePerformanceDiagnostics)
 				.onChange(async (value) => {
@@ -147,8 +171,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('大 Canvas 判定数量')
-			.setDesc('节点数达到该值后，标记加载会分批处理')
+			.setName(translate("settings.largeCanvasNodeThreshold.name"))
+			.setDesc(translate("settings.largeCanvasNodeThreshold.desc"))
 			.addText(text => text
 				.setPlaceholder('80')
 				.setValue(String(this.plugin.settings.largeCanvasNodeThreshold))
@@ -163,8 +187,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('标记刷新延迟')
-			.setDesc('控制标记显示刷新的等待时间，单位毫秒')
+			.setName(translate("settings.badgeUpdateDebounceMs.name"))
+			.setDesc(translate("settings.badgeUpdateDebounceMs.desc"))
 			.addText(text => text
 				.setPlaceholder('150')
 				.setValue(String(this.plugin.settings.badgeUpdateDebounceMs))
