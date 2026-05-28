@@ -1,7 +1,7 @@
 {
 	"id": "canvas-loom",
 	"name": "Canvas Loom",
-	"version": "1.6.3",
+	"version": "1.7.0",
 	"minAppVersion": "0.16.0",
 	"description": "Split, sort, merge, preview, and clean up Obsidian Canvas cards. Supports English and Simplified Chinese.",
 	"author": "沃辛",
