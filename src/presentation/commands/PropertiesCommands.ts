@@ -4,13 +4,16 @@ import { SingleCardPropertiesModal } from "../modals/SingleCardPropertiesModal";
 import { CardService } from "../../services/CardService";
 import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
 import type { CanvasNode } from "../../types/canvas";
+import { t } from "../../i18n";
+import type CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
 
 export class OpenCardPropertiesCommand {
   constructor(
     private app: App,
     private cardService: CardService,
     private selection: CanvasNode[],
-    private clipboardAdapter: ClipboardAdapter
+    private clipboardAdapter: ClipboardAdapter,
+    private settings?: Partial<CanvasLoomSettings>
   ) {}
 
   execute(): Promise<void> {
@@ -32,7 +35,7 @@ export class OpenCardPropertiesCommand {
       });
       
       if (textCards.length === 0) {
-        new Notice("请选择至少一个文本卡片");
+        new Notice(t("notice.selectAtLeastOneTextCard", undefined, { settings: this.settings }));
         return;
       }
       
@@ -49,7 +52,7 @@ export class OpenCardPropertiesCommand {
       
     } catch (error) {
       console.error("打开卡片属性查看器失败:", error);
-      new Notice("打开属性查看器失败，请重试");
+      new Notice(t("notice.openPropertiesFailed", undefined, { settings: this.settings }));
     }
   }
 
@@ -72,14 +75,15 @@ export class OpenCardPropertiesCommand {
   }
 
   getDescription(): string {
-    return "查看卡片属性";
+    return t("commands.viewCardProperties", undefined, { settings: this.settings });
   }
 }
 
 // 另一个实用命令：快速复制卡片尺寸到剪贴板
 export class CopyCardDimensionsCommand {
   constructor(
-    private selection: CanvasNode[]
+    private selection: CanvasNode[],
+    private settings?: Partial<CanvasLoomSettings>
   ) {}
 
   execute(): Promise<void> {
@@ -94,7 +98,7 @@ export class CopyCardDimensionsCommand {
       });
       
       if (textCards.length === 0) {
-        new Notice("请选择至少一个文本卡片");
+        new Notice(t("notice.selectAtLeastOneTextCard", undefined, { settings: this.settings }));
         return;
       }
       
@@ -110,18 +114,21 @@ export class CopyCardDimensionsCommand {
       // 构建复制内容
       let copyText = "";
       if (uniqueDimensions.length === 1) {
-        copyText = `统一尺寸: ${uniqueDimensions[0]}`;
+        copyText = t("commands.cardDimensionsUniform", { dimensions: uniqueDimensions[0] }, { settings: this.settings });
       } else {
-        copyText = `尺寸列表:\n${uniqueDimensions.join('\n')}`;
+        copyText = t("commands.cardDimensionsList", { dimensions: uniqueDimensions.join('\n') }, { settings: this.settings });
       }
       
       // 复制到剪贴板
       const clipboardAdapter = new ClipboardAdapter();
-      await clipboardAdapter.writeTextWithNotice(copyText, `已复制 ${textCards.length} 个卡片的尺寸信息`);
+      await clipboardAdapter.writeTextWithNotice(
+        copyText,
+        t("notice.cardDimensionsCopied", { count: textCards.length }, { settings: this.settings })
+      );
       
     } catch (error) {
       console.error("复制尺寸信息失败:", error);
-      new Notice("复制失败，请重试");
+      new Notice(t("notice.copyFailedRetry", undefined, { settings: this.settings }));
     }
   }
 
@@ -134,6 +141,6 @@ export class CopyCardDimensionsCommand {
   }
 
   getDescription(): string {
-    return "复制卡片尺寸";
+    return t("commands.copyCardDimensions", undefined, { settings: this.settings });
   }
 }

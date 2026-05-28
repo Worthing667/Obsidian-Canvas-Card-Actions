@@ -1,6 +1,7 @@
 import { App, Modal } from "obsidian";
 import { HeadingSplitOption, ICardService } from "../../services/CardService";
 import type { CanvasNode } from "../../types/canvas";
+import { modalT } from "./modalI18n";
 
 interface SplitActionOption {
     title: string;
@@ -28,19 +29,19 @@ export class SplitCardModal extends Modal {
         contentEl.empty();
         contentEl.addClass("cca-split-modal");
 
-        contentEl.createEl("h2", { text: "拆分卡片" });
+        contentEl.createEl("h2", { text: this.t("modal.split.title") });
 
         const nodeText = this.node?.getData?.()?.text ?? "";
         const summary = contentEl.createDiv({ cls: "cca-split-summary" });
-        summary.setText(`为当前卡片选择一种拆分方式。内容长度 ${nodeText.length} 个字符。`);
+        summary.setText(this.t("modal.split.summary", { count: nodeText.length }));
 
         if (this.options.length === 0) {
             const emptyState = contentEl.createDiv({ cls: "cca-split-empty" });
-            emptyState.setText("当前卡片没有可用的拆分方式。请先添加分隔符或 Markdown 标题。");
+            emptyState.setText(this.t("modal.split.empty"));
 
             const footer = contentEl.createDiv({ cls: "cca-action-footer" });
             const closeButton = footer.createEl("button", {
-                text: "关闭",
+                text: this.t("modal.common.close"),
                 cls: "cca-btn cca-btn-primary"
             });
             closeButton.addEventListener("click", () => this.close());
@@ -71,7 +72,7 @@ export class SplitCardModal extends Modal {
 
         const footer = contentEl.createDiv({ cls: "cca-action-footer" });
         const cancelButton = footer.createEl("button", {
-            text: "取消",
+            text: this.t("modal.common.cancel"),
             cls: "cca-btn cca-btn-secondary"
         });
         cancelButton.addEventListener("click", () => this.close());
@@ -86,22 +87,22 @@ export class SplitCardModal extends Modal {
     private buildOptions(): void {
         const text = this.node?.getData?.()?.text ?? "";
         const delimiterParts = this.getDelimiterPartCount(text);
-        const delimiterText = this.delimiter.trim() || "(未设置)";
+        const delimiterText = this.delimiter.trim() || this.t("modal.split.unsetDelimiter");
         this.options.push({
-            title: "按分隔符拆分",
+            title: this.t("modal.split.byDelimiter.title"),
             description: delimiterParts > 1
-                ? `使用分隔符“${delimiterText}”拆成 ${delimiterParts} 张卡片。`
-                : `当前未检测到可用分隔符“${delimiterText}”。`,
+                ? this.t("modal.split.byDelimiter.available", { delimiter: delimiterText, count: delimiterParts })
+                : this.t("modal.split.byDelimiter.unavailable", { delimiter: delimiterText }),
             disabled: delimiterParts <= 1,
             onChoose: async () => this.cardService.splitCard(this.node, this.delimiter)
         });
 
         const blankLineParts = this.getBlankLinePartCount(text);
         this.options.push({
-            title: "按空行拆分",
+            title: this.t("modal.split.byBlankLine.title"),
             description: blankLineParts > 1
-                ? `按段落之间的空行拆成 ${blankLineParts} 张卡片。`
-                : "当前未检测到可用于拆分的空行。",
+                ? this.t("modal.split.byBlankLine.available", { count: blankLineParts })
+                : this.t("modal.split.byBlankLine.unavailable"),
             disabled: blankLineParts <= 1,
             onChoose: async () => this.cardService.splitCardByBlankLine(this.node, this.delimiter)
         });
@@ -109,8 +110,8 @@ export class SplitCardModal extends Modal {
         const headingOptions = this.cardService.getAvailableHeadingSplitOptions(this.node);
         if (headingOptions.length === 0) {
             this.options.push({
-                title: "按标题拆分",
-                description: "当前未检测到可用于拆分的 Markdown 标题层级。",
+                title: this.t("modal.split.byHeading.title"),
+                description: this.t("modal.split.byHeading.unavailable"),
                 disabled: true,
                 onChoose: async () => Promise.resolve()
             });
@@ -125,8 +126,8 @@ export class SplitCardModal extends Modal {
     private createHeadingOption(option: HeadingSplitOption): SplitActionOption {
         const levelLabel = this.getHeadingLevelLabel(option.level);
         return {
-            title: `按${levelLabel}标题拆分`,
-            description: `拆成 ${option.cardCount} 张卡片，更深层标题会保留在所属卡片中。`,
+            title: this.t("modal.split.byHeading.optionTitle", { levelLabel }),
+            description: this.t("modal.split.byHeading.optionDescription", { count: option.cardCount }),
             onChoose: async () => this.cardService.splitCardByHeadingLevel(this.node, option.level)
         };
     }
@@ -148,8 +149,20 @@ export class SplitCardModal extends Modal {
     }
 
     private getHeadingLevelLabel(level: number): string {
-        const labels = ["一级", "二级", "三级", "四级", "五级", "六级"];
-        return labels[level - 1] ?? `${level}级`;
+        const labels = [
+            "modal.split.headingLevel.one",
+            "modal.split.headingLevel.two",
+            "modal.split.headingLevel.three",
+            "modal.split.headingLevel.four",
+            "modal.split.headingLevel.five",
+            "modal.split.headingLevel.six"
+        ] as const;
+        const key = labels[level - 1];
+        return key ? this.t(key) : this.t("modal.split.headingLevel.fallback", { level });
+    }
+
+    private t(key: Parameters<typeof modalT>[1], params?: Parameters<typeof modalT>[2]): string {
+        return modalT(this.app, key, params);
     }
 
 }

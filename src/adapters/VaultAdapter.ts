@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
 import { normalizePath, TFile } from "obsidian";
+import { t } from "../i18n";
 
 export interface IVaultAdapter {
     createMergedDocument(content: string, canvasFile: TFile, baseName: string): Promise<TFile>;
@@ -36,7 +37,7 @@ export class VaultAdapter implements IVaultAdapter {
     private sanitizeFileName(name: string): string {
         const trimmed = (name || '').trim();
         if (!trimmed) {
-            return '卡片合并';
+            return t("workbench.fileName.mergedCards");
         }
 
         return trimmed.replace(/[\\/:*?"<>|]/g, '-');

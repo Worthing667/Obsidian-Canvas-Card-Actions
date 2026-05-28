@@ -1,10 +1,13 @@
 import type { CanvasNode } from "../../types/canvas";
+import { t } from "../../i18n";
+import type CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
 import { ICommand } from "./ICommand";
 
 export class OpenBadgeModalCommand implements ICommand {
     constructor(
         private openModal: (node: CanvasNode) => Promise<void>,
-        private node: CanvasNode
+        private node: CanvasNode,
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     async execute(): Promise<void> {
@@ -16,7 +19,7 @@ export class OpenBadgeModalCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "编辑标记";
+        return t("commands.editBadge", undefined, { settings: this.settings });
     }
 }
 
@@ -24,7 +27,8 @@ export class OpenBatchBadgeModalCommand implements ICommand {
     constructor(
         private openModal: (nodes: CanvasNode[]) => Promise<void>,
         private selection: CanvasNode[],
-        private canEditSelection: (nodes: CanvasNode[]) => boolean
+        private canEditSelection: (nodes: CanvasNode[]) => boolean,
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     async execute(): Promise<void> {
@@ -36,6 +40,6 @@ export class OpenBatchBadgeModalCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "批量编辑标记";
+        return t("commands.batchEditBadge", undefined, { settings: this.settings });
     }
 }

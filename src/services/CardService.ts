@@ -1,6 +1,7 @@
 import { CardData, Position } from "../domain/models/Card";
 import { CanvasNodeData } from "../domain/models/CanvasData";
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
+import { t } from "../i18n";
 import { Notice } from "obsidian";
 import { PerformanceService } from "./PerformanceService";
 import { arrangeSelectedTextCards } from "./CanvasArrangementService";
@@ -51,7 +52,7 @@ export class CardService implements ICardService {
             const text = nodeData.text;
 
             if (!text || !delimiter?.trim()) {
-                new Notice("卡片中未找到分隔符。");
+                new Notice(t("notice.splitDelimiterNotFound"));
                 return;
             }
 
@@ -63,11 +64,11 @@ export class CardService implements ICardService {
             });
 
             if (parts.length <= 1) {
-                new Notice("没有可拆分的内容。");
+                new Notice(t("notice.splitNoContent"));
                 return;
             }
 
-            await this.applySplit(nodeData, parts, `卡片已拆分为 ${parts.length} 张卡片`);
+            await this.applySplit(nodeData, parts, t("notice.splitByDelimiterSuccess", { count: parts.length }));
         });
     }
 
@@ -77,7 +78,7 @@ export class CardService implements ICardService {
             const text = nodeData.text;
 
             if (!text) {
-                new Notice("当前卡片没有可用于按空行拆分的内容。");
+                new Notice(t("notice.splitBlankLineNoContent"));
                 return;
             }
 
@@ -89,11 +90,11 @@ export class CardService implements ICardService {
             });
 
             if (parts.length <= 1) {
-                new Notice("当前卡片无法按空行拆分。");
+                new Notice(t("notice.splitBlankLineCannotSplit"));
                 return;
             }
 
-            await this.applySplit(nodeData, parts, `卡片已按空行拆分为 ${parts.length} 张卡片`);
+            await this.applySplit(nodeData, parts, t("notice.splitByBlankLineSuccess", { count: parts.length }));
         });
     }
 
@@ -103,7 +104,7 @@ export class CardService implements ICardService {
             const text = nodeData.text;
 
             if (!text || level < 1 || level > 6) {
-                new Notice("当前卡片没有可用于按标题拆分的内容。");
+                new Notice(t("notice.splitHeadingNoContent"));
                 return;
             }
 
@@ -116,11 +117,11 @@ export class CardService implements ICardService {
             });
 
             if (parts.length <= 1) {
-                new Notice(`当前卡片无法按 ${level} 级标题拆分。`);
+                new Notice(t("notice.splitHeadingCannotSplit", { level }));
                 return;
             }
 
-            await this.applySplit(nodeData, parts, `卡片已按 ${level} 级标题拆分为 ${parts.length} 张卡片`);
+            await this.applySplit(nodeData, parts, t("notice.splitByHeadingSuccess", { level, count: parts.length }));
         });
     }
 
@@ -174,7 +175,7 @@ export class CardService implements ICardService {
             new Notice(successMessage);
         } catch (error) {
             console.error("拆分卡片失败:", error);
-            new Notice("拆分卡片失败，请查看控制台了解详情");
+            new Notice(t("notice.splitFailed"));
         }
     }
 
@@ -338,7 +339,7 @@ export class CardService implements ICardService {
         const textNodes = nodes.filter(node => node.getData().type === "text");
         
         if (textNodes.length === 0) {
-            throw new Error("没有选中文本卡片");
+            throw new Error(t("errors.noSelectedTextCards"));
         }
 
         const sizes = textNodes.map(node => {
@@ -364,15 +365,15 @@ export class CardService implements ICardService {
         const startedAt = performance.now();
         
         if (textNodes.length === 0) {
-            throw new Error("没有找到可调整的文本卡片");
+            throw new Error(t("errors.noResizableTextCards"));
         }
 
         // 验证尺寸合理性
         if (targetWidth !== undefined && (targetWidth < 50 || targetWidth > 2000)) {
-            throw new Error("宽度超出合理范围(50-2000像素)");
+            throw new Error(t("errors.widthOutOfRange"));
         }
         if (targetHeight !== undefined && (targetHeight < 50 || targetHeight > 2000)) {
-            throw new Error("高度超出合理范围(50-2000像素)");
+            throw new Error(t("errors.heightOutOfRange"));
         }
 
         try {
@@ -405,11 +406,11 @@ export class CardService implements ICardService {
             
             const message = error instanceof Error ? error.message : String(error);
             if (message.includes("Canvas")) {
-                throw new Error("画布操作失败，请刷新页面后重试");
+                throw new Error(t("errors.canvasOperationFailed"));
             } else if (message.includes("save")) {
-                throw new Error("保存失败，请检查文件权限");
+                throw new Error(t("errors.saveFailedCheckPermissions"));
             } else {
-                throw new Error(`操作失败：${message}`);
+                throw new Error(t("errors.operationFailedWithMessage", { message }));
             }
         }
     }
@@ -436,7 +437,11 @@ export class CardService implements ICardService {
             targetHeight = targetSize.height;
         }
 
-        const msg = `已统一 ${nodes.filter(n => n.getData().type === "text").length} 个卡片尺寸为 ${targetWidth}×${targetHeight}`;
+        const msg = t("notice.unifiedCardSize", {
+            count: nodes.filter(n => n.getData().type === "text").length,
+            width: targetWidth,
+            height: targetHeight
+        });
         await this.applyDimensionChange(nodes, targetWidth, targetHeight, msg);
     }
 
@@ -445,7 +450,7 @@ export class CardService implements ICardService {
      */
     async unifyCardWidth(nodes: CanvasNode[], targetWidth: number): Promise<void> {
         const count = nodes.filter(n => n.getData().type === "text").length;
-        const msg = `已统一 ${count} 个卡片宽度为 ${targetWidth}px，高度保持不变`;
+        const msg = t("notice.unifiedCardWidth", { count, width: targetWidth });
         await this.applyDimensionChange(nodes, targetWidth, undefined, msg);
     }
 
@@ -454,7 +459,7 @@ export class CardService implements ICardService {
      */
     async unifyCardHeight(nodes: CanvasNode[], targetHeight: number): Promise<void> {
         const count = nodes.filter(n => n.getData().type === "text").length;
-        const msg = `已统一 ${count} 个卡片高度为 ${targetHeight}px，宽度保持不变`;
+        const msg = t("notice.unifiedCardHeight", { count, height: targetHeight });
         await this.applyDimensionChange(nodes, undefined, targetHeight, msg);
     }
 
@@ -477,7 +482,13 @@ export class CardService implements ICardService {
             durationMs: Math.round((performance.now() - startedAt) * 100) / 100
         });
 
-        const dirLabel = options.direction === 'horizontal' ? '水平' : '垂直';
-        new Notice(`已调整 ${result.count} 张卡片（${dirLabel}，间距 ${options.spacing} px）`);
+        const direction = t(options.direction === 'horizontal'
+            ? "toolbar.arrange.direction.horizontal"
+            : "toolbar.arrange.direction.vertical");
+        new Notice(t("notice.arrangedCards", {
+            count: result.count,
+            direction,
+            spacing: options.spacing
+        }));
     }
 }

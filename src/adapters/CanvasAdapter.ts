@@ -1,4 +1,5 @@
 import { CanvasData, CanvasDataModel, CanvasNodeData } from "../domain/models/CanvasData";
+import { t } from "../i18n";
 import type { Canvas, CanvasNode } from "../types/canvas";
 
 export interface CanvasDiagnostics {
@@ -39,7 +40,7 @@ export class CanvasAdapter implements ICanvasAdapter {
             return data || { nodes: [], edges: [] };
         } catch (error) {
             console.error("Failed to get canvas data:", error);
-            throw new Error("无法获取画布数据");
+            throw new Error(t("errors.canvasGetDataFailed"));
         }
     }
 
@@ -54,7 +55,7 @@ export class CanvasAdapter implements ICanvasAdapter {
             });
         } catch (error) {
             console.error("Failed to set canvas data:", error);
-            throw new Error("无法设置画布数据");
+            throw new Error(t("errors.canvasSetDataFailed"));
         }
     }
 
@@ -85,7 +86,7 @@ export class CanvasAdapter implements ICanvasAdapter {
             applySelection();
         } catch (error) {
             console.error("Failed to replace selection:", error);
-            throw new Error("无法更新画布选区");
+            throw new Error(t("errors.canvasSelectionUpdateFailed"));
         }
     }
 
@@ -142,7 +143,7 @@ export class CanvasAdapter implements ICanvasAdapter {
             });
         } catch (error) {
             console.error("Failed to request save:", error);
-            throw new Error("保存画布失败");
+            throw new Error(t("errors.canvasSaveFailed"));
         }
     }
 

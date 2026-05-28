@@ -4,6 +4,7 @@ import { IClipboardAdapter } from "../adapters/ClipboardAdapter";
 import { BadgeData } from "../domain/models/Badge";
 import { IBadgeService } from "./BadgeService";
 import { formatMergedCardsContent } from "./MergedContentFormatter";
+import { t } from "../i18n";
 import { Notice } from "obsidian";
 import type { CardSnapshot } from "../types/WorkbenchState";
 import type { CanvasNode } from "../types/canvas";
@@ -49,10 +50,10 @@ export class ContentService implements IContentService {
                 selection,
                 order: 'position',
                 sortPriority
-            }, '已按位置顺序复制卡片内容');
+            }, t("notice.copyByPositionSuccess"));
         } catch (error) {
             console.error("按位置复制失败:", error);
-            new Notice("复制失败，请查看控制台了解详情");
+            new Notice(t("notice.copyGenericFailed"));
         }
     }
 
@@ -63,10 +64,10 @@ export class ContentService implements IContentService {
                 order: 'badge',
                 sortPriority,
                 includeBadgePrefix: true
-            }, '已按标记顺序复制卡片内容');
+            }, t("notice.copyByBadgeSuccess"));
         } catch (error) {
             console.error("按标记顺序复制失败:", error);
-            new Notice("复制失败，请查看控制台了解详情");
+            new Notice(t("notice.copyGenericFailed"));
         }
     }
 
@@ -74,22 +75,22 @@ export class ContentService implements IContentService {
         try {
             const nodeData = node.getData();
             if (!nodeData.text) {
-                new Notice("卡片内容为空");
+                new Notice(t("notice.singleCardEmpty"));
                 return;
             }
 
             const success = await this.clipboardAdapter.writeTextWithNotice(
                 nodeData.text,
-                "卡片内容已复制到剪贴板"
+                t("notice.singleCardCopied")
             );
 
             if (!success) {
-                throw new Error("复制到剪贴板失败");
+                throw new Error(t("notice.clipboardCopyFailed"));
             }
 
         } catch (error) {
             console.error("复制单卡内容失败:", error);
-            new Notice("复制失败，请查看控制台了解详情");
+            new Notice(t("notice.copyGenericFailed"));
         }
     }
 
@@ -97,13 +98,16 @@ export class ContentService implements IContentService {
         const result = await this.buildMergedContent(options);
 
         if (result.count === 0) {
-            new Notice("没有选中任何文本卡片");
+            new Notice(t("notice.copyNoSelectedTextCards"));
             return false;
         }
 
         return this.clipboardAdapter.writeTextWithNotice(
             result.content,
-            `${successNotice}（共 ${result.count} 张卡片）`
+            t("notice.copyMergedSuccessWithCount", {
+                message: successNotice,
+                count: result.count
+            })
         );
     }
 

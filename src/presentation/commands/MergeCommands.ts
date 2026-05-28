@@ -5,6 +5,7 @@ import { IMergeService } from "../../services/MergeService";
 import CanvasLoomSettings, { resolveMergeCardSeparator } from "../../settings/ICanvasLoomSettings";
 import { DragSortModal } from "../modals/DragSortModal";
 import type { CanvasNode } from "../../types/canvas";
+import { t } from "../../i18n";
 
 export class MergeToCanvasCardCommand implements ICommand {
     constructor(
@@ -28,7 +29,7 @@ export class MergeToCanvasCardCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '合并 → 新建卡片';
+        return t("commands.mergeToCanvasCard", undefined, { settings: this.settings });
     }
 }
 
@@ -54,7 +55,7 @@ export class MergeToSidebarPreviewCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '预览选中卡片组（展开结果）';
+        return t("commands.mergeToSidebarPreview", undefined, { settings: this.settings });
     }
 }
 
@@ -80,7 +81,7 @@ export class MergeToMarkdownCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '合并 → 新建文稿';
+        return t("commands.mergeToMarkdown", undefined, { settings: this.settings });
     }
 }
 
@@ -149,6 +150,6 @@ export class ManualMergeCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '手动排序拼合';
+        return t("commands.manualMerge", undefined, { settings: this.settings });
     }
 }

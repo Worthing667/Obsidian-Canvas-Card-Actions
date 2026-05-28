@@ -3,12 +3,15 @@ import { ICommand } from "./ICommand";
 import { ICardService } from "../../services/CardService";
 import { SplitCardModal } from "../modals/SplitCardModal";
 import type { CanvasNode } from "../../types/canvas";
+import { t } from "../../i18n";
+import type CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
 
 export class SplitCardCommand implements ICommand {
     constructor(
         private cardService: ICardService,
         private node: CanvasNode,
-        private delimiter: string
+        private delimiter: string,
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     async execute(): Promise<void> {
@@ -20,7 +23,7 @@ export class SplitCardCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "按分隔符拆分卡片";
+        return t("commands.splitCardByDelimiter", undefined, { settings: this.settings });
     }
 }
 
@@ -29,7 +32,8 @@ export class OpenSplitCardModalCommand implements ICommand {
         private app: App,
         private cardService: ICardService,
         private node: CanvasNode,
-        private delimiter: string
+        private delimiter: string,
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     execute(): Promise<void> {
@@ -43,6 +47,6 @@ export class OpenSplitCardModalCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "拆分卡片";
+        return t("commands.splitCard", undefined, { settings: this.settings });
     }
 }

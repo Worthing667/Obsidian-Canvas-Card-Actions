@@ -2,6 +2,7 @@ import { App, Modal } from 'obsidian';
 import { BadgeData } from '../../domain/models/Badge';
 import { IBadgeService } from '../../services/BadgeService';
 import type { CanvasNode } from '../../types/canvas';
+import { modalT } from './modalI18n';
 
 export class BadgeModal extends Modal {
     private currentBadge: string;
@@ -19,39 +20,39 @@ export class BadgeModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
 
-        contentEl.createEl("h2", { text: "设置排序标记" });
+        contentEl.createEl("h2", { text: this.t("modal.badge.title") });
 
         const inputContainer = contentEl.createDiv();
         inputContainer.addClass("canvas-loom-badge-input-container");
-        inputContainer.createEl("label", { text: "排序标记（仅支持数字）：" });
+        inputContainer.createEl("label", { text: this.t("modal.badge.label") });
 
         const input = inputContainer.createEl("input", {
             type: "text",
             value: this.currentBadge,
-            placeholder: "例如：1、2.1、10.3.2"
+            placeholder: this.t("modal.badge.placeholder")
         });
         input.addClass("canvas-loom-badge-input");
 
         const hint = contentEl.createDiv({ cls: "canvas-loom-badge-hint" });
-        hint.setText("提示：排序标记会自动保存在画布文件中");
+        hint.setText(this.t("modal.badge.hint"));
 
         const validation = contentEl.createDiv({ cls: "canvas-loom-badge-validation" });
 
         const buttonContainer = contentEl.createDiv({ cls: "canvas-loom-badge-actions" });
 
-        const removeButton = buttonContainer.createEl("button", { text: "移除标记" });
+        const removeButton = buttonContainer.createEl("button", { text: this.t("modal.badge.remove") });
         removeButton.addEventListener("click", () => {
             void this.setBadge("").then(() => {
                 this.close();
             });
         });
 
-        const cancelButton = buttonContainer.createEl("button", { text: "取消" });
+        const cancelButton = buttonContainer.createEl("button", { text: this.t("modal.common.cancel") });
         cancelButton.addEventListener("click", () => {
             this.close();
         });
 
-        const confirmButton = buttonContainer.createEl("button", { text: "确定" });
+        const confirmButton = buttonContainer.createEl("button", { text: this.t("modal.common.confirm") });
         confirmButton.addClass("mod-cta");
         confirmButton.addEventListener("click", () => {
             if (!this.validateInput(input.value, validation, confirmButton)) {
@@ -91,20 +92,20 @@ export class BadgeModal extends Modal {
 
         if (!value) {
             validationEl.addClass("is-muted");
-            validationEl.setText("留空可移除，或直接使用“移除标记”。");
+            validationEl.setText(this.t("modal.badge.validation.empty"));
             confirmButton.disabled = false;
             return true;
         }
 
         if (BadgeData.isValidContent(value)) {
             validationEl.addClass("is-muted");
-            validationEl.setText("支持层级序号，例如 1、2.1、10.3.2。");
+            validationEl.setText(this.t("modal.badge.validation.valid"));
             confirmButton.disabled = false;
             return true;
         }
 
         validationEl.addClass("is-error");
-        validationEl.setText("只支持数字序号，格式如 1、2、2.1。");
+        validationEl.setText(this.t("modal.badge.validation.invalid"));
         confirmButton.disabled = true;
         return false;
     }
@@ -117,8 +118,12 @@ export class BadgeModal extends Modal {
                 await this.badgeService.removeBadge(this.node);
             }
         } catch (error) {
-            console.error("设置标记时出错:", error);
+            console.error("Failed to set badge:", error);
         }
+    }
+
+    private t(key: Parameters<typeof modalT>[1], params?: Parameters<typeof modalT>[2]): string {
+        return modalT(this.app, key, params);
     }
 
     onClose() {

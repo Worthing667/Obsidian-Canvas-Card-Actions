@@ -4,11 +4,14 @@ import { IContentService } from "../../services/ContentService";
 import { SortPriority } from "../../domain/strategies";
 import { DragSortModal } from "../modals/DragSortModal";
 import type { CanvasNode } from "../../types/canvas";
+import { t } from "../../i18n";
+import type CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
 
 export class CopySingleCardCommand implements ICommand {
     constructor(
         private contentService: IContentService,
-        private node: CanvasNode
+        private node: CanvasNode,
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     async execute(): Promise<void> {
@@ -20,7 +23,7 @@ export class CopySingleCardCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "复制卡片内容";
+        return t("commands.copyCardContent", undefined, { settings: this.settings });
     }
 }
 
@@ -28,7 +31,8 @@ export class CopyByPositionCommand implements ICommand {
     constructor(
         private contentService: IContentService,
         private selection: CanvasNode[],
-        private sortPriority: SortPriority = 'yx'
+        private sortPriority: SortPriority = 'yx',
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     async execute(): Promise<void> {
@@ -40,7 +44,7 @@ export class CopyByPositionCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "按位置复制内容";
+        return t("commands.copyContentByPosition", undefined, { settings: this.settings });
     }
 }
 
@@ -48,7 +52,8 @@ export class CopyByBadgeOrderCommand implements ICommand {
     constructor(
         private contentService: IContentService,
         private selection: CanvasNode[],
-        private sortPriority: SortPriority = 'yx'
+        private sortPriority: SortPriority = 'yx',
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     async execute(): Promise<void> {
@@ -60,7 +65,7 @@ export class CopyByBadgeOrderCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "按标记顺序复制内容";
+        return t("commands.copyContentByBadgeOrder", undefined, { settings: this.settings });
     }
 }
 
@@ -68,7 +73,8 @@ export class CopyByManualOrderCommand implements ICommand {
     constructor(
         private app: App,
         private selection: CanvasNode[],
-        private sortPriority: SortPriority = 'yx'
+        private sortPriority: SortPriority = 'yx',
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     execute(): Promise<void> {
@@ -81,6 +87,6 @@ export class CopyByManualOrderCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "手动排序复制";
+        return t("commands.copyByManualOrder", undefined, { settings: this.settings });
     }
 }

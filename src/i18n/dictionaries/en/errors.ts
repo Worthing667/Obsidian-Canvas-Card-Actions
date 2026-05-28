@@ -1,5 +1,32 @@
 const errors = {
-	saveSettingsFailed: "Failed to save settings"
+	saveSettingsFailed: "Failed to save settings",
+	canvasGetDataFailed: "Failed to get Canvas data",
+	canvasSetDataFailed: "Failed to set Canvas data",
+	canvasSelectionUpdateFailed: "Failed to update Canvas selection",
+	canvasSaveFailed: "Failed to save Canvas",
+	noSelectedTextCards: "No text cards selected",
+	noResizableTextCards: "No resizable text cards found",
+	widthOutOfRange: "Width must be between 50 and 2000 px",
+	heightOutOfRange: "Height must be between 50 and 2000 px",
+	canvasOperationFailed: "Canvas operation failed. Refresh the page and try again.",
+	saveFailedCheckPermissions: "Save failed. Check file permissions.",
+	operationFailedWithMessage: "Operation failed: {message}",
+	invalidBadgeFormat: "Badges only support numeric outlines, such as 1, 2, or 2.1",
+	batchBadgeCountMismatch: "The number of badges does not match the number of cards",
+	badgeNodeNotFound: "No badgeable node was found in the Canvas data",
+	badgeRemovalNodeNotFound: "No removable badge node was found in the Canvas data",
+	nodeNotFoundInCanvasData: "Node not found in Canvas data",
+	createSidebarViewFailed: "Failed to create the sidebar view",
+	workbenchViewInitFailed: "The Loom workbench view did not initialize",
+	regexCannotMatchEmpty: "The search pattern cannot match an empty string",
+	regexInvalid: "Invalid regular expression: {message}",
+	autoHeightEditing: "Exit card editing before using auto height",
+	autoHeightNoCards: "Select at least one card that can use auto height",
+	autoHeightUnsupported: "This Obsidian version does not support batch auto height",
+	spacingOutOfRange: "{label} must be between 0 and 500 px",
+	arrangementNeedTwoTextCards: "Select at least two text cards to arrange spacing",
+	arrangementInsufficientCards: "Not enough card data was found in the Canvas",
+	invalidCardSize: "Card size is invalid (width: {width}, height: {height}); spacing could not be arranged"
 } as const;
 
 export default errors;

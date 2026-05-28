@@ -1,5 +1,6 @@
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { PositionSortStrategy } from "../domain/strategies";
+import { t } from "../i18n";
 import type { CardSnapshot } from "../types/WorkbenchState";
 import type { CanvasNodeData } from "../types/canvas";
 
@@ -387,13 +388,13 @@ export class SearchReplaceService {
         try {
             const pattern = new RegExp(source, flags);
             if (this.canMatchEmptyString(pattern)) {
-                return { pattern: null, error: "查找条件不能匹配空字符串" };
+                return { pattern: null, error: t("errors.regexCannotMatchEmpty") };
             }
 
             return { pattern };
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            return { pattern: null, error: `正则表达式无效：${message}` };
+            return { pattern: null, error: t("errors.regexInvalid", { message }) };
         }
     }
 

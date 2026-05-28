@@ -4,6 +4,7 @@ import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
 import { PositionSortStrategy } from "../../domain/strategies/PositionSort";
 import { validateDimension } from "../../utils/dimensionUtils";
 import type { CanvasNode, DimensionStats } from "../../types/canvas";
+import { modalT } from "./modalI18n";
 
 interface CardInfo {
   id: string;
@@ -60,10 +61,10 @@ export class CardPropertiesModal extends Modal {
     contentEl.addClass("canvas-loom-card-properties-modal");
     
     // 标题
-    contentEl.createEl("h2", { text: "卡片属性" });
+    contentEl.createEl("h2", { text: this.t("modal.properties.title") });
     contentEl.createDiv({
       cls: "cl-subtitle",
-      text: `已选中 ${this.cardInfos.length} 张卡片，可批量查看与调整尺寸。`
+      text: this.t("modal.properties.subtitle", { count: this.cardInfos.length })
     });
 
     // 统计信息
@@ -89,19 +90,30 @@ export class CardPropertiesModal extends Modal {
 
     // 已选中
     const countItem = statsSection.createDiv({ cls: "summary-item" });
-    countItem.createDiv({ cls: "summary-label", text: "已选中" });
-    countItem.createDiv({ cls: "summary-value", text: `${stats.count} 张卡片` });
-    countItem.createDiv({ cls: "summary-note", text: "按位置排序" });
+    countItem.createDiv({ cls: "summary-label", text: this.t("modal.properties.summary.selected") });
+    countItem.createDiv({ cls: "summary-value", text: this.t("modal.properties.summary.selectedValue", { count: stats.count }) });
+    countItem.createDiv({ cls: "summary-note", text: this.t("modal.properties.summary.sortedByPosition") });
 
     // 尺寸
     const sizeItem = statsSection.createDiv({ cls: "summary-item" });
-    sizeItem.createDiv({ cls: "summary-label", text: "尺寸" });
-    sizeItem.createDiv({ cls: "summary-value", text: `宽 ${stats.minWidth}–${stats.maxWidth} px` });
-    sizeItem.createDiv({ cls: "summary-note", text: `高 ${stats.minHeight}–${stats.maxHeight}，平均 ${stats.avgWidth} × ${stats.avgHeight}` });
+    sizeItem.createDiv({ cls: "summary-label", text: this.t("modal.properties.summary.size") });
+    sizeItem.createDiv({
+      cls: "summary-value",
+      text: this.t("modal.properties.summary.widthRange", { min: stats.minWidth, max: stats.maxWidth })
+    });
+    sizeItem.createDiv({
+      cls: "summary-note",
+      text: this.t("modal.properties.summary.heightAverage", {
+        min: stats.minHeight,
+        max: stats.maxHeight,
+        avgWidth: stats.avgWidth,
+        avgHeight: stats.avgHeight
+      })
+    });
 
     // 位置
     const positionItem = statsSection.createDiv({ cls: "summary-item" });
-    positionItem.createDiv({ cls: "summary-label", text: "位置" });
+    positionItem.createDiv({ cls: "summary-label", text: this.t("modal.properties.summary.position") });
     positionItem.createDiv({ cls: "summary-value", text: `X ${stats.minX}–${stats.maxX}` });
     positionItem.createDiv({ cls: "summary-note", text: `Y ${stats.minY}–${stats.maxY}` });
   }
@@ -111,8 +123,8 @@ export class CardPropertiesModal extends Modal {
 
     // Section header
     const sectionHeader = tableContainer.createDiv({ cls: "cl-section-header" });
-    sectionHeader.createEl("h3", { cls: "cl-section-title", text: "卡片列表" });
-    sectionHeader.createDiv({ cls: "cl-section-meta", text: `${this.cardInfos.length} items` });
+    sectionHeader.createEl("h3", { cls: "cl-section-title", text: this.t("modal.properties.list.title") });
+    sectionHeader.createDiv({ cls: "cl-section-meta", text: this.t("modal.properties.list.meta", { count: this.cardInfos.length }) });
     
     // 创建表格
     const table = tableContainer.createEl("table");
@@ -122,10 +134,10 @@ export class CardPropertiesModal extends Modal {
     const headerRow = thead.createEl("tr");
     
     headerRow.createEl("th", { text: "#", cls: "col-index" });
-    headerRow.createEl("th", { text: "预览", cls: "col-preview" });
-    headerRow.createEl("th", { text: "尺寸", cls: "col-size" });
-    headerRow.createEl("th", { text: "位置", cls: "col-position" });
-        headerRow.createEl("th", { text: "标记", cls: "col-badge" });
+    headerRow.createEl("th", { text: this.t("modal.properties.list.preview"), cls: "col-preview" });
+    headerRow.createEl("th", { text: this.t("modal.properties.list.size"), cls: "col-size" });
+    headerRow.createEl("th", { text: this.t("modal.properties.list.position"), cls: "col-position" });
+    headerRow.createEl("th", { text: this.t("modal.properties.list.badge"), cls: "col-badge" });
     
     // 创建表体
     const tbody = table.createEl("tbody");
@@ -141,9 +153,9 @@ export class CardPropertiesModal extends Modal {
       const previewCell = row.createEl("td", { cls: "col-preview" });
       const previewSpan = previewCell.createEl("span", { 
         cls: "preview-text",
-        text: info.text || "[空]"
+        text: info.text || this.t("modal.common.emptyCard")
       });
-      previewSpan.setAttribute("title", info.text || "空卡片");
+      previewSpan.setAttribute("title", info.text || this.t("modal.common.emptyCardTitle"));
       
       // 尺寸
       row.createEl("td", { text: `${info.width}×${info.height}`, cls: "col-size" });
@@ -169,40 +181,40 @@ export class CardPropertiesModal extends Modal {
 
     // Section header
     const sectionHeader = operationsSection.createDiv({ cls: "cl-section-header" });
-    sectionHeader.createEl("h3", { cls: "cl-section-title", text: "批量调整" });
-    sectionHeader.createDiv({ cls: "cl-section-meta", text: "预设会填入下方尺寸" });
+    sectionHeader.createEl("h3", { cls: "cl-section-title", text: this.t("modal.properties.batch.title") });
+    sectionHeader.createDiv({ cls: "cl-section-meta", text: this.t("modal.properties.batch.meta") });
 
     // 尺寸预设
-    operationsSection.createDiv({ cls: "editor-label", text: "尺寸预设" });
+    operationsSection.createDiv({ cls: "editor-label", text: this.t("modal.properties.batch.presets") });
     const presetRow = operationsSection.createDiv({ cls: "preset-row" });
 
-    const minSizeBtn = presetRow.createEl("button", { text: "最小尺寸", cls: "preset-btn" });
-    const maxSizeBtn = presetRow.createEl("button", { text: "最大尺寸", cls: "preset-btn" });
-    const avgSizeBtn = presetRow.createEl("button", { text: "平均尺寸", cls: "preset-btn" });
+    const minSizeBtn = presetRow.createEl("button", { text: this.t("modal.properties.batch.minSize"), cls: "preset-btn" });
+    const maxSizeBtn = presetRow.createEl("button", { text: this.t("modal.properties.batch.maxSize"), cls: "preset-btn" });
+    const avgSizeBtn = presetRow.createEl("button", { text: this.t("modal.properties.batch.avgSize"), cls: "preset-btn" });
 
     // 自定义尺寸
-    operationsSection.createDiv({ cls: "editor-label", text: "自定义尺寸" });
+    operationsSection.createDiv({ cls: "editor-label", text: this.t("modal.properties.batch.customSize") });
     const dimensionRow = operationsSection.createDiv({ cls: "dimension-row" });
 
     // 宽度
     const widthField = dimensionRow.createDiv({ cls: "field" });
-    widthField.createEl("label", { text: "宽度" });
+    widthField.createEl("label", { text: this.t("modal.common.width") });
     const widthInputWrap = widthField.createDiv({ cls: "input-with-unit" });
     this.widthInput = widthInputWrap.createEl("input", {
       type: "number",
       value: "",
-      attr: { min: "50", max: "2000", placeholder: "不修改" }
+      attr: { min: "50", max: "2000", placeholder: this.t("modal.properties.batch.noChange") }
     });
     widthInputWrap.createSpan({ cls: "unit", text: "px" });
 
     // 高度
     const heightField = dimensionRow.createDiv({ cls: "field" });
-    heightField.createEl("label", { text: "高度" });
+    heightField.createEl("label", { text: this.t("modal.common.height") });
     const heightInputWrap = heightField.createDiv({ cls: "input-with-unit" });
     this.heightInput = heightInputWrap.createEl("input", {
       type: "number",
       value: "",
-      attr: { min: "50", max: "2000", placeholder: "不修改" }
+      attr: { min: "50", max: "2000", placeholder: this.t("modal.properties.batch.noChange") }
     });
     heightInputWrap.createSpan({ cls: "unit", text: "px" });
 
@@ -210,12 +222,12 @@ export class CardPropertiesModal extends Modal {
     const aspectToggleLabel = dimensionRow.createEl("label", { cls: "ratio-toggle" });
     this.aspectToggle = aspectToggleLabel.createEl("input", { type: "checkbox" });
     aspectToggleLabel.createSpan({ cls: "ratio-icon", text: "🔗" });
-    aspectToggleLabel.createSpan({ text: "锁定比例" });
+    aspectToggleLabel.createSpan({ text: this.t("modal.common.aspectRatio") });
 
     // Hint
     operationsSection.createDiv({
       cls: "editor-hint",
-      text: "留空表示不修改该维度。有效范围：50–2000 px。"
+      text: this.t("modal.properties.batch.hint")
     });
 
     // 预设按钮：只填输入框，不立即执行
@@ -308,43 +320,58 @@ export class CardPropertiesModal extends Modal {
     const footerLeft = actionFooter.createDiv({ cls: "footer-left" });
 
     const copyAllSizesBtn = footerLeft.createEl("button", {
-      text: "复制尺寸",
+      text: this.t("modal.properties.copy.size"),
       cls: "cl-btn cl-btn-secondary"
     });
     copyAllSizesBtn.addEventListener("click", () => {
       const sizeList = this.cardInfos.map((card, index) =>
         `${index + 1}. ${card.width} × ${card.height} px`
       ).join('\n');
-      const sizeInfo = `批量卡片尺寸 (${this.cardInfos.length}张):\n${sizeList}`;
+      const sizeInfo = `${this.t("modal.properties.copy.sizeHeader", { count: this.cardInfos.length })}\n${sizeList}`;
       const clipboardAdapter = new ClipboardAdapter();
-      void clipboardAdapter.writeTextWithNotice(sizeInfo, "所有卡片尺寸已复制到剪贴板");
+      void clipboardAdapter.writeTextWithNotice(sizeInfo, this.t("modal.properties.notice.sizesCopied"));
     });
 
     const copyStatsBtn = footerLeft.createEl("button", {
-      text: "复制摘要",
+      text: this.t("modal.properties.copy.summary"),
       cls: "cl-btn cl-btn-secondary"
     });
     copyStatsBtn.addEventListener("click", () => {
       const stats = this.calculateStatistics();
-      const statsInfo = `卡片统计信息:
-数量: ${stats.count}张
-尺寸范围: 宽 ${stats.minWidth}-${stats.maxWidth}px, 高 ${stats.minHeight}-${stats.maxHeight}px
-平均尺寸: ${stats.avgWidth} × ${stats.avgHeight}px
-位置范围: X: ${stats.minX}-${stats.maxX}, Y: ${stats.minY}-${stats.maxY}`;
+      const statsInfo = [
+        this.t("modal.properties.copy.statsHeader"),
+        this.t("modal.properties.copy.statsCount", { count: stats.count }),
+        this.t("modal.properties.copy.statsSizeRange", {
+          minWidth: stats.minWidth,
+          maxWidth: stats.maxWidth,
+          minHeight: stats.minHeight,
+          maxHeight: stats.maxHeight
+        }),
+        this.t("modal.properties.copy.statsAverage", {
+          avgWidth: stats.avgWidth,
+          avgHeight: stats.avgHeight
+        }),
+        this.t("modal.properties.copy.statsPositionRange", {
+          minX: stats.minX,
+          maxX: stats.maxX,
+          minY: stats.minY,
+          maxY: stats.maxY
+        })
+      ].join("\n");
       const clipboardAdapter = new ClipboardAdapter();
-      void clipboardAdapter.writeTextWithNotice(statsInfo, "统计信息已复制到剪贴板");
+      void clipboardAdapter.writeTextWithNotice(statsInfo, this.t("modal.properties.notice.statsCopied"));
     });
 
     const footerRight = actionFooter.createDiv({ cls: "footer-right" });
 
     const cancelBtn = footerRight.createEl("button", {
-      text: "取消",
+      text: this.t("modal.common.cancel"),
       cls: "cl-btn cl-btn-ghost"
     });
     cancelBtn.addEventListener("click", () => this.close());
 
     const applyBtn = footerRight.createEl("button", {
-      text: "应用更改",
+      text: this.t("modal.common.applyChanges"),
       cls: "cl-btn cl-btn-primary"
     });
     applyBtn.addEventListener("click", () => {
@@ -378,21 +405,21 @@ export class CardPropertiesModal extends Modal {
       await this.cardService.unifyCardSizes(this.cards, size);
       this.close();
     } catch (error) {
-      console.error("统一尺寸失败:", error);
+      console.error("Failed to resize cards:", error);
       const message = error instanceof Error ? error.message : String(error);
-      new Notice("统一尺寸失败: " + message);
+      new Notice(this.t("modal.properties.notice.unifyFailed", { message }));
     }
   }
 
   private async unifyToCustomSize(width: number, height: number): Promise<void> {
     try {
       await this.cardService.unifyCardSizes(this.cards, { width, height });
-      new Notice(`已将所有卡片统一为 ${width}×${height}`);
+      new Notice(this.t("modal.properties.notice.unified", { width, height }));
       this.close();
     } catch (error) {
-      console.error("统一尺寸失败:", error);
+      console.error("Failed to resize cards:", error);
       const message = error instanceof Error ? error.message : String(error);
-      new Notice("统一尺寸失败: " + message);
+      new Notice(this.t("modal.properties.notice.unifyFailed", { message }));
     }
   }
 
@@ -425,13 +452,13 @@ export class CardPropertiesModal extends Modal {
         width = Math.round(height * aspectRatio);
         this.widthInput.value = width.toString();
       } else if (!width && !height) {
-        new Notice("请至少输入宽度或高度中的一个值");
+        new Notice(this.t("modal.properties.notice.requireWidthOrHeight"));
         return;
       }
       
       // 验证计算后的值
       if (!width || !height || !this.validateDimension(width) || !this.validateDimension(height)) {
-        new Notice("计算得出的尺寸值超出有效范围（50-2000像素）");
+        new Notice(this.t("modal.properties.notice.calculatedOutOfRange"));
         return;
       }
       
@@ -444,25 +471,25 @@ export class CardPropertiesModal extends Modal {
         if (this.validateDimension(width) && this.validateDimension(height)) {
           await this.unifyToCustomSize(width, height);
         } else {
-          new Notice("尺寸值必须在 50-2000 像素范围内");
+          new Notice(this.t("modal.properties.notice.sizeOutOfRange"));
         }
       } else if (width && !height) {
         // 只输入宽度：统一宽度，保持各自高度
         if (this.validateDimension(width)) {
           await this.unifyWidthOnly(width);
         } else {
-          new Notice("宽度值必须在 50-2000 像素范围内");
+          new Notice(this.t("modal.properties.notice.widthOutOfRange"));
         }
       } else if (!width && height) {
         // 只输入高度：统一高度，保持各自宽度
         if (this.validateDimension(height)) {
           await this.unifyHeightOnly(height);
         } else {
-          new Notice("高度值必须在 50-2000 像素范围内");
+          new Notice(this.t("modal.properties.notice.heightOutOfRange"));
         }
       } else {
         // 都没输入
-        new Notice("请输入要调整的宽度和/或高度");
+        new Notice(this.t("modal.properties.notice.enterSize"));
       }
     }
   }
@@ -473,9 +500,9 @@ export class CardPropertiesModal extends Modal {
       await this.cardService.unifyCardWidth(this.cards, width);
       this.close();
     } catch (error) {
-      console.error("统一宽度失败:", error);
+      console.error("Failed to update card widths:", error);
       const message = error instanceof Error ? error.message : String(error);
-      new Notice("统一宽度失败: " + message);
+      new Notice(this.t("modal.properties.notice.widthFailed", { message }));
     }
   }
 
@@ -485,14 +512,18 @@ export class CardPropertiesModal extends Modal {
       await this.cardService.unifyCardHeight(this.cards, height);
       this.close();
     } catch (error) {
-      console.error("统一高度失败:", error);
+      console.error("Failed to update card heights:", error);
       const message = error instanceof Error ? error.message : String(error);
-      new Notice("统一高度失败: " + message);
+      new Notice(this.t("modal.properties.notice.heightFailed", { message }));
     }
   }
 
   private validateDimension(value: number): boolean {
     return validateDimension(value);
+  }
+
+  private t(key: Parameters<typeof modalT>[1], params?: Parameters<typeof modalT>[2]): string {
+    return modalT(this.app, key, params);
   }
 
   onClose(): void {

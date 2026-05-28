@@ -3,6 +3,7 @@ import { ICommand } from "./ICommand";
 import { IMergeService } from "../../services/MergeService";
 import CanvasLoomSettings, { resolveMergeCardSeparator } from "../../settings/ICanvasLoomSettings";
 import type { CanvasNode } from "../../types/canvas";
+import { t } from "../../i18n";
 
 export class OpenFindReplaceWorkbenchCommand implements ICommand {
     constructor(
@@ -26,6 +27,6 @@ export class OpenFindReplaceWorkbenchCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "查找替换 Canvas 卡片";
+        return t("commands.findReplaceCanvasCards", undefined, { settings: this.settings });
     }
 }

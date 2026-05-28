@@ -1,4 +1,5 @@
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
+import { t } from "../i18n";
 import type { CanvasNodeData, CanvasNode } from "../types/canvas";
 
 export interface ColorGroupResult {
@@ -85,14 +86,14 @@ export class ColorGroupService implements IColorGroupService {
 
     private buildScopeLabel(colors: Array<string | null>): string {
         if (colors.length === 0) {
-            return "同色卡片分组";
+            return t("workbench.colorGroup.sameColor");
         }
 
         if (colors.length === 1) {
-            return colors[0] ? "同色卡片分组" : "无颜色卡片";
+            return colors[0] ? t("workbench.colorGroup.sameColor") : t("workbench.colorGroup.noColor");
         }
 
-        return `同色卡片分组（${colors.length} 类）`;
+        return t("workbench.colorGroup.multipleColors", { count: colors.length });
     }
 
     private normalizeColor(color: unknown): string | null {

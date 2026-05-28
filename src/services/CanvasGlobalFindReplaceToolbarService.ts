@@ -6,6 +6,7 @@ import type { Canvas } from "../types/canvas";
 import type { CanvasDiagnostics } from "../adapters/CanvasAdapter";
 import { renderSearchMatchPreview } from "../utils/SearchMatchPreview";
 import { findNthTextMatchIndex } from "../utils/TextMatchLocator";
+import { t } from "../i18n";
 
 const BUTTON_CLASS = "canvas-loom-global-fr-button";
 const PANEL_CLASS = "canvas-loom-global-fr-panel";
@@ -146,13 +147,13 @@ export class CanvasGlobalFindReplaceToolbarService {
 
     private openForContext(context: ActiveCanvasContext | null, focusQuery: boolean): boolean {
         if (!context) {
-            new Notice("请在打开画布文件时使用查找替换");
+            new Notice(t("searchReplace.openInCanvasNotice"));
             return false;
         }
 
         const service = this.createSearchReplaceService(context.canvas);
         if (!service.hasTextCards()) {
-            new Notice("当前画布没有可查找的文本卡片");
+            new Notice(t("notice.noSearchableTextCards"));
             return false;
         }
 
@@ -352,13 +353,13 @@ export class CanvasGlobalFindReplaceToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = `clickable-icon ${BUTTON_CLASS}`;
-        button.setAttribute("aria-label", "查找替换当前画布");
-        button.setAttribute("title", "查找替换当前画布");
+        button.setAttribute("aria-label", t("searchReplace.button.open"));
+        button.setAttribute("title", t("searchReplace.button.open"));
 
         try {
             setIcon(button, "search");
         } catch {
-            button.textContent = "查";
+            button.textContent = t("searchReplace.button.fallbackText");
         }
 
         button.addEventListener("click", (event) => {
@@ -403,7 +404,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         const queryWrap = queryRow.createDiv({ cls: "canvas-loom-global-fr-query" });
         this.queryInput = queryWrap.createEl("input", {
             type: "text",
-            placeholder: "查找当前画布"
+            placeholder: t("searchReplace.input.queryPlaceholder")
         });
         this.queryInput.value = this.query;
         this.queryInput.addEventListener("input", () => {
@@ -429,13 +430,13 @@ export class CanvasGlobalFindReplaceToolbarService {
         const navRow = panel.createDiv({ cls: "canvas-loom-global-fr-row canvas-loom-global-fr-nav-row" });
         this.countEl = navRow.createDiv({ cls: "canvas-loom-global-fr-count" });
 
-        this.previousButton = this.createIconButton(navRow, "arrow-up", "上一个", () => {
+        this.previousButton = this.createIconButton(navRow, "arrow-up", t("searchReplace.button.previous"), () => {
             this.selectPreviousMatch(context.canvas);
         });
-        this.nextButton = this.createIconButton(navRow, "arrow-down", "下一个", () => {
+        this.nextButton = this.createIconButton(navRow, "arrow-down", t("searchReplace.button.next"), () => {
             this.selectNextMatch(context.canvas);
         });
-        const replaceToggle = this.createIconButton(navRow, "replace", "替换", () => {
+        const replaceToggle = this.createIconButton(navRow, "replace", t("searchReplace.button.replace"), () => {
             this.replaceExpanded = !this.replaceExpanded;
             this.renderForContext(context);
             if (this.replaceExpanded) {
@@ -443,13 +444,13 @@ export class CanvasGlobalFindReplaceToolbarService {
             }
         });
         replaceToggle.toggleClass("is-active", this.replaceExpanded);
-        this.createIconButton(navRow, "x", "关闭", () => this.close());
+        this.createIconButton(navRow, "x", t("searchReplace.button.close"), () => this.close());
 
         if (this.replaceExpanded) {
             const replaceInputRow = panel.createDiv({ cls: "canvas-loom-global-fr-row canvas-loom-global-fr-replace-input-row" });
             this.replacementInput = replaceInputRow.createEl("input", {
                 type: "text",
-                placeholder: "替换为"
+                placeholder: t("searchReplace.input.replacementPlaceholder")
             });
             this.replacementInput.value = this.replacement;
             this.replacementInput.addEventListener("input", () => {
@@ -464,20 +465,20 @@ export class CanvasGlobalFindReplaceToolbarService {
 
             const replaceActionRow = panel.createDiv({ cls: "canvas-loom-global-fr-row canvas-loom-global-fr-replace-action-row" });
 
-            this.replaceCurrentButton = replaceActionRow.createEl("button", { text: "替换当前" });
+            this.replaceCurrentButton = replaceActionRow.createEl("button", { text: t("searchReplace.button.replaceCurrent") });
             this.replaceCurrentButton.type = "button";
             this.replaceCurrentButton.addEventListener("click", () => {
                 void this.replaceCurrentMatch(context.canvas);
             });
 
-            this.replaceAllButton = replaceActionRow.createEl("button", { text: "全部替换" });
+            this.replaceAllButton = replaceActionRow.createEl("button", { text: t("searchReplace.button.replaceAll") });
             this.replaceAllButton.type = "button";
             this.replaceAllButton.addClass("mod-cta");
             this.replaceAllButton.addEventListener("click", () => {
                 void this.replaceAllMatches(context.canvas);
             });
 
-            const caseButton = this.createTextToggleButton(replaceActionRow, "Aa", "区分大小写", this.caseSensitive, () => {
+            const caseButton = this.createTextToggleButton(replaceActionRow, "Aa", t("searchReplace.button.caseSensitive"), this.caseSensitive, () => {
                 this.caseSensitive = !this.caseSensitive;
                 this.currentFlatIndex = -1;
                 this.clearActiveMatchHighlight();
@@ -485,7 +486,7 @@ export class CanvasGlobalFindReplaceToolbarService {
             });
             caseButton.setAttribute("aria-pressed", String(this.caseSensitive));
 
-            const regexButton = this.createTextToggleButton(replaceActionRow, ".*", "正则表达式", this.regex, () => {
+            const regexButton = this.createTextToggleButton(replaceActionRow, ".*", t("searchReplace.button.regex"), this.regex, () => {
                 this.regex = !this.regex;
                 this.currentFlatIndex = -1;
                 this.clearActiveMatchHighlight();
@@ -607,16 +608,20 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         if (!this.query) {
-            this.statusEl.setText(`输入内容后在当前画布中查找。范围内共有 ${this.totalCards} 张文本卡片。`);
+            this.statusEl.setText(t("searchReplace.status.prompt", { totalCards: this.totalCards }));
             return;
         }
 
         if (totalMatches === 0) {
-            this.statusEl.setText(`没有匹配内容。范围内共有 ${this.totalCards} 张文本卡片。`);
+            this.statusEl.setText(t("searchReplace.status.noMatches", { totalCards: this.totalCards }));
             return;
         }
 
-        this.statusEl.setText(`找到 ${totalMatches} 处命中，分布在 ${this.results.length} / ${this.totalCards} 张文本卡片中。`);
+        this.statusEl.setText(t("searchReplace.status.matches", {
+            totalMatches,
+            matchedCards: this.results.length,
+            totalCards: this.totalCards
+        }));
     }
 
     private updateActionButtons(): void {
@@ -696,9 +701,9 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         if (result.changedCount === 0) {
-            new Notice("没有找到可替换的内容");
+            new Notice(t("notice.findReplaceNoReplacement"));
         } else {
-            new Notice("已替换当前命中");
+            new Notice(t("notice.findReplaceCurrentReplaced"));
         }
 
         this.refreshResults(canvas);
@@ -717,9 +722,12 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         if (result.changedCount === 0) {
-            new Notice("没有找到可替换的内容");
+            new Notice(t("notice.findReplaceNoReplacement"));
         } else {
-            new Notice(`已替换 ${result.changedCount} 处，更新 ${result.changedNodeCount} 张卡片`);
+            new Notice(t("notice.findReplaceAllReplaced", {
+                changedCount: result.changedCount,
+                changedNodeCount: result.changedNodeCount
+            }));
         }
 
         this.currentFlatIndex = -1;

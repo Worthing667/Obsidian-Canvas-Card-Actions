@@ -8,6 +8,7 @@ import type { FindReplaceWorkbenchContext, MergeWorkbenchContext, WorkbenchPanel
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
 import { PerformanceService } from "./PerformanceService";
 import { SearchReplaceScope, SearchReplaceService } from "./SearchReplaceService";
+import { t } from "../i18n";
 import type { MergeCleanupMode } from "../settings/ICanvasLoomSettings";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
 import type { CanvasNode, CanvasNodeData } from "../types/canvas";
@@ -70,7 +71,7 @@ export class MergeService implements IMergeService {
         }));
 
         if (!result.content || result.count === 0) {
-            new Notice('没有可合并的文本卡片');
+            new Notice(t("notice.noMergeableTextCards"));
             return false;
         }
 
@@ -110,7 +111,7 @@ export class MergeService implements IMergeService {
         }));
 
         await this.canvasAdapter.requestSave();
-        new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
+        new Notice(t("notice.mergedToCanvasCard", { count: result.count }));
         return true;
     }
 
@@ -140,21 +141,21 @@ export class MergeService implements IMergeService {
         }));
 
         if (!result.content || result.count === 0) {
-            new Notice('没有可合并的文本卡片');
+            new Notice(t("notice.noMergeableTextCards"));
             return false;
         }
 
         if (!canvasFile || canvasFile.extension !== 'canvas') {
-            new Notice('请在打开画布文件时使用该功能');
+            new Notice(t("notice.useWithOpenCanvasFile"));
             return false;
         }
 
-        const baseName = `${canvasFile.basename}-卡片合并`;
+        const baseName = `${canvasFile.basename}-${t("workbench.fileName.mergedCards")}`;
         const file = await this.measure("merge.createMarkdownFile", {
             sourceCount: result.count,
             canvasFilePath: canvasFile.path
         }, () => this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName));
-        new Notice(`已创建文稿：${file.path}`);
+        new Notice(t("notice.mergedDocumentCreated", { filePath: file.path }));
         return true;
     }
 
@@ -167,12 +168,12 @@ export class MergeService implements IMergeService {
 
     async openFindReplaceWorkbench(selection: CanvasNode[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean> {
         if (!this.searchReplaceService) {
-            new Notice('查找替换服务尚未初始化');
+            new Notice(t("notice.searchReplaceUnavailable"));
             return false;
         }
 
         if (!this.searchReplaceService.hasTextCards()) {
-            new Notice('当前画布没有可查找的文本卡片');
+            new Notice(t("notice.noSearchableTextCards"));
             return false;
         }
 
@@ -182,7 +183,7 @@ export class MergeService implements IMergeService {
             : [];
         const selectedTextCardCount = selectedSnapshots.length;
         const defaultScope = selectedTextCardCount > 0 ? 'selection' : 'canvas';
-        const selectedScopeLabel = '当前选区';
+        const selectedScopeLabel = t("workbench.scope.selection");
         const view = await this.measure("workbench.activateFindReplaceView", {
             selectedTextCardCount,
             scope: defaultScope
@@ -198,8 +199,8 @@ export class MergeService implements IMergeService {
             ? existingState
             : this.workbenchService.createState({
                 canvasFilePath,
-                canvasFileBasename: canvasFile?.basename || '当前画布',
-                scopeLabel: selectedSnapshots.length > 0 ? selectedScopeLabel : '当前画布',
+                canvasFileBasename: canvasFile?.basename || t("workbench.scope.canvas"),
+                scopeLabel: selectedSnapshots.length > 0 ? selectedScopeLabel : t("workbench.scope.canvas"),
                 selectionSnapshot: selectedSnapshots,
                 defaultSortMode: options?.order || 'position',
                 sortPriority,
@@ -224,7 +225,7 @@ export class MergeService implements IMergeService {
 
     async openWorkbenchFromSnapshots(snapshots: CardSnapshot[], canvasFile: TFile | null, options?: OpenWorkbenchOptions): Promise<boolean> {
         if (snapshots.length === 0) {
-            new Notice('没有可预览的文本卡片');
+            new Notice(t("notice.noPreviewTextCards"));
             return false;
         }
 
@@ -245,9 +246,14 @@ export class MergeService implements IMergeService {
             );
 
             if (appendResult.addedCount > 0) {
-                new Notice(`已向 Loom工作台添加 ${appendResult.addedCount} 张卡片（共 ${appendResult.state.selectionSnapshot.length} 张）`);
+                new Notice(t("notice.workbenchCardsAdded", {
+                    addedCount: appendResult.addedCount,
+                    totalCount: appendResult.state.selectionSnapshot.length
+                }));
             } else {
-                new Notice(`选中卡片已在 Loom工作台中，已刷新 ${appendResult.updatedCount} 张卡片快照`);
+                new Notice(t("notice.workbenchCardsRefreshed", {
+                    updatedCount: appendResult.updatedCount
+                }));
             }
 
             return true;
@@ -255,8 +261,8 @@ export class MergeService implements IMergeService {
 
         const state = this.workbenchService.createState({
             canvasFilePath,
-            canvasFileBasename: canvasFile?.basename || '当前画布',
-            scopeLabel: options?.scopeLabel || '当前选区',
+            canvasFileBasename: canvasFile?.basename || t("workbench.scope.canvas"),
+            scopeLabel: options?.scopeLabel || t("workbench.scope.selection"),
             selectionSnapshot: snapshots,
             defaultSortMode: options?.order || 'position',
             sortPriority,
@@ -269,7 +275,10 @@ export class MergeService implements IMergeService {
             { panel: options?.panel || 'sort' }
         );
 
-        new Notice(`已在 Loom工作台载入卡片组（${state.scopeLabel}，${snapshots.length} 张卡片）`);
+        new Notice(t("notice.workbenchLoaded", {
+            scopeLabel: state.scopeLabel,
+            count: snapshots.length
+        }));
         return true;
     }
 
@@ -297,7 +306,7 @@ export class MergeService implements IMergeService {
                     manualOrderIds: currentState.manualOrderIds,
                     includeBadgePrefix: currentState.sortMode === 'badge',
                     cardSeparator: currentState.cardSeparator
-                }, '已复制工作台当前顺序的内容');
+                }, t("notice.workbenchCurrentOrderCopied"));
             },
             onCreateCard: async (currentState: WorkbenchState) => {
                 const order = currentState.isManualAdjusted ? 'manual' : currentState.sortMode;
@@ -336,7 +345,7 @@ export class MergeService implements IMergeService {
             service: this.searchReplaceService,
             selectedNodeIds,
             selectedTextCardCount,
-            selectedScopeLabel: '当前选区',
+            selectedScopeLabel: t("workbench.scope.selection"),
             defaultScope
         };
     }
@@ -373,7 +382,7 @@ export class MergeService implements IMergeService {
         }));
 
         if (!result.content || result.count === 0) {
-            new Notice('没有可合并的文本卡片');
+            new Notice(t("notice.noMergeableTextCards"));
             return false;
         }
 
@@ -394,7 +403,7 @@ export class MergeService implements IMergeService {
             : this.canvasAdapter;
 
         if (!adapter) {
-            new Notice('无法定位原始画布，未能创建新卡片');
+            new Notice(t("notice.cannotLocateOriginalCanvas"));
             return false;
         }
 
@@ -419,7 +428,7 @@ export class MergeService implements IMergeService {
         }));
 
         await adapter.requestSave();
-        new Notice(`已合并 ${result.count} 张卡片并创建新卡片`);
+        new Notice(t("notice.mergedToCanvasCard", { count: result.count }));
         return true;
     }
 
@@ -438,22 +447,22 @@ export class MergeService implements IMergeService {
         }));
 
         if (!result.content || result.count === 0) {
-            new Notice('没有可合并的文本卡片');
+            new Notice(t("notice.noMergeableTextCards"));
             return false;
         }
 
         const canvasFile = this.resolveCanvasFile(canvasFilePath);
         if (!canvasFile) {
-            new Notice('找不到原始画布文件，无法创建文稿');
+            new Notice(t("notice.originalCanvasFileNotFound"));
             return false;
         }
 
-        const baseName = `${canvasFile.basename}-卡片合并`;
+        const baseName = `${canvasFile.basename}-${t("workbench.fileName.mergedCards")}`;
         const file = await this.measure("merge.createMarkdownFile", {
             sourceCount: result.count,
             canvasFilePath: canvasFile.path
         }, () => this.vaultAdapter.createMergedDocument(result.content, canvasFile, baseName));
-        new Notice(`已创建文稿：${file.path}`);
+        new Notice(t("notice.mergedDocumentCreated", { filePath: file.path }));
         return true;
     }
 
@@ -570,7 +579,7 @@ export class MergeService implements IMergeService {
         const leaf: WorkspaceLeaf | null = existingLeaf || this.app.workspace.getRightLeaf(false);
 
         if (!leaf) {
-            throw new Error('无法创建侧边栏视图');
+            throw new Error(t("errors.createSidebarViewFailed"));
         }
 
         leaves
@@ -579,7 +588,7 @@ export class MergeService implements IMergeService {
 
         await leaf.setViewState({ type: MERGE_PREVIEW_VIEW_TYPE, active: true });
         if (!(leaf.view instanceof MergeWorkbenchView)) {
-            throw new Error("Loom工作台视图未成功初始化");
+            throw new Error(t("errors.workbenchViewInitFailed"));
         }
 
         return leaf.view;

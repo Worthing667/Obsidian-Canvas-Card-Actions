@@ -1,6 +1,7 @@
 import { Notice } from "obsidian";
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { BadgeData } from "../domain/models/Badge";
+import { t } from "../i18n";
 import type { CanvasNode } from "../types/canvas";
 
 export interface BadgeRenderEntry {
@@ -57,7 +58,7 @@ export class BadgeService implements IBadgeService {
         try {
             const badge = BadgeData.create(badgeText);
             if (!badge.isValid()) {
-                throw new Error("标记只支持数字序号，格式如 1、2、2.1");
+                throw new Error(t("errors.invalidBadgeFormat"));
             }
 
             if (this.isBadgeDisplayEnabled()) {
@@ -67,10 +68,10 @@ export class BadgeService implements IBadgeService {
             }
 
             await this.persistBadgeToCanvas(node, badge);
-            new Notice(`标记已设置: ${badgeText}`);
+            new Notice(t("notice.badgeSet", { badge: badgeText }));
         } catch (error) {
             console.error("设置标记时出错:", error);
-            new Notice("设置标记失败，请查看控制台了解详情");
+            new Notice(t("notice.badgeSetFailed"));
             throw error;
         }
     }
@@ -79,10 +80,10 @@ export class BadgeService implements IBadgeService {
         try {
             this.clearBadgeFromNode(node);
             await this.persistBadgeToCanvas(node, null);
-            new Notice("标记已移除");
+            new Notice(t("notice.badgeRemoved"));
         } catch (error) {
             console.error("移除标记时出错:", error);
-            new Notice("移除标记失败，请查看控制台了解详情");
+            new Notice(t("notice.badgeRemoveFailed"));
             throw error;
         }
     }
@@ -90,7 +91,7 @@ export class BadgeService implements IBadgeService {
     async setBadges(nodes: CanvasNode[], badgeTexts: string[]): Promise<number> {
         try {
             if (nodes.length !== badgeTexts.length) {
-                throw new Error("批量标记数量与卡片数量不一致");
+                throw new Error(t("errors.batchBadgeCountMismatch"));
             }
 
             const badgeTextByNodeId = new Map<string, string>();
@@ -109,12 +110,12 @@ export class BadgeService implements IBadgeService {
 
             assignments.forEach(({ badge }) => {
                 if (!badge.isValid()) {
-                    throw new Error("标记只支持数字序号，格式如 1、2、2.1");
+                    throw new Error(t("errors.invalidBadgeFormat"));
                 }
             });
 
             if (assignments.length === 0) {
-                new Notice("未找到可标记的文本卡片");
+                new Notice(t("notice.noBadgeableTextCards"));
                 return 0;
             }
 
@@ -140,17 +141,17 @@ export class BadgeService implements IBadgeService {
             });
 
             if (updatedCount === 0) {
-                throw new Error("在画布数据中找不到可标记节点");
+                throw new Error(t("errors.badgeNodeNotFound"));
             }
 
             await this.canvasAdapter.setData(canvasData);
             await this.canvasAdapter.requestSave();
             this.refreshBadgeDomSoon();
-            new Notice(`已为 ${updatedCount} 张卡片添加标记`);
+            new Notice(t("notice.batchBadgesSet", { count: updatedCount }));
             return updatedCount;
         } catch (error) {
             console.error("批量设置标记时出错:", error);
-            new Notice("批量设置标记失败，请查看控制台了解详情");
+            new Notice(t("notice.batchBadgesSetFailed"));
             throw error;
         }
     }
@@ -160,7 +161,7 @@ export class BadgeService implements IBadgeService {
             const targetNodes = this.getValidUniqueNodes(nodes);
 
             if (targetNodes.length === 0) {
-                new Notice("未找到可移除标记的文本卡片");
+                new Notice(t("notice.noRemovableBadgeTextCards"));
                 return 0;
             }
 
@@ -181,17 +182,17 @@ export class BadgeService implements IBadgeService {
             });
 
             if (updatedCount === 0) {
-                throw new Error("在画布数据中找不到可移除标记节点");
+                throw new Error(t("errors.badgeRemovalNodeNotFound"));
             }
 
             await this.canvasAdapter.setData(canvasData);
             await this.canvasAdapter.requestSave();
             this.refreshBadgeDomSoon();
-            new Notice(`已移除 ${updatedCount} 张卡片的标记`);
+            new Notice(t("notice.batchBadgesRemoved", { count: updatedCount }));
             return updatedCount;
         } catch (error) {
             console.error("批量移除标记时出错:", error);
-            new Notice("批量移除标记失败，请查看控制台了解详情");
+            new Notice(t("notice.batchBadgesRemoveFailed"));
             throw error;
         }
     }
@@ -337,7 +338,7 @@ export class BadgeService implements IBadgeService {
         const nodeData = canvasData.nodes.find(n => n.id === node.id);
 
         if (!nodeData) {
-            throw new Error("在画布数据中找不到节点");
+            throw new Error(t("errors.nodeNotFoundInCanvasData"));
         }
 
         if (badge && !badge.isEmpty()) {

@@ -1,4 +1,5 @@
 import type { Canvas, CanvasNode, CanvasNodeData } from "../types/canvas";
+import { t } from "../i18n";
 
 export type ArrangeDirection = "horizontal" | "vertical";
 
@@ -84,8 +85,8 @@ export async function arrangeSelectedTextCardSpacing(
     canvas: Canvas,
     options: ArrangeSelectedTextCardSpacingOptions
 ): Promise<ArrangeSelectedTextCardsResult> {
-    validateSpacing(options.horizontalSpacing, "水平间距");
-    validateSpacing(options.verticalSpacing, "垂直间距");
+    validateSpacing(options.horizontalSpacing, t("toolbar.arrange.horizontalSpacing"));
+    validateSpacing(options.verticalSpacing, t("toolbar.arrange.verticalSpacing"));
 
     const { canvasData, cardInfos } = getArrangementContext(canvas);
     const shouldArrangeHorizontal = options.horizontalSpacing > 0;
@@ -136,25 +137,28 @@ export async function arrangeSelectedTextCardSpacing(
 
 function validateSpacing(spacing: number, label: string): void {
     if (!Number.isFinite(spacing) || !Number.isInteger(spacing) || spacing < 0 || spacing > 500) {
-        throw new Error(`${label}必须在 0-500 像素范围内`);
+        throw new Error(t("errors.spacingOutOfRange", { label }));
     }
 }
 
 function getArrangementContext(canvas: Canvas): { canvasData: ReturnType<Canvas["getData"]>; cardInfos: ArrangementCard[] } {
     const selectedNodeIds = getSelectedTextNodeIds(canvas);
     if (selectedNodeIds.size < 2) {
-        throw new Error("至少需要两张文本卡片才能整理间距");
+        throw new Error(t("errors.arrangementNeedTwoTextCards"));
     }
 
     const canvasData = canvas.getData();
     const cardInfos = getArrangementCards(canvasData.nodes, selectedNodeIds);
     if (cardInfos.length < 2) {
-        throw new Error("在画布数据中未找到足够的卡片信息");
+        throw new Error(t("errors.arrangementInsufficientCards"));
     }
 
     for (const card of cardInfos) {
         if (card.width <= 0 || card.height <= 0) {
-            throw new Error(`卡片尺寸无效（宽:${card.width}, 高:${card.height}），无法整理间距`);
+            throw new Error(t("errors.invalidCardSize", {
+                width: card.width,
+                height: card.height
+            }));
         }
     }
 

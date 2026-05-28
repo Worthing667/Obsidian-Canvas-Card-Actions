@@ -9,13 +9,14 @@ import {
     SearchReplaceService
 } from "../../services/SearchReplaceService";
 import { MergeOrder } from "../../services/ContentService";
+import { t } from "../../i18n";
+import type { TranslationKey, TranslationParams } from "../../i18n";
+import type CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
 import type { WorkbenchState } from "../../types/WorkbenchState";
 import { renderSearchMatchPreview, type SearchMatchPreviewRange } from "../../utils/SearchMatchPreview";
 
 export const MERGE_PREVIEW_VIEW_TYPE = "canvas-loom-merge-preview";
 const MERGE_PREVIEW_VIEW_ICON = "panel-right";
-const EMPTY_WORKBENCH_CARD_NOTICE = "当前没有可输出的卡片";
-const CLEAR_WORKBENCH_NOTICE = "已清空 Loom工作台";
 
 export type WorkbenchPanel = "sort" | "findReplace" | "preview";
 
@@ -72,7 +73,10 @@ export class MergeWorkbenchView extends ItemView {
     private findReplaceCardButton: HTMLButtonElement | null = null;
     private findReplaceAllButton: HTMLButtonElement | null = null;
 
-    constructor(leaf: WorkspaceLeaf) {
+    constructor(
+        leaf: WorkspaceLeaf,
+        private readonly getSettings?: () => Partial<CanvasLoomSettings>
+    ) {
         super(leaf);
     }
 
@@ -81,7 +85,7 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "Loom工作台";
+        return this.translate("workbench.title");
     }
 
     getIcon(): string {
@@ -127,6 +131,10 @@ export class MergeWorkbenchView extends ItemView {
         return this.context.state;
     }
 
+    private translate(key: TranslationKey, params?: TranslationParams): string {
+        return t(key, params, { settings: this.getSettings?.(), app: this.app });
+    }
+
     private render(): void {
         const { contentEl } = this;
         contentEl.empty();
@@ -152,7 +160,7 @@ export class MergeWorkbenchView extends ItemView {
     private renderToolbar(container: HTMLElement): void {
         const toolbar = container.createDiv({ cls: "canvas-loom-workbench-toolbar" });
         const heading = toolbar.createDiv({ cls: "canvas-loom-workbench-heading" });
-        heading.createEl("h3", { text: "Loom工作台" });
+        heading.createEl("h3", { text: this.translate("workbench.title") });
         heading.createDiv({
             cls: "canvas-loom-workbench-source",
             text: this.getToolbarSourceText()
@@ -167,19 +175,19 @@ export class MergeWorkbenchView extends ItemView {
             cls: "canvas-loom-workbench-clear-button"
         });
         clearButton.setAttribute("type", "button");
-        clearButton.setAttribute("aria-label", "清空工作台");
-        clearButton.setAttribute("title", "清空工作台");
+        clearButton.setAttribute("aria-label", this.translate("workbench.button.clearWorkbench"));
+        clearButton.setAttribute("title", this.translate("workbench.button.clearWorkbench"));
         setIcon(clearButton, "trash-2");
-        clearButton.createSpan({ text: "清空" });
+        clearButton.createSpan({ text: this.translate("workbench.button.clear") });
         clearButton.disabled = this.context.state.selectionSnapshot.length === 0;
         clearButton.addEventListener("click", () => this.clearWorkbench());
     }
 
     private renderPanelTabs(container: HTMLElement): void {
         const tabs = container.createDiv({ cls: "canvas-loom-workbench-panel-tabs" });
-        this.createPanelButton(tabs, "preview", "预览");
-        this.createPanelButton(tabs, "sort", "排序");
-        this.createPanelButton(tabs, "findReplace", "查找", !this.context.findReplace);
+        this.createPanelButton(tabs, "preview", this.translate("workbench.tab.preview"));
+        this.createPanelButton(tabs, "sort", this.translate("workbench.tab.sort"));
+        this.createPanelButton(tabs, "findReplace", this.translate("workbench.tab.find"), !this.context.findReplace);
     }
 
     private createPanelButton(container: HTMLElement, panel: WorkbenchPanel, label: string, disabled = false): void {
@@ -217,8 +225,8 @@ export class MergeWorkbenchView extends ItemView {
 
     private renderSortModeControls(container: HTMLElement): void {
         const modeGroup = container.createDiv({ cls: "canvas-loom-workbench-sort-modes" });
-        this.createSortModeButton(modeGroup, "position", "位置");
-        this.createSortModeButton(modeGroup, "badge", "标记");
+        this.createSortModeButton(modeGroup, "position", this.translate("workbench.sortMode.position"));
+        this.createSortModeButton(modeGroup, "badge", this.translate("workbench.sortMode.badge"));
     }
 
     private renderPreviewPanel(container: HTMLElement): void {
@@ -232,28 +240,36 @@ export class MergeWorkbenchView extends ItemView {
         const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const summary = container.createDiv({ cls: "canvas-loom-workbench-order-summary" });
         const text = summary.createDiv({ cls: "canvas-loom-workbench-order-text" });
-        text.createEl("strong", { text: "卡片组预览" });
+        text.createEl("strong", { text: this.translate("workbench.panel.previewTitle") });
         const hint = text.createSpan({
             text: orderedCards.length === 0
-                ? "等待卡片渲染进工作台。"
-                : "当前内容由工作台顺序生成，输出按钮使用同一份结果。"
+                ? this.translate("workbench.panel.previewWaiting")
+                : this.translate("workbench.panel.previewReady")
         });
         hint.addClass("canvas-loom-workbench-preview-hint");
 
         const snapshot = summary.createDiv({ cls: "canvas-loom-workbench-snapshot" });
-        snapshot.createSpan({ text: `快照 ${this.context.state.selectionSnapshot.length} 张` });
-        snapshot.createSpan({ text: `当前顺序 ${this.getCurrentOrderLabel()}` });
+        snapshot.createSpan({
+            text: this.translate("workbench.panel.snapshot", { count: this.context.state.selectionSnapshot.length })
+        });
+        snapshot.createSpan({
+            text: this.translate("workbench.panel.currentOrder", { order: this.getCurrentOrderLabel() })
+        });
     }
 
     private renderOrderSummary(container: HTMLElement): void {
         const summary = container.createDiv({ cls: "canvas-loom-workbench-order-summary" });
         const text = summary.createDiv({ cls: "canvas-loom-workbench-order-text" });
         text.createEl("strong", { text: this.getListTitle() });
-        text.createSpan({ text: `，${this.getSortDescription()}` });
+        text.createSpan({ text: `, ${this.getSortDescription()}` });
 
         const snapshot = summary.createDiv({ cls: "canvas-loom-workbench-snapshot" });
-        snapshot.createSpan({ text: `快照 ${this.context.state.selectionSnapshot.length} 张` });
-        snapshot.createSpan({ text: `当前顺序 ${this.getCurrentOrderLabel()}` });
+        snapshot.createSpan({
+            text: this.translate("workbench.panel.snapshot", { count: this.context.state.selectionSnapshot.length })
+        });
+        snapshot.createSpan({
+            text: this.translate("workbench.panel.currentOrder", { order: this.getCurrentOrderLabel() })
+        });
     }
 
     private renderList(container: HTMLElement): void {
@@ -263,7 +279,7 @@ export class MergeWorkbenchView extends ItemView {
 
         if (cards.length === 0) {
             const empty = list.createDiv({ cls: "canvas-loom-workbench-list-empty" });
-            empty.setText("选择多张文本卡片后，使用右键菜单“预览卡片组”载入当前选区。");
+            empty.setText(this.translate("workbench.panel.emptyList"));
             return;
         }
 
@@ -298,8 +314,8 @@ export class MergeWorkbenchView extends ItemView {
             });
 
             const handle = row.createDiv({ cls: "canvas-loom-workbench-handle" });
-            handle.setAttribute("aria-label", "拖拽调整顺序");
-            handle.setAttribute("title", "拖拽调整顺序");
+            handle.setAttribute("aria-label", this.translate("workbench.aria.dragHandle"));
+            handle.setAttribute("title", this.translate("workbench.aria.dragHandle"));
         });
     }
 
@@ -307,7 +323,7 @@ export class MergeWorkbenchView extends ItemView {
         const section = container.createDiv({ cls: "canvas-loom-workbench-preview-section" });
 
         const preview = section.createEl("pre", { cls: "canvas-loom-workbench-preview-content" });
-        preview.setText(this.context.state.lastComputedContent || "正在生成预览...");
+        preview.setText(this.context.state.lastComputedContent || this.translate("workbench.panel.renderingPreview"));
         this.schedulePreviewRender(preview);
 
     }
@@ -317,11 +333,11 @@ export class MergeWorkbenchView extends ItemView {
         const action = container.createDiv({ cls: "canvas-loom-workbench-render-action" });
         const button = action.createEl("button");
         button.setAttribute("type", "button");
-        button.setAttribute("aria-label", "重新生成预览");
-        button.setAttribute("title", "重新生成预览");
+        button.setAttribute("aria-label", this.translate("workbench.button.rerenderPreview"));
+        button.setAttribute("title", this.translate("workbench.button.rerenderPreview"));
         button.disabled = orderedCards.length === 0;
         setIcon(button, "refresh-cw");
-        button.createSpan({ text: "渲染" });
+        button.createSpan({ text: this.translate("workbench.button.render") });
         button.addEventListener("click", () => this.renderSortPreview());
     }
 
@@ -329,13 +345,13 @@ export class MergeWorkbenchView extends ItemView {
         const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const actions = container.createDiv({ cls: "canvas-loom-workbench-actions canvas-loom-workbench-footer-actions" });
         const hasCards = orderedCards.length > 0;
-        this.createActionButton(actions, "复制", async () => {
+        this.createActionButton(actions, this.translate("workbench.button.copy"), async () => {
             await this.context.onCopy(this.context.state);
         }, !hasCards);
-        this.createActionButton(actions, "添加为新卡片", async () => {
+        this.createActionButton(actions, this.translate("workbench.button.addAsCard"), async () => {
             await this.context.onCreateCard(this.context.state);
         }, !hasCards);
-        this.createActionButton(actions, "新建文稿", async () => {
+        this.createActionButton(actions, this.translate("workbench.button.newDocument"), async () => {
             await this.context.onCreateMarkdown(this.context.state);
         }, !hasCards);
     }
@@ -347,7 +363,7 @@ export class MergeWorkbenchView extends ItemView {
         if (!findContext) {
             panel.createDiv({
                 cls: "canvas-loom-workbench-list-empty",
-                text: "在 Canvas 中打开工作台后，才能使用查找替换。"
+                text: this.translate("workbench.panel.findUnavailable")
             });
             return;
         }
@@ -375,25 +391,28 @@ export class MergeWorkbenchView extends ItemView {
         const controls = container.createDiv({ cls: "canvas-loom-fr-controls" });
 
         const queryField = controls.createDiv({ cls: "canvas-loom-fr-field" });
-        queryField.createEl("label", { text: "查找" });
+        queryField.createEl("label", { text: this.translate("workbench.find.label.query") });
         this.findQueryInput = queryField.createEl("input", {
             type: "text",
-            placeholder: "输入要查找的文字"
+            placeholder: this.translate("workbench.find.placeholder.query")
         });
         this.findQueryInput.value = this.findQuery;
 
         const replaceField = controls.createDiv({ cls: "canvas-loom-fr-field" });
-        replaceField.createEl("label", { text: "替换为" });
+        replaceField.createEl("label", { text: this.translate("workbench.find.label.replacement") });
         const replacementInput = replaceField.createEl("input", {
             type: "text",
-            placeholder: "留空表示替换为空"
+            placeholder: this.translate("workbench.find.placeholder.replacement")
         });
         replacementInput.value = this.findReplacement;
 
         const optionRow = container.createDiv({ cls: "canvas-loom-fr-options" });
-        const caseSensitiveInput = this.createFindCheckbox(optionRow, "区分大小写");
+        const caseSensitiveInput = this.createFindCheckbox(
+            optionRow,
+            this.translate("workbench.find.label.caseSensitive")
+        );
         caseSensitiveInput.checked = this.findCaseSensitive;
-        const regexInput = this.createFindCheckbox(optionRow, "正则");
+        const regexInput = this.createFindCheckbox(optionRow, this.translate("workbench.find.label.regex"));
         regexInput.checked = this.findRegex;
 
         this.findQueryInput.addEventListener("input", () => {
@@ -433,9 +452,15 @@ export class MergeWorkbenchView extends ItemView {
 
     private createFindFooter(container: HTMLElement): void {
         const footer = container.createDiv({ cls: "canvas-loom-fr-footer" });
-        this.findReplaceCurrentButton = footer.createEl("button", { text: "替换当前" });
-        this.findReplaceCardButton = footer.createEl("button", { text: "替换当前卡片" });
-        this.findReplaceAllButton = footer.createEl("button", { text: "全部替换" });
+        this.findReplaceCurrentButton = footer.createEl("button", {
+            text: this.translate("workbench.button.replaceCurrent")
+        });
+        this.findReplaceCardButton = footer.createEl("button", {
+            text: this.translate("workbench.button.replaceCard")
+        });
+        this.findReplaceAllButton = footer.createEl("button", {
+            text: this.translate("workbench.button.replaceAll")
+        });
         this.findReplaceAllButton.addClass("mod-cta");
 
         [
@@ -482,7 +507,7 @@ export class MergeWorkbenchView extends ItemView {
         }
 
         if (result.error) {
-            this.findStatusEl.setText(result.error);
+            this.findStatusEl.setText(this.localizeSearchError(result.error));
             this.findStatusEl.addClass("is-error");
             this.findResultListEl.empty();
             this.updateFindActionButtons();
@@ -526,18 +551,25 @@ export class MergeWorkbenchView extends ItemView {
 
         if (!this.findQuery) {
             this.findStatusEl.setText(this.findScope === "selection"
-                ? `输入内容后在${this.context.findReplace?.selectedScopeLabel || "当前选区"}中查找。`
-                : "输入内容后在当前画布中查找。");
+                ? this.translate("workbench.find.status.promptSelection", {
+                    scope: this.context.findReplace?.selectedScopeLabel || this.translate("workbench.scope.selection")
+                })
+                : this.translate("workbench.find.status.promptCanvas"));
             return;
         }
 
         if (totalMatches === 0) {
-            this.findStatusEl.setText(`没有匹配内容。范围内共有 ${totalCards} 张文本卡片。`);
+            this.findStatusEl.setText(this.translate("workbench.find.status.noMatches", { totalCards }));
             return;
         }
 
         const currentLabel = `${Math.min(this.findCurrentFlatIndex + 1, totalMatches)} / ${totalMatches}`;
-        this.findStatusEl.setText(`找到 ${totalMatches} 处命中，分布在 ${matchedCards} / ${totalCards} 张文本卡片中。当前 ${currentLabel}。`);
+        this.findStatusEl.setText(this.translate("workbench.find.status.matches", {
+            totalMatches,
+            matchedCards,
+            totalCards,
+            currentLabel
+        }));
     }
 
     private renderFindResultList(flatMatches: FlatSearchMatch[]): void {
@@ -550,7 +582,7 @@ export class MergeWorkbenchView extends ItemView {
         if (!this.findQuery) {
             this.findResultListEl.createDiv({
                 cls: "canvas-loom-fr-empty",
-                text: "等待输入查找内容。"
+                text: this.translate("workbench.find.result.waiting")
             });
             return;
         }
@@ -558,7 +590,7 @@ export class MergeWorkbenchView extends ItemView {
         if (flatMatches.length === 0) {
             this.findResultListEl.createDiv({
                 cls: "canvas-loom-fr-empty",
-                text: "没有匹配的卡片。"
+                text: this.translate("workbench.find.result.noCards")
             });
             return;
         }
@@ -669,26 +701,44 @@ export class MergeWorkbenchView extends ItemView {
 
     private handleFindReplaceResult(result: ReplaceResult): void {
         if (result.error) {
-            new Notice(result.error);
+            new Notice(this.localizeSearchError(result.error));
             this.renderFindResults();
             return;
         }
 
         if (result.matchedCount === 0) {
-            new Notice("没有找到可替换的内容");
+            new Notice(this.translate("notice.findReplaceNoReplacement"));
             this.renderFindResults();
             return;
         }
 
         if (result.changedCount === 0) {
-            new Notice("命中内容未发生变化");
+            new Notice(this.translate("notice.findReplaceNoChange"));
             this.renderFindResults();
             return;
         }
 
         this.refreshWorkbenchSnapshotsFromCanvas();
-        new Notice(`已替换 ${result.changedCount} 处，更新 ${result.changedNodeCount} 张卡片`);
+        new Notice(this.translate("notice.findReplaceAllReplaced", {
+            changedCount: result.changedCount,
+            changedNodeCount: result.changedNodeCount
+        }));
         this.renderFindResults();
+    }
+
+    private localizeSearchError(error: string): string {
+        if (error === "查找条件不能匹配空字符串") {
+            return this.translate("errors.regexCannotMatchEmpty");
+        }
+
+        const invalidRegexPrefix = "正则表达式无效：";
+        if (error.startsWith(invalidRegexPrefix)) {
+            return this.translate("errors.regexInvalid", {
+                message: error.slice(invalidRegexPrefix.length)
+            });
+        }
+
+        return error;
     }
 
     private refreshWorkbenchSnapshotsFromCanvas(): void {
@@ -762,7 +812,7 @@ export class MergeWorkbenchView extends ItemView {
         this.previewTimer = window.setTimeout(() => {
             this.previewTimer = null;
             const content = this.renderPreviewContentNow();
-            previewEl.setText(content || "没有可预览的内容");
+            previewEl.setText(content || this.translate("workbench.panel.emptyPreview"));
         }, 200);
     }
 
@@ -775,7 +825,7 @@ export class MergeWorkbenchView extends ItemView {
     private renderSortPreview(): void {
         const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         if (orderedCards.length === 0) {
-            new Notice(EMPTY_WORKBENCH_CARD_NOTICE);
+            new Notice(this.translate("notice.noPreviewTextCards"));
             return;
         }
 
@@ -816,7 +866,7 @@ export class MergeWorkbenchView extends ItemView {
         button.disabled = disabled;
         button.addEventListener("click", () => {
             if (button.disabled) {
-                new Notice(EMPTY_WORKBENCH_CARD_NOTICE);
+                new Notice(this.translate("notice.noPreviewTextCards"));
                 return;
             }
 
@@ -832,7 +882,7 @@ export class MergeWorkbenchView extends ItemView {
 
         this.clearPreviewTimer();
         this.context.state = this.workbenchService.clearState(this.context.state);
-        new Notice(CLEAR_WORKBENCH_NOTICE);
+        new Notice(this.translate("notice.workbenchCleared"));
         this.render();
     }
 
@@ -888,15 +938,17 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private getToolbarCountLabel(): string {
-        return this.activePanel === "findReplace" ? "文本卡片" : "工作台卡片";
+        return this.activePanel === "findReplace"
+            ? this.translate("workbench.count.textCards")
+            : this.translate("workbench.count.workbenchCards");
     }
 
     private getToolbarSourceText(): string {
         if (this.activePanel === "findReplace") {
             const scopeLabel = this.findScope === "selection"
-                ? this.context.findReplace?.selectedScopeLabel || "当前选区"
-                : "当前画布";
-            return `${this.context.state.canvasFileBasename} / 查找替换 / ${scopeLabel}`;
+                ? this.context.findReplace?.selectedScopeLabel || this.translate("workbench.scope.selection")
+                : this.translate("workbench.scope.canvas");
+            return `${this.context.state.canvasFileBasename} / ${this.translate("workbench.source.findReplace")} / ${scopeLabel}`;
         }
 
         return `${this.context.state.canvasFileBasename} / ${this.context.state.scopeLabel}`;
@@ -917,59 +969,59 @@ export class MergeWorkbenchView extends ItemView {
 
     private getFindScopeSubtitle(findContext: FindReplaceWorkbenchContext): string {
         if (this.findScope === "selection") {
-            return `在${findContext.selectedScopeLabel}中查找。`;
+            return this.translate("workbench.find.subtitle.selection", { scope: findContext.selectedScopeLabel });
         }
 
         return findContext.selectedTextCardCount > 0
-            ? "在当前画布中查找。"
-            : "当前没有选中的文本卡片，将在整个画布中查找。";
+            ? this.translate("workbench.find.subtitle.canvas")
+            : this.translate("workbench.find.subtitle.canvasNoSelection");
     }
 
     private getCurrentOrderLabel(): string {
         const baseLabel = this.getModeLabel(this.context.state.sortMode);
         return this.context.state.isManualAdjusted
-            ? `${baseLabel} + 手动调整`
+            ? this.translate("workbench.order.manualSuffix", { label: baseLabel })
             : baseLabel;
     }
 
     private getModeLabel(mode: MergeOrder): string {
         if (mode === "badge") {
-            return "标记";
+            return this.translate("workbench.order.badge");
         }
 
-        return "位置";
+        return this.translate("workbench.order.position");
     }
 
     private getListTitle(): string {
         if (this.context.state.sortMode === "badge") {
             return this.context.state.isManualAdjusted
-                ? "按标记排序并手动调整"
-                : "按标记排序";
+                ? this.translate("workbench.order.badgeManualTitle")
+                : this.translate("workbench.order.badgeTitle");
         }
 
         return this.context.state.isManualAdjusted
-            ? "按位置排序并手动调整"
-            : "按位置排序";
+            ? this.translate("workbench.order.positionManualTitle")
+            : this.translate("workbench.order.positionTitle");
     }
 
     private getSortDescription(): string {
         const cards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
 
         if (cards.length === 0) {
-            return "工作台会在收到卡片快照后生成输出内容";
+            return this.translate("workbench.sortDescription.empty");
         }
 
         if (this.context.state.isManualAdjusted) {
-            return "拖拽后的顺序会直接用于复制、添加为新卡片和新建文稿";
+            return this.translate("workbench.sortDescription.manual");
         }
 
         if (this.context.state.sortMode === "badge") {
-            return "相同标记内继续按画布位置排列";
+            return this.translate("workbench.sortDescription.badge");
         }
 
         return this.context.sortPriority === "xy"
-            ? "Z字排序，从左至右、从上到下"
-            : "倒N排序，从上到下、从左至右";
+            ? this.translate("workbench.sortDescription.xy")
+            : this.translate("workbench.sortDescription.yx");
     }
 
     private toPreviewText(text: string): string {
@@ -993,8 +1045,8 @@ export class MergeWorkbenchView extends ItemView {
     private createEmptyContext(): MergeWorkbenchContext {
         const state = this.workbenchService.createState({
             canvasFilePath: null,
-            canvasFileBasename: "Loom工作台",
-            scopeLabel: "等待卡片组",
+            canvasFileBasename: this.translate("workbench.title"),
+            scopeLabel: this.translate("workbench.panel.emptyList"),
             selectionSnapshot: [],
             defaultSortMode: "position",
             sortPriority: "yx",
@@ -1011,7 +1063,7 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private notifyEmptyWorkbench(): Promise<void> {
-        new Notice(EMPTY_WORKBENCH_CARD_NOTICE);
+        new Notice(this.translate("notice.noPreviewTextCards"));
         return Promise.resolve();
     }
 

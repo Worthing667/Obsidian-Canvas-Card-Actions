@@ -9,6 +9,7 @@ import {
     fitSelectedTextCardsToHeight,
     shouldShowAutoHeightToolbarButton
 } from "./CanvasAutoFitService";
+import { t } from "../i18n";
 import type { Canvas } from "../types/canvas";
 
 const BUTTON_CLASS = "canvas-loom-arrange-toolbar-button";
@@ -101,13 +102,13 @@ export class CanvasSelectionToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = `clickable-icon ${AUTO_HEIGHT_BUTTON_CLASS}`;
-        button.setAttribute("aria-label", "自适应高度");
-        button.setAttribute("title", "自适应高度");
+        button.setAttribute("aria-label", t("toolbar.autoHeight.label"));
+        button.setAttribute("title", t("toolbar.autoHeight.label"));
 
         try {
             setIcon(button, "move-vertical");
         } catch {
-            button.textContent = "高";
+            button.textContent = t("toolbar.autoHeight.fallbackText");
         }
 
         button.addEventListener("click", (event) => {
@@ -124,11 +125,11 @@ export class CanvasSelectionToolbarService {
 
         try {
             const result = await fitSelectedTextCardsToHeight(canvas);
-            new Notice(`已自适应 ${result.count} 张卡片高度`);
+            new Notice(t("notice.autoHeightDone", { count: result.count }));
         } catch (error) {
             console.error("自适应卡片高度失败:", error);
             const message = error instanceof Error ? error.message : String(error);
-            new Notice("自适应高度失败: " + message);
+            new Notice(t("notice.autoHeightFailed", { message }));
         } finally {
             button.disabled = false;
         }
@@ -138,13 +139,13 @@ export class CanvasSelectionToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = `clickable-icon ${BUTTON_CLASS}`;
-        button.setAttribute("aria-label", "整理间距");
-        button.setAttribute("title", "整理间距");
+        button.setAttribute("aria-label", t("toolbar.arrange.label"));
+        button.setAttribute("title", t("toolbar.arrange.label"));
 
         try {
             setIcon(button, "rows-3");
         } catch {
-            button.textContent = "间距";
+            button.textContent = t("toolbar.arrange.fallbackText");
         }
 
         button.addEventListener("click", (event) => {
@@ -176,8 +177,8 @@ export class CanvasSelectionToolbarService {
         const horizontalInput = this.createSpacingInput(preference.horizontalSpacing);
         const verticalInput = this.createSpacingInput(preference.verticalSpacing);
 
-        popover.appendChild(this.createSpacingRow("水平间距", horizontalInput, "horizontal", canvas));
-        popover.appendChild(this.createSpacingRow("垂直间距", verticalInput, "vertical", canvas));
+        popover.appendChild(this.createSpacingRow(t("toolbar.arrange.horizontalSpacing"), horizontalInput, "horizontal", canvas));
+        popover.appendChild(this.createSpacingRow(t("toolbar.arrange.verticalSpacing"), verticalInput, "vertical", canvas));
 
         return popover;
     }
@@ -207,7 +208,7 @@ export class CanvasSelectionToolbarService {
         const button = activeDocument.createElement("button");
         button.type = "button";
         button.className = "mod-cta canvas-loom-arrange-axis-button";
-        button.textContent = "调整";
+        button.textContent = t("toolbar.arrange.adjust");
         button.addEventListener("click", (event) => {
             event.preventDefault();
             void this.applyArrangement(canvas, input, direction, button);
@@ -239,12 +240,12 @@ export class CanvasSelectionToolbarService {
 
         const spacing = this.parseSpacing(input);
         if (!this.isValidSpacing(spacing)) {
-            new Notice("间距值必须在 0-500 像素范围内");
+            new Notice(t("notice.spacingInvalid"));
             return;
         }
 
         if (spacing === 0) {
-            new Notice("间距为 0 时不会更改，请输入一个大于 0 的间距");
+            new Notice(t("notice.spacingZero"));
             return;
         }
 
@@ -265,11 +266,15 @@ export class CanvasSelectionToolbarService {
                     ? { horizontalSpacing: spacing }
                     : { verticalSpacing: spacing }),
             });
-            new Notice(`已调整 ${result.count} 张卡片（${label} ${spacing} px）`);
+            new Notice(t("notice.spacingArranged", {
+                count: result.count,
+                direction: label,
+                spacing
+            }));
         } catch (error) {
             console.error("调整卡片间距失败:", error);
             const message = error instanceof Error ? error.message : String(error);
-            new Notice("整理间距失败: " + message);
+            new Notice(t("notice.spacingFailed", { message }));
         } finally {
             button.disabled = false;
         }
@@ -289,7 +294,9 @@ export class CanvasSelectionToolbarService {
     }
 
     private getDirectionLabel(direction: ArrangeDirection): string {
-        return direction === "horizontal" ? "水平" : "垂直";
+        return t(direction === "horizontal"
+            ? "toolbar.arrange.direction.horizontal"
+            : "toolbar.arrange.direction.vertical");
     }
 
     private getActiveCanvas(): Canvas | null {

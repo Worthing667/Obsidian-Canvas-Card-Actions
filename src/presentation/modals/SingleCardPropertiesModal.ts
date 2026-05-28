@@ -3,6 +3,7 @@ import { CardService } from '../../services/CardService';
 import { validateDimension } from "../../utils/dimensionUtils";
 import { ClipboardAdapter } from '../../adapters/ClipboardAdapter';
 import type { CanvasNode, CanvasNodeData } from '../../types/canvas';
+import { modalT } from './modalI18n';
 
 export class SingleCardPropertiesModal extends Modal {
     private card: CanvasNode;
@@ -24,10 +25,10 @@ export class SingleCardPropertiesModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
         contentEl.addClass("canvas-loom-single-card-properties-modal");
-        contentEl.createEl("h2", { text: "卡片属性" });
+        contentEl.createEl("h2", { text: this.t("modal.singleProperties.title") });
         contentEl.createDiv({
           cls: "cl-subtitle",
-          text: "查看并调整当前卡片的尺寸。"
+          text: this.t("modal.singleProperties.subtitle")
         });
 
         this.createInfoSection(contentEl);
@@ -35,7 +36,7 @@ export class SingleCardPropertiesModal extends Modal {
         if (this.cardData.text) {
             const previewSection = contentEl.createDiv({ cls: "cl-section" });
             const previewHeader = previewSection.createDiv({ cls: "cl-section-header" });
-            previewHeader.createEl("h3", { cls: "cl-section-title", text: "内容预览" });
+            previewHeader.createEl("h3", { cls: "cl-section-title", text: this.t("modal.singleProperties.previewTitle") });
             const previewContent = previewSection.createDiv({ cls: "preview-box" });
             const previewText = this.cardData.text.length > 150
                 ? this.cardData.text.substring(0, 150) + "..."
@@ -53,29 +54,29 @@ export class SingleCardPropertiesModal extends Modal {
 
         // 当前尺寸
         const sizeItem = statsSection.createDiv({ cls: "summary-item" });
-        sizeItem.createDiv({ cls: "summary-label", text: "当前尺寸" });
+        sizeItem.createDiv({ cls: "summary-label", text: this.t("modal.singleProperties.currentSize") });
         sizeItem.createDiv({ cls: "summary-value", text: `${this.cardData.width} × ${this.cardData.height} px` });
         sizeItem.lastElementChild?.setAttribute("id", "current-size");
-        sizeItem.createDiv({ cls: "summary-note", text: "宽度 × 高度" });
+        sizeItem.createDiv({ cls: "summary-note", text: this.t("modal.singleProperties.widthByHeight") });
 
         // 位置坐标
         const positionItem = statsSection.createDiv({ cls: "summary-item" });
-        positionItem.createDiv({ cls: "summary-label", text: "位置坐标" });
+        positionItem.createDiv({ cls: "summary-label", text: this.t("modal.singleProperties.positionCoordinates") });
         positionItem.createDiv({ cls: "summary-value", text: `X ${this.cardData.x}，Y ${this.cardData.y}` });
-        positionItem.createDiv({ cls: "summary-note", text: "画布坐标" });
+        positionItem.createDiv({ cls: "summary-note", text: this.t("modal.singleProperties.canvasCoordinates") });
     }
 
     private createDimensionEditor(container: HTMLElement) {
         const editorSection = container.createDiv({ cls: "cl-section" });
 
         const sectionHeader = editorSection.createDiv({ cls: "cl-section-header" });
-        sectionHeader.createEl("h3", { cls: "cl-section-title", text: "尺寸调整" });
+        sectionHeader.createEl("h3", { cls: "cl-section-title", text: this.t("modal.singleProperties.resizeTitle") });
 
         const dimensionRow = editorSection.createDiv({ cls: "dimension-row" });
 
         // 宽度
         const widthField = dimensionRow.createDiv({ cls: "field" });
-        widthField.createEl("label", { text: "宽度" });
+        widthField.createEl("label", { text: this.t("modal.common.width") });
         const widthInputWrap = widthField.createDiv({ cls: "input-with-unit" });
         this.widthInput = widthInputWrap.createEl("input", {
             type: "number",
@@ -86,7 +87,7 @@ export class SingleCardPropertiesModal extends Modal {
 
         // 高度
         const heightField = dimensionRow.createDiv({ cls: "field" });
-        heightField.createEl("label", { text: "高度" });
+        heightField.createEl("label", { text: this.t("modal.common.height") });
         const heightInputWrap = heightField.createDiv({ cls: "input-with-unit" });
         this.heightInput = heightInputWrap.createEl("input", {
             type: "number",
@@ -99,12 +100,12 @@ export class SingleCardPropertiesModal extends Modal {
         const aspectToggleLabel = dimensionRow.createEl("label", { cls: "ratio-toggle" });
         const aspectToggle = aspectToggleLabel.createEl("input", { type: "checkbox" });
         aspectToggleLabel.createSpan({ cls: "ratio-icon", text: "🔗" });
-        aspectToggleLabel.createSpan({ text: "锁定比例" });
+        aspectToggleLabel.createSpan({ text: this.t("modal.common.aspectRatio") });
 
         // Hint
         editorSection.createDiv({
             cls: "editor-hint",
-            text: "调整后点击「应用更改」写入 Canvas。"
+            text: this.t("modal.singleProperties.hint")
         });
 
         const widthInput = this.widthInput;
@@ -165,33 +166,39 @@ export class SingleCardPropertiesModal extends Modal {
         const footerLeft = actionFooter.createDiv({ cls: "footer-left" });
 
         const copySizeBtn = footerLeft.createEl("button", {
-            text: "复制尺寸",
+            text: this.t("modal.singleProperties.copySize"),
             cls: "cl-btn cl-btn-secondary"
         });
         copySizeBtn.addEventListener("click", () => {
-            const sizeInfo = `卡片尺寸: ${this.cardData.width} × ${this.cardData.height} px`;
-            void this.clipboardAdapter.writeTextWithNotice(sizeInfo, "尺寸信息已复制到剪贴板");
+            const sizeInfo = this.t("modal.singleProperties.clipboardSize", {
+                width: this.cardData.width,
+                height: this.cardData.height
+            });
+            void this.clipboardAdapter.writeTextWithNotice(sizeInfo, this.t("modal.singleProperties.notice.sizeCopied"));
         });
 
         const copyPosBtn = footerLeft.createEl("button", {
-            text: "复制位置",
+            text: this.t("modal.singleProperties.copyPosition"),
             cls: "cl-btn cl-btn-secondary"
         });
         copyPosBtn.addEventListener("click", () => {
-            const posInfo = `卡片位置: X: ${this.cardData.x}, Y: ${this.cardData.y}`;
-            void this.clipboardAdapter.writeTextWithNotice(posInfo, "位置信息已复制到剪贴板");
+            const posInfo = this.t("modal.singleProperties.clipboardPosition", {
+                x: this.cardData.x,
+                y: this.cardData.y
+            });
+            void this.clipboardAdapter.writeTextWithNotice(posInfo, this.t("modal.singleProperties.notice.positionCopied"));
         });
 
         const footerRight = actionFooter.createDiv({ cls: "footer-right" });
 
         const cancelBtn = footerRight.createEl("button", {
-            text: "取消",
+            text: this.t("modal.common.cancel"),
             cls: "cl-btn cl-btn-ghost"
         });
         cancelBtn.addEventListener("click", () => this.close());
 
         const applyBtn = footerRight.createEl("button", {
-            text: "应用更改",
+            text: this.t("modal.common.applyChanges"),
             cls: "cl-btn cl-btn-primary"
         });
         applyBtn.addEventListener("click", () => {
@@ -215,12 +222,12 @@ export class SingleCardPropertiesModal extends Modal {
             this.cardData.width = width;
             this.cardData.height = height;
             this.updateSizeDisplay();
-            new Notice(`卡片尺寸已更新为 ${width}×${height}px`);
+            new Notice(this.t("modal.singleProperties.notice.sizeUpdated", { width, height }));
             this.close();
         } catch (error) {
-            console.error("更新尺寸失败:", error);
+            console.error("Failed to update card size:", error);
             const message = error instanceof Error ? error.message : String(error);
-            new Notice("更新失败: " + message);
+            new Notice(this.t("modal.singleProperties.notice.updateFailed", { message }));
         }
     }
 
@@ -233,6 +240,10 @@ export class SingleCardPropertiesModal extends Modal {
 
     private validateDimension(value: number): boolean {
         return validateDimension(value);
+    }
+
+    private t(key: Parameters<typeof modalT>[1], params?: Parameters<typeof modalT>[2]): string {
+        return modalT(this.app, key, params);
     }
 
     onClose() {

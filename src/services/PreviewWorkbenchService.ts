@@ -1,5 +1,6 @@
 import { BadgeSortStrategy, PositionSortStrategy, SortPriority } from "../domain/strategies";
 import { formatMergedCardsContent } from "./MergedContentFormatter";
+import { t } from "../i18n";
 import type { MergeOrder } from "./ContentService";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
 
@@ -31,7 +32,7 @@ export class PreviewWorkbenchService {
         return {
             canvasFilePath: options.canvasFilePath,
             canvasFileBasename: options.canvasFileBasename,
-            scopeLabel: options.scopeLabel || "当前选区",
+            scopeLabel: options.scopeLabel || t("workbench.scope.selection"),
             selectionSnapshot: [...options.selectionSnapshot],
             sortMode: initialSortMode,
             manualOrderIds: initialCards.map(card => card.id),

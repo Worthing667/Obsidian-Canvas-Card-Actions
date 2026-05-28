@@ -4,21 +4,23 @@ import CanvasLoomSettings, { resolveMergeCardSeparator } from "../../settings/IC
 import type { CanvasNode } from "../../types/canvas";
 import { IColorGroupService } from "../../services/ColorGroupService";
 import { IMergeService } from "../../services/MergeService";
+import { t } from "../../i18n";
 
 export class SelectSameColorCardsCommand implements ICommand {
     constructor(
         private colorGroupService: IColorGroupService,
-        private selection: CanvasNode[]
+        private selection: CanvasNode[],
+        private settings?: Partial<CanvasLoomSettings>
     ) {}
 
     execute(): Promise<void> {
         const group = this.colorGroupService.selectColorGroup(this.selection);
         if (group.matchedNodes.length === 0) {
-            new Notice("没有找到匹配颜色的文本卡片");
+            new Notice(t("notice.noMatchingColorTextCards", undefined, { settings: this.settings }));
             return Promise.resolve();
         }
 
-        new Notice(`已选中 ${group.matchedNodes.length} 张匹配颜色的卡片`);
+        new Notice(t("notice.sameColorCardsSelected", { count: group.matchedNodes.length }, { settings: this.settings }));
         return Promise.resolve();
     }
 
@@ -27,7 +29,7 @@ export class SelectSameColorCardsCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "选中同色卡片";
+        return t("commands.selectSameColorCards", undefined, { settings: this.settings });
     }
 }
 
@@ -57,6 +59,6 @@ export class OpenSameColorGroupWorkbenchCommand implements ICommand {
     }
 
     getDescription(): string {
-        return "预览同色卡片分组";
+        return t("commands.previewSameColorGroup", undefined, { settings: this.settings });
     }
 }

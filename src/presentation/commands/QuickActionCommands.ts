@@ -4,6 +4,7 @@ import { IContentService } from "../../services/ContentService";
 import { IMergeService } from "../../services/MergeService";
 import CanvasLoomSettings, { resolveMergeCardSeparator } from "../../settings/ICanvasLoomSettings";
 import type { CanvasNode } from "../../types/canvas";
+import { t } from "../../i18n";
 
 export class QuickCopyCommand implements ICommand {
     constructor(
@@ -20,7 +21,7 @@ export class QuickCopyCommand implements ICommand {
             sortPriority: this.settings.sortPriority,
             includeBadgePrefix: order === 'badge',
             cardSeparator: resolveMergeCardSeparator(this.settings)
-        }, '已执行一键复制');
+        }, t("notice.quickCopyExecuted", undefined, { settings: this.settings }));
     }
 
     canExecute(): boolean {
@@ -28,7 +29,7 @@ export class QuickCopyCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '一键复制';
+        return t("commands.quickCopy", undefined, { settings: this.settings });
     }
 }
 
@@ -53,7 +54,7 @@ export class QuickMergeCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '一键拼合';
+        return t("commands.quickMerge", undefined, { settings: this.settings });
     }
 }
 
@@ -79,6 +80,6 @@ export class OpenPreviewWorkbenchCommand implements ICommand {
     }
 
     getDescription(): string {
-        return '预览选中卡片组';
+        return t("commands.previewCardGroup", undefined, { settings: this.settings });
     }
 }

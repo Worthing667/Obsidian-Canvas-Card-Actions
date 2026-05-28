@@ -1,4 +1,5 @@
 import type { Canvas, CanvasNode } from "../types/canvas";
+import { t } from "../i18n";
 
 export interface FitSelectedTextCardsResult {
     count: number;
@@ -14,12 +15,12 @@ export function shouldShowAutoHeightToolbarButton(selection?: Set<CanvasNode> | 
 
 export async function fitSelectedTextCardsToHeight(canvas: Canvas): Promise<FitSelectedTextCardsResult> {
     if (hasEditingNode(canvas.selection)) {
-        throw new Error("请先退出卡片编辑状态，再使用自适应高度");
+        throw new Error(t("errors.autoHeightEditing"));
     }
 
     const autoHeightNodes = getSelectedAutoHeightNodes(canvas.selection);
     if (autoHeightNodes.length === 0) {
-        throw new Error("请选择至少一张可自适应高度的卡片");
+        throw new Error(t("errors.autoHeightNoCards"));
     }
 
     const resizeEvent = createSyntheticResizeDblclickEvent();
@@ -35,7 +36,7 @@ export async function fitSelectedTextCardsToHeight(canvas: Canvas): Promise<FitS
     }
 
     if (fittedCount === 0) {
-        throw new Error("当前 Obsidian 版本不支持批量自适应高度");
+        throw new Error(t("errors.autoHeightUnsupported"));
     }
 
     await canvas.requestSave();
