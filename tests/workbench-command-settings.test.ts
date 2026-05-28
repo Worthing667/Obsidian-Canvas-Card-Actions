@@ -28,6 +28,7 @@ function settings(): CanvasLoomSettings {
     sortPriority: 'xy',
     enableBadges: true,
     showEdgesAboveCards: false,
+    disableCanvasLabelFontSizeRelativeToZoom: false,
     defaultSortMode: 'badge',
     mergeCleanupMode: 'delete-source',
     enablePerformanceMode: false,

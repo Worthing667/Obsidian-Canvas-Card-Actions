@@ -95,6 +95,15 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName('连线标签和 Group 标题不跟随画布缩放')
+			.setDesc('开启后使用 Advanced Canvas 同款缩放补偿，让连线标签和 Group 标题在缩放时保持可读大小')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.disableCanvasLabelFontSizeRelativeToZoom)
+				.onChange(async (value) => {
+					await this.plugin.setDisableCanvasLabelFontSizeRelativeToZoomEnabled(value);
+				}));
+
+		new Setting(containerEl)
 			.setName('一键排序方式')
 			.setDesc('设置一键复制、一键拼合默认按位置还是按标记处理')
 			.addDropdown(dropdown => dropdown

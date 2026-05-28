@@ -13,6 +13,7 @@ import {
     BadgeRenderScheduler,
     CanvasSelectionToolbarService,
     CanvasGlobalFindReplaceToolbarService,
+    CanvasLabelScaleService,
     SearchReplaceService
 } from './services';
 import {
@@ -46,6 +47,7 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     sortPriority: 'yx',
     enableBadges: true,
     showEdgesAboveCards: false,
+    disableCanvasLabelFontSizeRelativeToZoom: false,
     defaultSortMode: 'position',
     mergeCleanupMode: 'keep-source',
     enablePerformanceMode: false,
@@ -69,6 +71,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private badgeRenderScheduler: BadgeRenderScheduler;
     private canvasSelectionToolbarService: CanvasSelectionToolbarService;
     private canvasGlobalFindReplaceToolbarService: CanvasGlobalFindReplaceToolbarService;
+    private canvasLabelScaleService: CanvasLabelScaleService;
     private commandRegistry: CommandRegistry;
     private badgeStyleManager: BadgeStyleManager;
     private vaultAdapter: VaultAdapter;
@@ -101,6 +104,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.app,
             this.performanceService
         );
+        this.canvasLabelScaleService = new CanvasLabelScaleService(this.app);
     }
 
     private registerSettingTab(): void {
@@ -110,6 +114,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private setupUI(): void {
         this.syncPerformanceModeClass();
         this.syncCanvasEdgeLayerClass();
+        this.syncCanvasLabelScale();
         this.registerCanvasEdgeLayerInteractionTracking();
 
         if (this.settings.enableBadges) {
@@ -321,11 +326,17 @@ export default class CanvasLoomPlugin extends Plugin {
                         void this.loadCanvasBadges(file);
                     }, 100);
                 }
+
+                if (file && file.extension === "canvas") {
+                    window.setTimeout(() => this.syncCanvasLabelScale(), 100);
+                }
             })
         );
 
         this.registerEvent(
             this.app.workspace.on("layout-change", () => {
+                this.syncCanvasLabelScale();
+
                 if (!this.settings.enableBadges) {
                     return;
                 }
@@ -484,6 +495,12 @@ export default class CanvasLoomPlugin extends Plugin {
         this.syncCanvasEdgeLayerClass();
     }
 
+    async setDisableCanvasLabelFontSizeRelativeToZoomEnabled(enabled: boolean) {
+        this.settings.disableCanvasLabelFontSizeRelativeToZoom = enabled;
+        await this.saveSettings();
+        this.syncCanvasLabelScale();
+    }
+
     private syncPerformanceModeClass(): void {
         activeDocument.body.classList.toggle(
             "canvas-loom-performance-mode",
@@ -506,6 +523,10 @@ export default class CanvasLoomPlugin extends Plugin {
         activeDocument.body.classList.remove("canvas-loom-card-interaction-active");
         this.clearCanvasEdgeLayerRefreshTimeout();
         this.stopCanvasEdgeLayerInteractionObserver();
+    }
+
+    private syncCanvasLabelScale(): void {
+        this.canvasLabelScaleService.syncCanvasWrappers(this.settings.disableCanvasLabelFontSizeRelativeToZoom);
     }
 
     private registerCanvasEdgeLayerInteractionTracking(): void {
