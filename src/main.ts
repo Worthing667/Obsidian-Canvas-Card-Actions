@@ -374,18 +374,18 @@ export default class CanvasLoomPlugin extends Plugin {
     registerCanvasEvents() {
         this.registerEvent(
             this.app.workspace.on("file-open", (file: TFile) => {
-                if (this.settings.enableBadges && file && file.extension === "canvas") {
-                    window.setTimeout(() => {
-                        void this.loadCanvasBadges(file);
-                    }, 100);
+                if (!file || file.extension !== "canvas") {
+                    return;
                 }
 
-                if (file && file.extension === "canvas") {
-                    window.setTimeout(() => {
-                        this.syncCanvasLabelScale();
-                        this.syncCanvasPerformanceMode();
-                    }, 100);
-                }
+                window.setTimeout(() => {
+                    this.syncCanvasLabelScale();
+                    this.syncCanvasPerformanceMode();
+
+                    if (this.settings.enableBadges) {
+                        void this.loadCanvasBadges(file);
+                    }
+                }, 100);
             })
         );
 
@@ -729,6 +729,7 @@ export default class CanvasLoomPlugin extends Plugin {
     onunload() {
         this.clearCanvasEdgeLayerRefreshTimeout();
         this.stopCanvasEdgeLayerInteractionObserver();
+        this.badgeService?.dispose();
         this.badgeRenderScheduler.cancelAll();
         this.canvasSelectionToolbarService.stop();
         this.canvasGlobalFindReplaceToolbarService.stop();

@@ -64,6 +64,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     private workspaceEventRefs: EventRef[] = [];
     private controlsObserver: MutationObserver | null = null;
     private observedRootEl: HTMLElement | null = null;
+    private observedControlsTargetEl: HTMLElement | null = null;
     private resizeObserver: ResizeObserver | null = null;
     private resizeObservedRootEl: HTMLElement | null = null;
     private pendingInjection = false;
@@ -74,6 +75,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     private caseSensitive = false;
     private regex = false;
     private results: CardSearchResult[] = [];
+    private flatMatchesCache: FlatSearchMatch[] | null = null;
     private totalCards = 0;
     private error = "";
     private currentFlatIndex = -1;
@@ -232,7 +234,8 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private observeCanvasControls(rootEl: HTMLElement): void {
-        if (this.observedRootEl === rootEl) {
+        const targetEl = this.getCanvasControlsElement(rootEl) || rootEl;
+        if (this.observedRootEl === rootEl && this.observedControlsTargetEl === targetEl) {
             return;
         }
         this.disconnectControlsObserver();
@@ -240,17 +243,19 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.controlsObserver = new MutationObserver(() => {
             this.scheduleInjection();
         });
-        this.controlsObserver.observe(rootEl, {
+        this.controlsObserver.observe(targetEl, {
             childList: true,
             subtree: true,
         });
         this.observedRootEl = rootEl;
+        this.observedControlsTargetEl = targetEl;
     }
 
     private disconnectControlsObserver(): void {
         this.controlsObserver?.disconnect();
         this.controlsObserver = null;
         this.observedRootEl = null;
+        this.observedControlsTargetEl = null;
     }
 
     private observeCanvasResize(rootEl: HTMLElement): void {
@@ -572,6 +577,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         const result = service.findMatches(this.getQueryOptions());
         this.error = result.error || "";
         this.results = result.cards;
+        this.flatMatchesCache = null;
         this.totalCards = result.totalCards;
 
         const matches = this.getFlatMatches();
@@ -782,6 +788,10 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private getFlatMatches(): FlatSearchMatch[] {
+        if (this.flatMatchesCache) {
+            return this.flatMatchesCache;
+        }
+
         const matches: FlatSearchMatch[] = [];
         this.results.forEach((card) => {
             card.ranges.forEach((_range, matchIndex) => {
@@ -792,6 +802,7 @@ export class CanvasGlobalFindReplaceToolbarService {
                 });
             });
         });
+        this.flatMatchesCache = matches;
         return matches;
     }
 

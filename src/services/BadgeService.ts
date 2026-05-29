@@ -23,6 +23,7 @@ export interface IBadgeService {
     applyBadgeByNodeId(nodeId: string, badgeText: string): boolean;
     clearStaleBadgeDom(activeBadgeNodeIds: Set<string>): void;
     isValidBadgeNode(node: CanvasNode): boolean;
+    dispose(): void;
 }
 
 export class BadgeService implements IBadgeService {
@@ -34,6 +35,10 @@ export class BadgeService implements IBadgeService {
         private canvasAdapter: ICanvasAdapter,
         private isBadgeDisplayEnabled: () => boolean = () => true
     ) {}
+
+    dispose(): void {
+        this.cancelPendingBadgeRefresh();
+    }
 
     getCurrentBadge(node: CanvasNode): Promise<BadgeData | null> {
         try {
@@ -382,5 +387,23 @@ export class BadgeService implements IBadgeService {
                 render();
             }, 120);
         });
+    }
+
+    private cancelPendingBadgeRefresh(): void {
+        if (typeof window === "undefined") {
+            this.badgeRefreshFrameId = null;
+            this.badgeRefreshRetryTimerId = null;
+            return;
+        }
+
+        if (this.badgeRefreshFrameId !== null) {
+            window.cancelAnimationFrame?.(this.badgeRefreshFrameId);
+            this.badgeRefreshFrameId = null;
+        }
+
+        if (this.badgeRefreshRetryTimerId !== null) {
+            window.clearTimeout(this.badgeRefreshRetryTimerId);
+            this.badgeRefreshRetryTimerId = null;
+        }
     }
 }

@@ -105,15 +105,16 @@ export class SearchReplaceService {
             };
         }
 
+        const searchableNodes = this.getSearchableNodes(options);
         if (!compiled.pattern) {
             return {
                 cards: [],
-                totalCards: this.getSearchableNodes(options).length,
+                totalCards: searchableNodes.length,
                 totalMatches: 0
             };
         }
 
-        const cards = this.getSearchableNodes(options)
+        const cards = searchableNodes
             .map((nodeData) => this.createCardResult(nodeData, compiled.pattern as RegExp))
             .filter((result): result is CardSearchResult => !!result);
 
@@ -122,7 +123,7 @@ export class SearchReplaceService {
 
         return {
             cards: orderedCards,
-            totalCards: this.getSearchableNodes(options).length,
+            totalCards: searchableNodes.length,
             totalMatches: orderedCards.reduce((total, card) => total + card.ranges.length, 0)
         };
     }
