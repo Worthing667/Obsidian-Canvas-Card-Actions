@@ -325,7 +325,12 @@ export class MergeWorkbenchView extends ItemView {
         const section = container.createDiv({ cls: "canvas-loom-workbench-preview-section" });
 
         const preview = section.createEl("pre", { cls: "canvas-loom-workbench-preview-content" });
-        preview.setText(this.context.state.lastComputedContent || this.translate("workbench.panel.renderingPreview"));
+        if (this.context.state.lastComputedContent) {
+            preview.setText(this.context.state.lastComputedContent);
+            return;
+        }
+
+        preview.setText(this.translate("workbench.panel.renderingPreview"));
         this.schedulePreviewRender(preview);
 
     }
@@ -334,12 +339,13 @@ export class MergeWorkbenchView extends ItemView {
         const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const action = container.createDiv({ cls: "canvas-loom-workbench-render-action" });
         const button = action.createEl("button");
+        const label = this.translate("workbench.button.viewPreview");
         button.setAttribute("type", "button");
-        button.setAttribute("aria-label", this.translate("workbench.button.rerenderPreview"));
-        button.setAttribute("title", this.translate("workbench.button.rerenderPreview"));
+        button.setAttribute("aria-label", label);
+        button.setAttribute("title", label);
         button.disabled = orderedCards.length === 0;
-        setIcon(button, "refresh-cw");
-        button.createSpan({ text: this.translate("workbench.button.render") });
+        setIcon(button, "eye");
+        button.createSpan({ text: label });
         button.addEventListener("click", () => this.renderSortPreview());
     }
 

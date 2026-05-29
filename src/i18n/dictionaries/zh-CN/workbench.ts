@@ -24,8 +24,7 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 	button: {
 		clear: "清空",
 		clearWorkbench: "清空工作台",
-		render: "渲染",
-		rerenderPreview: "重新生成预览",
+		viewPreview: "查看预览",
 		copy: "复制",
 		addAsCard: "添加为新卡片",
 		newDocument: "新建文稿",

@@ -21,8 +21,7 @@ const workbench = {
 	button: {
 		clear: "Clear",
 		clearWorkbench: "Clear workbench",
-		render: "Render",
-		rerenderPreview: "Regenerate preview",
+		viewPreview: "View preview",
 		copy: "Copy",
 		addAsCard: "Add as new card",
 		newDocument: "New document",
