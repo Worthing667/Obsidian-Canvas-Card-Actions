@@ -1,6 +1,7 @@
 import { Modal, Notice, App } from 'obsidian';
 import { CardService } from '../../services/CardService';
 import { validateDimension } from "../../utils/dimensionUtils";
+import { extractErrorMessage } from "../../utils/errorUtils";
 import { ClipboardAdapter } from '../../adapters/ClipboardAdapter';
 import type { CanvasNode, CanvasNodeData } from '../../types/canvas';
 import { modalT } from './modalI18n';
@@ -226,7 +227,7 @@ export class SingleCardPropertiesModal extends Modal {
             this.close();
         } catch (error) {
             console.error("Failed to update card size:", error);
-            const message = error instanceof Error ? error.message : String(error);
+            const message = extractErrorMessage(error);
             new Notice(this.t("modal.singleProperties.notice.updateFailed", { message }));
         }
     }

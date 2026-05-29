@@ -6,6 +6,7 @@ import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
 import type { CanvasNode } from "../../types/canvas";
 import { t } from "../../i18n";
 import type CanvasLoomSettings from "../../settings/ICanvasLoomSettings";
+import { isTextNodeData } from "../../utils/canvasNodeUtils";
 
 export class OpenCardPropertiesCommand {
   constructor(
@@ -27,7 +28,7 @@ export class OpenCardPropertiesCommand {
       const textCards = this.selection.filter(node => {
         try {
           const data = node.getData && node.getData();
-          return data && data.type === "text";
+          return isTextNodeData(data);
         } catch (error) {
           console.warn("Error getting node data:", error);
           return false;
@@ -65,7 +66,7 @@ export class OpenCardPropertiesCommand {
     const hasTextCards = this.selection.some(node => {
       try {
         const data = node.getData && node.getData();
-        return data && data.type === "text";
+        return isTextNodeData(data);
       } catch {
         return false;
       }
@@ -94,7 +95,7 @@ export class CopyCardDimensionsCommand {
     try {
       const textCards = this.selection.filter(node => {
         const data = node.getData && node.getData();
-        return data && data.type === "text";
+        return isTextNodeData(data);
       });
       
       if (textCards.length === 0) {
@@ -135,7 +136,7 @@ export class CopyCardDimensionsCommand {
   canExecute(): boolean {
     const hasTextCards = this.selection.some(node => {
       const data = node.getData && node.getData();
-      return data && data.type === "text";
+      return isTextNodeData(data);
     });
     return this.selection.length > 0 && hasTextCards;
   }

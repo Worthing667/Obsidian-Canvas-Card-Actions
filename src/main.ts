@@ -35,12 +35,12 @@ import {
     ICommand
 } from './presentation/commands';
 import { BadgeModal, BatchBadgeModal } from './presentation/modals';
-import { BadgeStyleManager } from './presentation/styles';
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 import type { Canvas, CanvasNode } from "./types/canvas";
 import { clearTranslationRuntimeContext, configureTranslationRuntimeContext, t } from "./i18n";
 import type { TranslationKey, TranslationParams } from "./i18n";
+import { isTextNodeData } from "./utils/canvasNodeUtils";
 
 const DEFAULT_SETTINGS: CanvasLoomSettings = {
     language: DEFAULT_LANGUAGE,
@@ -76,7 +76,6 @@ export default class CanvasLoomPlugin extends Plugin {
     private canvasGlobalFindReplaceToolbarService: CanvasGlobalFindReplaceToolbarService;
     private canvasLabelScaleService: CanvasLabelScaleService;
     private commandRegistry: CommandRegistry;
-    private badgeStyleManager: BadgeStyleManager;
     private vaultAdapter: VaultAdapter;
     private canvasEdgeLayerRefreshTimeout: number | null = null;
     private canvasEdgeLayerInteractionObserver: MutationObserver | null = null;
@@ -103,7 +102,6 @@ export default class CanvasLoomPlugin extends Plugin {
         });
 
         this.commandRegistry = new CommandRegistry();
-        this.badgeStyleManager = new BadgeStyleManager();
         this.performanceService = new PerformanceService(() => this.settings);
         this.badgeRenderScheduler = new BadgeRenderScheduler();
         this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(this.app, () => this.settings);
@@ -123,10 +121,6 @@ export default class CanvasLoomPlugin extends Plugin {
         this.syncCanvasEdgeLayerClass();
         this.syncCanvasLabelScale();
         this.registerCanvasEdgeLayerInteractionTracking();
-
-        if (this.settings.enableBadges) {
-            this.badgeStyleManager.injectStyles();
-        }
 
         this.registerMergePreviewView();
         this.canvasSelectionToolbarService.start();
@@ -238,7 +232,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.commandRegistry.addCommandToMenu(menu, 'copy-single-card', this.translate("menu.copyCardContent"), 'copy');
         }
 
-        if (node.getData && node.getData().type === "text" && this.colorGroupService) {
+        if (isTextNodeData(node.getData?.()) && this.colorGroupService) {
             const selectSameColorCommand = new SelectSameColorCardsCommand(
                 this.colorGroupService,
                 this.resolveNodeMenuSelection(node),
@@ -248,7 +242,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.commandRegistry.addCommandToMenu(menu, "select-same-color-cards", this.translate("menu.selectSameColorCards"), "palette");
         }
 
-        if (node.getData && node.getData().type === "text") {
+        if (isTextNodeData(node.getData?.())) {
             menu.addSeparator();
 
             const propertiesCommand = new OpenCardPropertiesCommand(
@@ -354,12 +348,6 @@ export default class CanvasLoomPlugin extends Plugin {
         this.registerEvent(
             this.app.workspace.on("layout-change", () => {
                 this.syncCanvasLabelScale();
-
-                if (!this.settings.enableBadges) {
-                    return;
-                }
-
-                this.badgeStyleManager.ensureStylesExist();
             })
         );
     }
@@ -491,13 +479,11 @@ export default class CanvasLoomPlugin extends Plugin {
         await this.saveSettings();
 
         if (enabled) {
-            this.badgeStyleManager.injectStyles();
             void this.loadAllCanvasBadges();
             return;
         }
 
         this.badgeRenderScheduler.cancelAll();
-        this.badgeStyleManager.removeStyles();
         this.clearAllCanvasBadgeDom();
     }
 
@@ -655,7 +641,6 @@ export default class CanvasLoomPlugin extends Plugin {
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         activeDocument.body.classList.remove("canvas-loom-edges-above-cards");
         activeDocument.body.classList.remove("canvas-loom-card-interaction-active");
-        this.badgeStyleManager.removeStyles();
         this.commandRegistry.clear();
         clearTranslationRuntimeContext();
     }

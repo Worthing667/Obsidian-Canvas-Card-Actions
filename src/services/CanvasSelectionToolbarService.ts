@@ -10,6 +10,7 @@ import {
     shouldShowAutoHeightToolbarButton
 } from "./CanvasAutoFitService";
 import { t } from "../i18n";
+import { extractErrorMessage } from "../utils/errorUtils";
 import type { TranslationKey, TranslationParams } from "../i18n";
 import type CanvasLoomSettings from "../settings/ICanvasLoomSettings";
 import type { Canvas } from "../types/canvas";
@@ -312,7 +313,7 @@ export class CanvasSelectionToolbarService {
     }
 
     private localizeAutoHeightError(error: unknown): string {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = extractErrorMessage(error);
 
         if (this.isTranslatedMessage(message, "errors.autoHeightEditing")) {
             return this.translate("errors.autoHeightEditing");
@@ -330,7 +331,7 @@ export class CanvasSelectionToolbarService {
     }
 
     private localizeArrangementError(error: unknown): string {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = extractErrorMessage(error);
 
         if (this.isTranslatedMessage(message, "errors.arrangementNeedTwoTextCards")) {
             return this.translate("errors.arrangementNeedTwoTextCards");

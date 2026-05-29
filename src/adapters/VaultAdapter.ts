@@ -14,7 +14,7 @@ export class VaultAdapter implements IVaultAdapter {
         const parentPath = canvasFile.parent?.path || '';
         const targetPath = normalizePath(parentPath ? `${parentPath}/${fileName}` : fileName);
         const uniquePath = this.ensureUniquePath(targetPath);
-        return await this.app.vault.create(uniquePath, content);
+        return this.app.vault.create(uniquePath, content);
     }
 
     private ensureUniquePath(path: string): string {

@@ -3,6 +3,7 @@ import { CardService } from "../../services/CardService";
 import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
 import { PositionSortStrategy } from "../../domain/strategies/PositionSort";
 import { validateDimension } from "../../utils/dimensionUtils";
+import { extractErrorMessage } from "../../utils/errorUtils";
 import type { CanvasNode, DimensionStats } from "../../types/canvas";
 import { modalT } from "./modalI18n";
 
@@ -407,7 +408,7 @@ export class CardPropertiesModal extends Modal {
       this.close();
     } catch (error) {
       console.error("Failed to resize cards:", error);
-      const message = error instanceof Error ? error.message : String(error);
+      const message = extractErrorMessage(error);
       new Notice(this.t("modal.properties.notice.unifyFailed", { message }));
     }
   }
@@ -490,7 +491,7 @@ export class CardPropertiesModal extends Modal {
       this.close();
     } catch (error) {
       console.error("Failed to update card widths:", error);
-      const message = error instanceof Error ? error.message : String(error);
+      const message = extractErrorMessage(error);
       new Notice(this.t("modal.properties.notice.widthFailed", { message }));
     }
   }
@@ -502,7 +503,7 @@ export class CardPropertiesModal extends Modal {
       this.close();
     } catch (error) {
       console.error("Failed to update card heights:", error);
-      const message = error instanceof Error ? error.message : String(error);
+      const message = extractErrorMessage(error);
       new Notice(this.t("modal.properties.notice.heightFailed", { message }));
     }
   }

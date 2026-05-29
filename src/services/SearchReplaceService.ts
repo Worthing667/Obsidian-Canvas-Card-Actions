@@ -1,6 +1,8 @@
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { PositionSortStrategy } from "../domain/strategies";
 import { t } from "../i18n";
+import { extractErrorMessage } from "../utils/errorUtils";
+import { isTextNodeData } from "../utils/canvasNodeUtils";
 import type { CardSnapshot } from "../types/WorkbenchState";
 import type { CanvasNodeData } from "../types/canvas";
 
@@ -74,7 +76,7 @@ export class SearchReplaceService {
     getTextCardSnapshots(nodeIds?: Set<string>): CardSnapshot[] {
         return (this.canvasAdapter.getData().nodes || [])
             .filter((nodeData) => {
-                if (nodeData.type !== "text" || typeof nodeData.text !== "string") {
+                if (!isTextNodeData(nodeData) || typeof nodeData.text !== "string") {
                     return false;
                 }
 
@@ -228,7 +230,7 @@ export class SearchReplaceService {
     private getSearchableNodes(options: Pick<SearchReplaceQueryOptions, "scope" | "selectedNodeIds">): CanvasNodeData[] {
         const selectedNodeIds = options.selectedNodeIds || new Set<string>();
         return (this.canvasAdapter.getData().nodes || []).filter((nodeData) => {
-            if (nodeData.type !== "text" || typeof nodeData.text !== "string") {
+            if (!isTextNodeData(nodeData) || typeof nodeData.text !== "string") {
                 return false;
             }
 
@@ -393,7 +395,7 @@ export class SearchReplaceService {
 
             return { pattern };
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
+            const message = extractErrorMessage(error);
             return { pattern: null, error: t("errors.regexInvalid", { message }) };
         }
     }

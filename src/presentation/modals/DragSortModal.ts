@@ -1,6 +1,7 @@
 import { App, Modal, Notice } from "obsidian";
 import { ClipboardAdapter } from "../../adapters/ClipboardAdapter";
 import { PositionSortStrategy, SortPriority } from "../../domain/strategies/PositionSort";
+import { hasTextNodeContent } from "../../utils/canvasNodeUtils";
 import type { CanvasNode } from "../../types/canvas";
 import { modalT } from "./modalI18n";
 
@@ -79,7 +80,7 @@ export class DragSortModal extends Modal {
 
         for (const node of this.cards) {
             const data = node.getData();
-            if (data.type === "text" && data.text && data.text.trim()) {
+            if (hasTextNodeContent(data)) {
                 rawItems.push({
                     node,
                     id: data.id,

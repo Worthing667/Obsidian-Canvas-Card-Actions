@@ -5,6 +5,7 @@ import { BadgeData } from "../domain/models/Badge";
 import { IBadgeService } from "./BadgeService";
 import { formatMergedCardsContent } from "./MergedContentFormatter";
 import { t } from "../i18n";
+import { hasTextNodeContent, resolveCanvasNodeSelection } from "../utils/canvasNodeUtils";
 import { Notice } from "obsidian";
 import type { CardSnapshot } from "../types/WorkbenchState";
 import type { CanvasNode } from "../types/canvas";
@@ -138,7 +139,7 @@ export class ContentService implements IContentService {
 
         for (const node of selectedNodes) {
             const nodeData = node?.getData?.();
-            if (nodeData?.type !== 'text' || !nodeData.text || !nodeData.text.trim()) {
+            if (!hasTextNodeContent(nodeData)) {
                 continue;
             }
 
@@ -188,10 +189,7 @@ export class ContentService implements IContentService {
     }
 
     private resolveSelection(selection: CanvasNode[]): CanvasNode[] {
-        if (Array.isArray(selection) && selection.length > 0) {
-            return selection;
-        }
-        return this.canvasAdapter.getSelectedNodes();
+        return resolveCanvasNodeSelection(selection, () => this.canvasAdapter.getSelectedNodes());
     }
 
     private normalizeSnapshots(snapshots: CardSnapshot[]): CardSnapshot[] {

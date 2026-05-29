@@ -1,5 +1,6 @@
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { t } from "../i18n";
+import { isTextNodeData, resolveCanvasNodeSelection } from "../utils/canvasNodeUtils";
 import type { CanvasNodeData, CanvasNode } from "../types/canvas";
 
 interface ColorGroupResult {
@@ -18,7 +19,7 @@ export class ColorGroupService implements IColorGroupService {
     constructor(private canvasAdapter: ICanvasAdapter) {}
 
     hasTextCardSelection(selection: CanvasNode[]): boolean {
-        return this.resolveSelection(selection).some((node) => node.getData().type === "text");
+        return this.resolveSelection(selection).some((node) => isTextNodeData(node.getData()));
     }
 
     getColorGroupFromSelection(selection: CanvasNode[]): ColorGroupResult {
@@ -46,11 +47,7 @@ export class ColorGroupService implements IColorGroupService {
     }
 
     private resolveSelection(selection: CanvasNode[]): CanvasNode[] {
-        if (Array.isArray(selection) && selection.length > 0) {
-            return selection;
-        }
-
-        return this.canvasAdapter.getSelectedNodes();
+        return resolveCanvasNodeSelection(selection, () => this.canvasAdapter.getSelectedNodes());
     }
 
     private collectColors(selection: CanvasNode[]): Array<string | null> {
@@ -59,7 +56,7 @@ export class ColorGroupService implements IColorGroupService {
 
         selection.forEach((node) => {
             const nodeData = node.getData();
-            if (nodeData.type !== "text") {
+            if (!isTextNodeData(nodeData)) {
                 return;
             }
 
@@ -77,7 +74,7 @@ export class ColorGroupService implements IColorGroupService {
     }
 
     private isMatchedTextNode(nodeData: CanvasNodeData, colorKeys: Set<string>): boolean {
-        if (nodeData.type !== "text") {
+        if (!isTextNodeData(nodeData)) {
             return false;
         }
 

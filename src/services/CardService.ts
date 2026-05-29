@@ -5,6 +5,8 @@ import { t } from "../i18n";
 import { Notice } from "obsidian";
 import { PerformanceService } from "./PerformanceService";
 import { arrangeSelectedTextCards } from "./CanvasArrangementService";
+import { extractErrorMessage } from "../utils/errorUtils";
+import { isTextNodeData } from "../utils/canvasNodeUtils";
 import type { CanvasNode } from "../types/canvas";
 import {
     DEFAULT_SPLIT_CARDS_PER_ROW,
@@ -330,7 +332,7 @@ export class CardService implements ICardService {
         hasVariedSizes: boolean,
         cardCount: number
     } {
-        const textNodes = nodes.filter(node => node.getData().type === "text");
+        const textNodes = nodes.filter(node => isTextNodeData(node.getData()));
         
         if (textNodes.length === 0) {
             throw new Error(t("errors.noSelectedTextCards"));
@@ -355,7 +357,7 @@ export class CardService implements ICardService {
     }
 
     private async applyDimensionChange(nodes: CanvasNode[], targetWidth?: number, targetHeight?: number, successMessage?: string): Promise<void> {
-        const textNodes = nodes.filter(node => node.getData().type === "text");
+        const textNodes = nodes.filter(node => isTextNodeData(node.getData()));
         const startedAt = performance.now();
         
         if (textNodes.length === 0) {
@@ -398,7 +400,7 @@ export class CardService implements ICardService {
         } catch (error) {
             console.error("Failed to resize card:", error);
             
-            const message = error instanceof Error ? error.message : String(error);
+            const message = extractErrorMessage(error);
             if (message.includes("Canvas")) {
                 throw new Error(t("errors.canvasOperationFailed"));
             } else if (message.includes("save")) {
@@ -432,7 +434,7 @@ export class CardService implements ICardService {
         }
 
         const msg = t("notice.unifiedCardSize", {
-            count: nodes.filter(n => n.getData().type === "text").length,
+            count: nodes.filter(n => isTextNodeData(n.getData())).length,
             width: targetWidth,
             height: targetHeight
         });
@@ -443,7 +445,7 @@ export class CardService implements ICardService {
      * 只统一卡片宽度
      */
     async unifyCardWidth(nodes: CanvasNode[], targetWidth: number): Promise<void> {
-        const count = nodes.filter(n => n.getData().type === "text").length;
+        const count = nodes.filter(n => isTextNodeData(n.getData())).length;
         const msg = t("notice.unifiedCardWidth", { count, width: targetWidth });
         await this.applyDimensionChange(nodes, targetWidth, undefined, msg);
     }
@@ -452,7 +454,7 @@ export class CardService implements ICardService {
      * 只统一卡片高度
      */
     async unifyCardHeight(nodes: CanvasNode[], targetHeight: number): Promise<void> {
-        const count = nodes.filter(n => n.getData().type === "text").length;
+        const count = nodes.filter(n => isTextNodeData(n.getData())).length;
         const msg = t("notice.unifiedCardHeight", { count, height: targetHeight });
         await this.applyDimensionChange(nodes, undefined, targetHeight, msg);
     }

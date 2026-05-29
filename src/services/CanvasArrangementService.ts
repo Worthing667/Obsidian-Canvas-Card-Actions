@@ -1,5 +1,6 @@
 import type { Canvas, CanvasNode, CanvasNodeData } from "../types/canvas";
 import { t } from "../i18n";
+import { collectTextNodeIds, isTextNodeData } from "../utils/canvasNodeUtils";
 
 export type ArrangeDirection = "horizontal" | "vertical";
 
@@ -59,7 +60,7 @@ export function shouldShowArrangementToolbarButton(selection?: Set<CanvasNode> |
 
     let textCardCount = 0;
     selection.forEach((node) => {
-        if (node?.getData?.()?.type === "text") {
+        if (isTextNodeData(node?.getData?.())) {
             textCardCount += 1;
         }
     });
@@ -185,21 +186,12 @@ async function applyArrangementPositions(
 }
 
 function getSelectedTextNodeIds(canvas: Canvas): Set<string> {
-    const ids = new Set<string>();
-    const selection = canvas.selection;
-
-    if (selection) {
-        selection.forEach((node) => {
-            if (node?.getData?.()?.type === "text") {
-                ids.add(node.id);
-            }
-        });
-    }
+    const ids = collectTextNodeIds(canvas.selection ?? []);
 
     const selectionData = canvas.getSelectionData?.();
     if (selectionData?.nodes) {
         selectionData.nodes.forEach((nodeData) => {
-            if (nodeData.type === "text") {
+            if (isTextNodeData(nodeData)) {
                 ids.add(nodeData.id);
             }
         });
@@ -210,7 +202,7 @@ function getSelectedTextNodeIds(canvas: Canvas): Set<string> {
 
 function getArrangementCards(nodes: CanvasNodeData[], selectedNodeIds: Set<string>): ArrangementCard[] {
     return nodes
-        .filter((node) => selectedNodeIds.has(node.id) && node.type === "text")
+        .filter((node) => selectedNodeIds.has(node.id) && isTextNodeData(node))
         .map((node) => ({
             id: node.id,
             x: node.x,
