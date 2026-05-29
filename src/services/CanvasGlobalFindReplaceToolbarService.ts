@@ -93,6 +93,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     private nextButton: HTMLButtonElement | null = null;
     private replaceCurrentButton: HTMLButtonElement | null = null;
     private replaceAllButton: HTMLButtonElement | null = null;
+    private searchReplaceServicesByCanvas = new WeakMap<Canvas, SearchReplaceService>();
 
     constructor(
         private readonly app: App,
@@ -953,7 +954,14 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private createSearchReplaceService(canvas: Canvas): SearchReplaceService {
-        return new SearchReplaceService(new CanvasAdapter(canvas, this.diagnostics));
+        const existingService = this.searchReplaceServicesByCanvas.get(canvas);
+        if (existingService) {
+            return existingService;
+        }
+
+        const service = new SearchReplaceService(new CanvasAdapter(canvas, this.diagnostics));
+        this.searchReplaceServicesByCanvas.set(canvas, service);
+        return service;
     }
 
     private getActiveCanvasContext(): ActiveCanvasContext | null {

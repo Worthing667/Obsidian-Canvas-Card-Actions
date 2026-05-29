@@ -1,4 +1,4 @@
-import { Notice, setIcon, View, type App } from "obsidian";
+import { Notice, setIcon, View, type App, type EventRef } from "obsidian";
 import {
     ArrangeSessionPreferenceStore,
     arrangeSelectedTextCardSpacing,
@@ -21,7 +21,9 @@ const POPOVER_CLASS = "canvas-loom-arrange-popover";
 
 export class CanvasSelectionToolbarService {
     private observer: MutationObserver | null = null;
+    private observedRootEl: HTMLElement | null = null;
     private pendingInjection = false;
+    private workspaceEventRefs: EventRef[] = [];
     private readonly arrangePreferenceStore: ArrangeSessionPreferenceStore;
 
     constructor(
@@ -40,19 +42,29 @@ export class CanvasSelectionToolbarService {
 
     start(): void {
         this.stop();
-        this.observer = new MutationObserver(() => this.scheduleInjection());
-        this.observer.observe(activeDocument.body, {
-            childList: true,
-            attributes: true,
-            attributeFilter: ["class"],
-            subtree: true,
-        });
+        const workspace = this.app.workspace as App["workspace"] & {
+            on?: (name: string, callback: () => void) => EventRef;
+            offref?: (ref: EventRef) => void;
+        };
+        workspace.onLayoutReady?.(() => this.scheduleInjection());
+        this.workspaceEventRefs = [
+            workspace.on?.("active-leaf-change", () => this.scheduleInjection()),
+            workspace.on?.("layout-change", () => this.scheduleInjection()),
+        ].filter((ref): ref is EventRef => Boolean(ref));
         this.scheduleInjection();
     }
 
     stop(): void {
         this.observer?.disconnect();
         this.observer = null;
+        this.observedRootEl = null;
+        const workspace = this.app.workspace as App["workspace"] & {
+            offref?: (ref: EventRef) => void;
+        };
+        for (const ref of this.workspaceEventRefs) {
+            workspace.offref?.(ref);
+        }
+        this.workspaceEventRefs = [];
         activeDocument.querySelectorAll(`.${BUTTON_CLASS}, .${AUTO_HEIGHT_BUTTON_CLASS}, .${POPOVER_CLASS}`)
             .forEach((element) => element.remove());
     }
@@ -65,7 +77,31 @@ export class CanvasSelectionToolbarService {
         this.pendingInjection = true;
         window.requestAnimationFrame(() => {
             this.pendingInjection = false;
+            this.syncObserverRoot();
             this.injectIntoActiveCanvasMenu();
+        });
+    }
+
+    private syncObserverRoot(): void {
+        const rootEl = this.getActiveCanvasObserverRoot();
+        if (this.observedRootEl === rootEl) {
+            return;
+        }
+
+        this.observer?.disconnect();
+        this.observer = null;
+        this.observedRootEl = rootEl;
+
+        if (!rootEl) {
+            return;
+        }
+
+        this.observer = new MutationObserver(() => this.scheduleInjection());
+        this.observer.observe(rootEl, {
+            childList: true,
+            attributes: true,
+            attributeFilter: ["class"],
+            subtree: true,
         });
     }
 
@@ -395,12 +431,35 @@ export class CanvasSelectionToolbarService {
     }
 
     private getActiveCanvas(): Canvas | null {
+        return this.getActiveCanvasView()?.canvas || null;
+    }
+
+    private getActiveCanvasView(): (View & { canvas?: Canvas; containerEl?: HTMLElement }) | null {
         const activeView = this.app.workspace.getActiveViewOfType(View);
         if (!activeView || activeView.getViewType?.() !== "canvas") {
             return null;
         }
 
-        return activeView.canvas || null;
+        return activeView;
+    }
+
+    private getActiveCanvasObserverRoot(): HTMLElement | null {
+        const activeView = this.getActiveCanvasView();
+        const canvas = activeView?.canvas;
+        if (!canvas) {
+            return null;
+        }
+
+        if (canvas.wrapperEl instanceof HTMLElement) {
+            return canvas.wrapperEl;
+        }
+
+        if (activeView.containerEl instanceof HTMLElement) {
+            return activeView.containerEl;
+        }
+
+        const menuEl = this.getCanvasMenuElement(canvas);
+        return menuEl instanceof HTMLElement ? menuEl : null;
     }
 
     private getCanvasMenuElement(canvas: Canvas): HTMLElement | null {

@@ -27,6 +27,8 @@ export interface IBadgeService {
 
 export class BadgeService implements IBadgeService {
     private appliedBadgesByNodeId = new Map<string, string>();
+    private badgeRefreshFrameId: number | null = null;
+    private badgeRefreshRetryTimerId: number | null = null;
 
     constructor(
         private canvasAdapter: ICanvasAdapter,
@@ -359,6 +361,10 @@ export class BadgeService implements IBadgeService {
             return;
         }
 
+        if (this.badgeRefreshFrameId !== null || this.badgeRefreshRetryTimerId !== null) {
+            return;
+        }
+
         const render = () => {
             void this.loadCanvasBadges();
         };
@@ -368,11 +374,13 @@ export class BadgeService implements IBadgeService {
             return;
         }
 
-        window.requestAnimationFrame(() => {
+        this.badgeRefreshFrameId = window.requestAnimationFrame(() => {
+            this.badgeRefreshFrameId = null;
             render();
-            window.setTimeout(render, 50);
-            window.setTimeout(render, 250);
-            window.setTimeout(render, 700);
+            this.badgeRefreshRetryTimerId = window.setTimeout(() => {
+                this.badgeRefreshRetryTimerId = null;
+                render();
+            }, 120);
         });
     }
 }

@@ -60,6 +60,15 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     badgeUpdateDebounceMs: 150,
 };
 
+interface CanvasServiceBundle {
+    cardService: CardService;
+    badgeService: BadgeService;
+    contentService: ContentService;
+    colorGroupService: ColorGroupService;
+    searchReplaceService: SearchReplaceService;
+    mergeService: MergeService;
+}
+
 export default class CanvasLoomPlugin extends Plugin {
     settings: CanvasLoomSettings;
 
@@ -81,6 +90,8 @@ export default class CanvasLoomPlugin extends Plugin {
     private vaultAdapter: VaultAdapter;
     private canvasEdgeLayerRefreshTimeout: number | null = null;
     private canvasEdgeLayerInteractionObserver: MutationObserver | null = null;
+    private canvasEdgeLayerObservedRootEl: HTMLElement | null = null;
+    private canvasServicesByCanvas = new WeakMap<Canvas, CanvasServiceBundle>();
 
     async onload() {
         await this.initializeServices();
@@ -178,28 +189,51 @@ export default class CanvasLoomPlugin extends Plugin {
             return;
         }
 
+        const services = this.getOrCreateCanvasServices(canvas);
+        this.cardService = services.cardService;
+        this.badgeService = services.badgeService;
+        this.contentService = services.contentService;
+        this.colorGroupService = services.colorGroupService;
+        this.searchReplaceService = services.searchReplaceService;
+        this.mergeService = services.mergeService;
+    }
+
+    private getOrCreateCanvasServices(canvas: Canvas): CanvasServiceBundle {
+        const existingServices = this.canvasServicesByCanvas.get(canvas);
+        if (existingServices) {
+            return existingServices;
+        }
+
         const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
-        this.cardService = new CardService(
-            canvasAdapter,
-            20,
-            400,
-            400,
-            this.performanceService,
-            () => this.settings.splitCardsPerRow
-        );
-        this.badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
-        this.contentService = new ContentService(canvasAdapter, this.clipboardAdapter, this.badgeService);
-        this.colorGroupService = new ColorGroupService(canvasAdapter);
-        this.searchReplaceService = new SearchReplaceService(canvasAdapter);
-        this.mergeService = new MergeService(
-            this.app,
-            canvasAdapter,
-            this.contentService,
-            this.vaultAdapter,
-            this.searchReplaceService,
-            this.performanceService,
-            () => this.settings.mergeCleanupMode
-        );
+        const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
+        const contentService = new ContentService(canvasAdapter, this.clipboardAdapter, badgeService);
+        const searchReplaceService = new SearchReplaceService(canvasAdapter);
+        const services: CanvasServiceBundle = {
+            cardService: new CardService(
+                canvasAdapter,
+                20,
+                400,
+                400,
+                this.performanceService,
+                () => this.settings.splitCardsPerRow
+            ),
+            badgeService,
+            contentService,
+            colorGroupService: new ColorGroupService(canvasAdapter),
+            searchReplaceService,
+            mergeService: new MergeService(
+                this.app,
+                canvasAdapter,
+                contentService,
+                this.vaultAdapter,
+                searchReplaceService,
+                this.performanceService,
+                () => this.settings.mergeCleanupMode
+            )
+        };
+
+        this.canvasServicesByCanvas.set(canvas, services);
+        return services;
     }
 
     private translate(key: TranslationKey, params?: TranslationParams): string {
@@ -389,23 +423,7 @@ export default class CanvasLoomPlugin extends Plugin {
                 }
 
                 try {
-                    const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
-                    const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
-                    const canvasData = canvasAdapter.getData();
-                    const stats = this.performanceService.getStats(canvasData);
-
-                    this.performanceService.log("canvas.stats", {
-                        filePath: file.path,
-                        ...stats
-                    });
-
-                    this.badgeRenderScheduler.schedule({
-                        key: file.path,
-                        badgeService,
-                        debounceMs: this.settings.badgeUpdateDebounceMs,
-                        batchSize: stats.isLargeCanvas ? 30 : Math.max(1, stats.badgeNodeCount),
-                        performanceService: this.performanceService
-                    });
+                    this.scheduleCanvasBadgeRender(canvas, file.path);
                 } catch (error) {
                     console.error("Failed to load Canvas badges:", error);
                 }
@@ -429,9 +447,7 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private scheduleActiveCanvasBadgeRefresh(): void {
-        [0, 50, 200, 700].forEach((delayMs) => {
-            window.setTimeout(() => this.refreshActiveCanvasBadges(), delayMs);
-        });
+        this.refreshActiveCanvasBadges();
     }
 
     private refreshActiveCanvasBadges(): void {
@@ -445,12 +461,31 @@ export default class CanvasLoomPlugin extends Plugin {
         }
 
         try {
-            const canvasAdapter = new CanvasAdapter(activeView.canvas, this.performanceService);
-            const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
-            void badgeService.loadCanvasBadges();
+            const file = activeView.file instanceof TFile ? activeView.file : null;
+            this.scheduleCanvasBadgeRender(activeView.canvas, file?.path || "active-canvas");
         } catch (error) {
             console.error("Failed to refresh Canvas badge display:", error);
         }
+    }
+
+    private scheduleCanvasBadgeRender(canvas: Canvas, key: string): void {
+        const canvasAdapter = new CanvasAdapter(canvas, this.performanceService);
+        const badgeService = new BadgeService(canvasAdapter, () => this.settings.enableBadges);
+        const canvasData = canvasAdapter.getData();
+        const stats = this.performanceService.getStats(canvasData);
+
+        this.performanceService.log("canvas.stats", {
+            filePath: key,
+            ...stats
+        });
+
+        this.badgeRenderScheduler.schedule({
+            key,
+            badgeService,
+            debounceMs: this.settings.badgeUpdateDebounceMs,
+            batchSize: stats.isLargeCanvas ? 30 : Math.max(1, stats.badgeNodeCount),
+            performanceService: this.performanceService
+        });
     }
 
     private isUndoOrRedoShortcut(event: KeyboardEvent): boolean {
@@ -576,7 +611,24 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private startCanvasEdgeLayerInteractionObserver(): void {
-        if (this.canvasEdgeLayerInteractionObserver) {
+        this.syncCanvasEdgeLayerInteractionObserverRoot();
+    }
+
+    private syncCanvasEdgeLayerInteractionObserverRoot(): void {
+        if (!this.settings.showEdgesAboveCards) {
+            this.stopCanvasEdgeLayerInteractionObserver();
+            return;
+        }
+
+        const rootEl = this.resolveActiveCanvasRootEl();
+        if (this.canvasEdgeLayerObservedRootEl === rootEl) {
+            return;
+        }
+
+        this.stopCanvasEdgeLayerInteractionObserver();
+        this.canvasEdgeLayerObservedRootEl = rootEl;
+
+        if (!rootEl) {
             return;
         }
 
@@ -592,7 +644,7 @@ export default class CanvasLoomPlugin extends Plugin {
             }
         });
 
-        this.canvasEdgeLayerInteractionObserver.observe(activeDocument.body, {
+        this.canvasEdgeLayerInteractionObserver.observe(rootEl, {
             attributes: true,
             attributeFilter: ["class"],
             subtree: true
@@ -606,6 +658,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.canvasEdgeLayerInteractionObserver.disconnect();
         this.canvasEdgeLayerInteractionObserver = null;
+        this.canvasEdgeLayerObservedRootEl = null;
     }
 
     private scheduleCanvasEdgeLayerInteractionRefresh(): void {
@@ -613,6 +666,7 @@ export default class CanvasLoomPlugin extends Plugin {
             return;
         }
 
+        this.syncCanvasEdgeLayerInteractionObserverRoot();
         this.clearCanvasEdgeLayerRefreshTimeout();
         this.canvasEdgeLayerRefreshTimeout = window.setTimeout(() => {
             this.canvasEdgeLayerRefreshTimeout = null;
@@ -637,12 +691,16 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private hasActiveCanvasCard(): boolean {
+        const rootEl = this.resolveActiveCanvasRootEl();
         const activeElement = activeDocument.activeElement;
-        if (activeElement instanceof HTMLElement && activeElement.closest(".canvas-node")) {
+        if (activeElement instanceof HTMLElement
+            && (!rootEl || rootEl.contains(activeElement))
+            && activeElement.closest(".canvas-node")) {
             return true;
         }
 
-        return Boolean(activeDocument.querySelector(
+        const queryRoot: ParentNode = rootEl || activeDocument;
+        return Boolean(queryRoot.querySelector(
             [
                 ".canvas-node.is-selected",
                 ".canvas-node.is-focused",
@@ -652,6 +710,20 @@ export default class CanvasLoomPlugin extends Plugin {
                 ".canvas-node [contenteditable='true']:focus"
             ].join(", ")
         ));
+    }
+
+    private resolveActiveCanvasRootEl(): HTMLElement | null {
+        const activeView = this.app.workspace.getActiveViewOfType(View);
+        if (!activeView || activeView.getViewType?.() !== "canvas" || !activeView.canvas) {
+            return null;
+        }
+
+        if (activeView.canvas.wrapperEl instanceof HTMLElement) {
+            return activeView.canvas.wrapperEl;
+        }
+
+        const viewWithContainer = activeView as View & { containerEl?: HTMLElement };
+        return viewWithContainer.containerEl instanceof HTMLElement ? viewWithContainer.containerEl : null;
     }
 
     onunload() {
@@ -770,7 +842,8 @@ export default class CanvasLoomPlugin extends Plugin {
                 selection,
                 (nodes) => this.hasBadgeEditableSelection(nodes),
                 this.settings
-            )
+            ),
+            ({ selection }) => this.hasBadgeEditableSelectionFast(selection)
         );
 
         this.registerCanvasSelectionCommand(
@@ -782,7 +855,8 @@ export default class CanvasLoomPlugin extends Plugin {
                 selection,
                 file,
                 this.settings
-            )
+            ),
+            ({ selection }) => this.hasTextCardSelectionFast(selection)
         );
 
         this.registerCanvasSelectionCommand(
@@ -806,14 +880,16 @@ export default class CanvasLoomPlugin extends Plugin {
         this.registerCanvasSelectionCommand(
             'manual-merge-selected-cards',
             this.translate("commands.manualMergeSelectedCards"),
-            ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file, this.settings)
+            ({ selection, file }) => new ManualMergeCommand(this.app, this.mergeService, selection, file, this.settings),
+            ({ selection }) => selection.length > 1
         );
     }
 
     private registerCanvasSelectionCommand(
         id: string,
         name: string,
-        factory: (context: { selection: CanvasNode[]; file: TFile | null }) => ICommand
+        factory: (context: { selection: CanvasNode[]; file: TFile | null }) => ICommand,
+        canExecuteWhileChecking?: (context: { selection: CanvasNode[]; file: TFile | null }) => boolean
     ): void {
         this.addCommand({
             id,
@@ -822,6 +898,10 @@ export default class CanvasLoomPlugin extends Plugin {
                 const context = this.getActiveCanvasSelectionContext();
                 if (!context) {
                     return false;
+                }
+
+                if (checking) {
+                    return canExecuteWhileChecking ? canExecuteWhileChecking(context) : true;
                 }
 
                 this.setupCanvasServices(context.canvas);
@@ -834,9 +914,7 @@ export default class CanvasLoomPlugin extends Plugin {
                     return false;
                 }
 
-                if (!checking) {
-                    void command.execute();
-                }
+                void command.execute();
 
                 return true;
             }
@@ -912,5 +990,20 @@ export default class CanvasLoomPlugin extends Plugin {
 
     private hasBadgeEditableSelection(selection: CanvasNode[]): boolean {
         return !!this.badgeService && selection.some((node) => this.badgeService.isValidBadgeNode(node));
+    }
+
+    private hasBadgeEditableSelectionFast(selection: CanvasNode[]): boolean {
+        return selection.some((node) => this.isBadgeEditableNode(node));
+    }
+
+    private isBadgeEditableNode(node: CanvasNode): boolean {
+        const nodeData = node.getData?.();
+        const isTextCard = node.text !== undefined || nodeData?.type === "text";
+        const isMarkdownEmbed = node.nodeEl?.querySelector(".markdown-embed") !== null;
+        return isTextCard || isMarkdownEmbed;
+    }
+
+    private hasTextCardSelectionFast(selection: CanvasNode[]): boolean {
+        return selection.some((node) => isTextNodeData(node.getData?.()));
     }
 }
