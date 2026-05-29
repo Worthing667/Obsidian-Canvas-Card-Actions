@@ -112,7 +112,10 @@ export default class CanvasLoomPlugin extends Plugin {
             this.performanceService
         );
         this.canvasLabelScaleService = new CanvasLabelScaleService(this.app);
-        this.canvasPerformanceModeService = new CanvasPerformanceModeService(this.app);
+        this.canvasPerformanceModeService = new CanvasPerformanceModeService(
+            this.app,
+            () => this.settings.largeCanvasNodeThreshold
+        );
     }
 
     private registerSettingTab(): void {

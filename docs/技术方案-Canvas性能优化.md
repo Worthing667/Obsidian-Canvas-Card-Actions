@@ -90,17 +90,20 @@ Canvas-Loom 当前适合做“辅助型性能优化”，不适合直接做 Hept
 
 - 设置项：`enablePerformanceMode`、`enablePerformanceDiagnostics`、`largeCanvasNodeThreshold`、`badgeUpdateDebounceMs`
 - `PerformanceService`：统计 Canvas 节点结构、判断大 Canvas、输出诊断日志、包裹操作耗时
+- `CanvasPerformanceModeService`：在性能模式开启时同步 Canvas wrapper 的渲染降级状态，根据缩放和大 Canvas 阈值切换 badge 显示密度
 - `CanvasAdapter.mutateData`：集中完成一次 Canvas 数据修改，减少重复 `setData`
 - 拆分卡片：更新原卡片和追加新卡片合并为一次 `setData`
 - 拼合并删除源卡片：删除源节点、删除相关边、追加合并卡片合并为一次 `setData`
 - `BadgeRenderScheduler`：对标记加载做防抖，并在大 Canvas 中按 `requestAnimationFrame` 分帧写 DOM
 - 插件生命周期：关闭标记或卸载插件时取消 pending timer / RAF，并清理 DOM 上的标记显示
 - 性能模式 class：通过 `body.canvas-loom-performance-mode` 控制，具体 CSS 规则放在根目录 `styles.css`
+- 性能模式 CSS 降载：Canvas 节点使用 `contain: layout paint`，节点内容使用 `backface-visibility: visible`，badge 关闭动画和阴影
+- zoom-aware badge 降级：性能模式下低缩放时 badge 从文字胶囊降级为小圆点；普通 Canvas 在 `zoom <= 0.6` 触发，大 Canvas 在 `zoom <= 0.8` 触发
 
 尚未落地或仍保持实验边界的部分：
 
 - `content-visibility` 单独实验开关
-- 缩放级别 LOD
+- 更激进的缩放级别 LOD
 - 屏外弱化显示
 - 位图或文本快照缓存
 
@@ -117,7 +120,7 @@ Canvas-Loom 当前适合做“辅助型性能优化”，不适合直接做 Hept
 - `badgeUpdateDebounceMs`
   标记 DOM 更新防抖时间，默认 `100` 到 `200` ms。
 - `largeCanvasNodeThreshold`
-  大 Canvas 判定阈值，默认 `50` 或 `80`。
+  大 Canvas 判定阈值，当前默认 `80`。当前用于标记分批加载，并让大 Canvas 更早进入 badge compact 显示。
 
 相关文件：
 
@@ -297,11 +300,20 @@ P2 的目标是降低 Canvas-Loom 附加 UI 在大 Canvas 下的成本，不强�
 
 ### 2.1 CSS containment
 
-在性能模式下，对 Canvas 节点增加较保守的 containment：
+在性能模式下，对 Canvas 节点增加较保守的 containment，并降低 Canvas Loom badge 自身的绘制成本：
 
 ```css
 .canvas-loom-performance-mode .canvas-node {
     contain: layout paint;
+}
+
+.canvas-loom-performance-mode .canvas-node .canvas-node-content {
+    backface-visibility: visible;
+}
+
+.canvas-loom-performance-mode .canvas-node .canvas-node-content[data-badge]::after {
+    animation: none;
+    box-shadow: none;
 }
 ```
 
@@ -319,7 +331,21 @@ contain: strict;
 
 `strict` 包含 size containment，容易影响 Canvas 节点尺寸测量。
 
-### 2.2 content-visibility 实验
+### 2.2 zoom-aware badge 降级
+
+`CanvasPerformanceModeService` 在性能模式开启时低频同步 Canvas wrapper 的 `data-canvas-loom-badge-mode`：
+
+- `full`：保持完整数字 badge。
+- `compact`：badge 降级为 8px 小圆点，减少低缩放和大 Canvas 浏览时的文本绘制成本。
+
+触发阈值：
+
+- 普通 Canvas：`zoom <= 0.6`
+- 大 Canvas：`zoom <= 0.8`
+
+大 Canvas 判定复用 `largeCanvasNodeThreshold`。服务优先读取运行时 `canvas.nodes.size`，只有缺失时才兜底读取 `canvas.getData().nodes.length`，避免为持续缩放同步引入额外 Canvas 数据读取成本。
+
+### 2.3 content-visibility 实验
 
 可实验：
 

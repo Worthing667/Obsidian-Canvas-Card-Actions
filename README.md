@@ -87,8 +87,9 @@ Search and replace text across all text cards on the current canvas or within a 
 - `Enable badges`: controls whether card badges are shown.
 - `Show edges above cards`: places Canvas connections above regular cards while keeping selected or edited cards above connections.
 - `Merge cleanup mode`: controls whether source cards are kept or deleted after creating a merged card.
-- `Canvas performance mode`: reduces Canvas Loom's additional rendering cost on large canvases.
+- `Canvas performance mode`: reduces Canvas Loom's additional rendering cost on large canvases and switches badges to compact dots at low zoom.
 - `Performance diagnostics`: logs Canvas Loom operation timing and Canvas statistics to the developer console.
+- `Large Canvas threshold` / `Badge refresh delay`: controls batched badge rendering and when performance mode switches badges to compact dots.
 
 ## Privacy
 

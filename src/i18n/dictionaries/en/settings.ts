@@ -58,7 +58,7 @@ const settings = {
 	},
 	enablePerformanceMode: {
 		name: "Enable Canvas performance mode",
-		desc: "Reduce Canvas-Loom's additional rendering overhead in large Canvas files."
+		desc: "Reduce Canvas-Loom's additional rendering overhead in large Canvas files and simplify badges at low zoom."
 	},
 	enablePerformanceDiagnostics: {
 		name: "Enable performance diagnostic logs",
@@ -66,7 +66,7 @@ const settings = {
 	},
 	largeCanvasNodeThreshold: {
 		name: "Large Canvas threshold",
-		desc: "When the node count reaches this value, badge loading is processed in batches."
+		desc: "When the node count reaches this value, badge loading is processed in batches and performance mode simplifies badges earlier."
 	},
 	badgeUpdateDebounceMs: {
 		name: "Badge refresh delay",

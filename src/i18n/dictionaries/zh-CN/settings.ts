@@ -61,7 +61,7 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	},
 	enablePerformanceMode: {
 		name: "启用 Canvas 性能模式",
-		desc: "减少 Canvas-Loom 在大型 Canvas 中的附加渲染开销"
+		desc: "减少 Canvas-Loom 在大型 Canvas 中的附加渲染开销，并在低缩放时简化标记显示"
 	},
 	enablePerformanceDiagnostics: {
 		name: "启用性能诊断日志",
@@ -69,7 +69,7 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	},
 	largeCanvasNodeThreshold: {
 		name: "大 Canvas 判定数量",
-		desc: "节点数达到该值后，标记加载会分批处理"
+		desc: "节点数达到该值后，标记加载会分批处理，性能模式下也会更早简化标记显示"
 	},
 	badgeUpdateDebounceMs: {
 		name: "标记刷新延迟",
