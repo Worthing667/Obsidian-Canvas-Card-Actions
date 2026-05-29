@@ -11,4 +11,5 @@ export * from './CanvasAutoFitService';
 export * from './CanvasSelectionToolbarService';
 export * from './CanvasGlobalFindReplaceToolbarService';
 export * from './CanvasLabelScaleService';
+export * from './CanvasPerformanceModeService';
 export * from './SearchReplaceService';

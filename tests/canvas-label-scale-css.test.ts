@@ -15,5 +15,25 @@ function testAdvancedCanvasFontZoomCompensationCssExists() {
   );
 }
 
+function testPerformanceModeBadgeRenderingCssExists() {
+  const styles = readFileSync('styles.css', 'utf8');
+
+  assert.match(
+    styles,
+    /\.canvas-loom-performance-mode\s+\.canvas-node\s+\.canvas-node-content\s*\{[^}]*backface-visibility:\s*visible;/s
+  );
+
+  assert.match(
+    styles,
+    /\.canvas-loom-performance-mode\s+\.canvas-node\s+\.canvas-node-content\[data-badge\]::after\s*\{[^}]*animation:\s*none;[^}]*box-shadow:\s*none;/s
+  );
+
+  assert.match(
+    styles,
+    /\.canvas-loom-performance-mode\s+\.canvas-wrapper\[data-canvas-loom-badge-mode=['"]compact['"]\]\s+\.canvas-node\s+\.canvas-node-content\[data-badge\]::after\s*\{[^}]*content:\s*[""]{2};[^}]*min-width:\s*8px;[^}]*height:\s*8px;/s
+  );
+}
+
 testAdvancedCanvasFontZoomCompensationCssExists();
+testPerformanceModeBadgeRenderingCssExists();
 console.log('canvas label scale css tests passed');

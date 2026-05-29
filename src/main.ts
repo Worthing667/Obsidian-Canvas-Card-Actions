@@ -14,6 +14,7 @@ import {
     CanvasSelectionToolbarService,
     CanvasGlobalFindReplaceToolbarService,
     CanvasLabelScaleService,
+    CanvasPerformanceModeService,
     SearchReplaceService
 } from './services';
 import {
@@ -75,6 +76,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private canvasSelectionToolbarService: CanvasSelectionToolbarService;
     private canvasGlobalFindReplaceToolbarService: CanvasGlobalFindReplaceToolbarService;
     private canvasLabelScaleService: CanvasLabelScaleService;
+    private canvasPerformanceModeService: CanvasPerformanceModeService;
     private commandRegistry: CommandRegistry;
     private vaultAdapter: VaultAdapter;
     private canvasEdgeLayerRefreshTimeout: number | null = null;
@@ -110,6 +112,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.performanceService
         );
         this.canvasLabelScaleService = new CanvasLabelScaleService(this.app);
+        this.canvasPerformanceModeService = new CanvasPerformanceModeService(this.app);
     }
 
     private registerSettingTab(): void {
@@ -118,6 +121,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
     private setupUI(): void {
         this.syncPerformanceModeClass();
+        this.syncCanvasPerformanceMode();
         this.syncCanvasEdgeLayerClass();
         this.syncCanvasLabelScale();
         this.registerCanvasEdgeLayerInteractionTracking();
@@ -340,7 +344,10 @@ export default class CanvasLoomPlugin extends Plugin {
                 }
 
                 if (file && file.extension === "canvas") {
-                    window.setTimeout(() => this.syncCanvasLabelScale(), 100);
+                    window.setTimeout(() => {
+                        this.syncCanvasLabelScale();
+                        this.syncCanvasPerformanceMode();
+                    }, 100);
                 }
             })
         );
@@ -348,6 +355,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.registerEvent(
             this.app.workspace.on("layout-change", () => {
                 this.syncCanvasLabelScale();
+                this.syncCanvasPerformanceMode();
             })
         );
     }
@@ -491,6 +499,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.settings.enablePerformanceMode = enabled;
         await this.saveSettings();
         this.syncPerformanceModeClass();
+        this.syncCanvasPerformanceMode();
     }
 
     async setShowEdgesAboveCardsEnabled(enabled: boolean) {
@@ -531,6 +540,16 @@ export default class CanvasLoomPlugin extends Plugin {
 
     private syncCanvasLabelScale(): void {
         this.canvasLabelScaleService.syncCanvasWrappers(this.settings.disableCanvasLabelFontSizeRelativeToZoom);
+    }
+
+    private syncCanvasPerformanceMode(): void {
+        if (this.settings.enablePerformanceMode) {
+            this.canvasPerformanceModeService.syncCanvasWrappers(true);
+            this.canvasPerformanceModeService.start();
+            return;
+        }
+
+        this.canvasPerformanceModeService.stop();
     }
 
     private registerCanvasEdgeLayerInteractionTracking(): void {
@@ -638,6 +657,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.badgeRenderScheduler.cancelAll();
         this.canvasSelectionToolbarService.stop();
         this.canvasGlobalFindReplaceToolbarService.stop();
+        this.canvasPerformanceModeService.stop();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         activeDocument.body.classList.remove("canvas-loom-edges-above-cards");
         activeDocument.body.classList.remove("canvas-loom-card-interaction-active");

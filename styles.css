@@ -1451,6 +1451,26 @@
     contain: layout paint;
 }
 
+.canvas-loom-performance-mode .canvas-node .canvas-node-content {
+    backface-visibility: visible;
+}
+
+.canvas-loom-performance-mode .canvas-node .canvas-node-content[data-badge]::after {
+    animation: none;
+    box-shadow: none;
+}
+
+.canvas-loom-performance-mode .canvas-wrapper[data-canvas-loom-badge-mode='compact'] .canvas-node .canvas-node-content[data-badge]::after {
+    content: "";
+    top: 6px;
+    right: 6px;
+    min-width: 8px;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border-width: 0;
+}
+
 .canvas-loom-arrange-toolbar-button {
     position: relative;
 }
