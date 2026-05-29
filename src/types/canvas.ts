@@ -1,5 +1,3 @@
-import type { TFile, View } from "obsidian";
-
 export type CanvasResizeHandle =
     | "top"
     | "right"
@@ -69,11 +67,6 @@ export interface Canvas {
     setViewport?(tx: number, ty: number, tZoom: number): void;
     zoomToBbox?(bbox: { minX: number; maxX: number; minY: number; maxY: number }): void;
     zoomToSelection?(): void;
-}
-
-export interface CanvasView extends View {
-    canvas?: Canvas;
-    file?: TFile | null;
 }
 
 export interface DimensionStats {

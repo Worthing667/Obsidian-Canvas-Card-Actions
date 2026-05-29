@@ -1,8 +1,4 @@
-export const BADGE_PATTERN = /^\d+(\.\d+)*$/;
-
-export interface Badge {
-    content: string;
-}
+const BADGE_PATTERN = /^\d+(\.\d+)*$/;
 
 export class BadgeData {
     constructor(public readonly content: string) {}

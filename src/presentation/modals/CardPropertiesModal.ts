@@ -400,17 +400,6 @@ export class CardPropertiesModal extends Modal {
     };
   }
 
-  private async unifyToSize(size: "min" | "max"): Promise<void> {
-    try {
-      await this.cardService.unifyCardSizes(this.cards, size);
-      this.close();
-    } catch (error) {
-      console.error("Failed to resize cards:", error);
-      const message = error instanceof Error ? error.message : String(error);
-      new Notice(this.t("modal.properties.notice.unifyFailed", { message }));
-    }
-  }
-
   private async unifyToCustomSize(width: number, height: number): Promise<void> {
     try {
       await this.cardService.unifyCardSizes(this.cards, { width, height });

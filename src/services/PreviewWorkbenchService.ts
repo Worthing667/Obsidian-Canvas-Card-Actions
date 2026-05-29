@@ -4,7 +4,7 @@ import { t } from "../i18n";
 import type { MergeOrder } from "./ContentService";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
 
-export interface CreateWorkbenchStateOptions {
+interface CreateWorkbenchStateOptions {
     canvasFilePath: string | null;
     canvasFileBasename: string;
     scopeLabel?: string;
@@ -15,7 +15,7 @@ export interface CreateWorkbenchStateOptions {
     cardSeparator?: string | null;
 }
 
-export interface AppendWorkbenchSnapshotsResult {
+interface AppendWorkbenchSnapshotsResult {
     state: WorkbenchState;
     addedCount: number;
     updatedCount: number;
@@ -43,7 +43,7 @@ export class PreviewWorkbenchService {
         };
     }
 
-    setSortMode(state: WorkbenchState, sortMode: MergeOrder, sortPriority: SortPriority): WorkbenchState {
+    setSortMode(state: WorkbenchState, sortMode: MergeOrder): WorkbenchState {
         if (sortMode === 'manual') {
             return state;
         }

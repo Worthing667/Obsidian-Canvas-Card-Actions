@@ -154,7 +154,7 @@ function testSortModeChangeClearsCachedPreviewContent() {
     'cached preview'
   );
 
-  const changed = service.setSortMode(state, 'badge', 'xy');
+  const changed = service.setSortMode(state, 'badge');
 
   assert.equal(changed.lastComputedContent, '');
 }

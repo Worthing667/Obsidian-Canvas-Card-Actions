@@ -2,7 +2,7 @@ import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { t } from "../i18n";
 import type { CanvasNodeData, CanvasNode } from "../types/canvas";
 
-export interface ColorGroupResult {
+interface ColorGroupResult {
     colors: Array<string | null>;
     scopeLabel: string;
     matchedNodes: CanvasNode[];

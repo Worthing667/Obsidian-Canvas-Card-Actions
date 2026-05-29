@@ -1,4 +1,4 @@
-export type MergeOrderSetting = 'position' | 'badge';
+type MergeOrderSetting = 'position' | 'badge';
 export type MergeCleanupMode = 'keep-source' | 'delete-source';
 export type CanvasLoomLanguageSetting = 'auto' | 'en' | 'zh-CN';
 

@@ -320,12 +320,6 @@ export class CardService implements ICardService {
         };
     }
 
-    private lastSizeOperation: {
-        type: string;
-        originalStates: Array<{id: string, width: number, height: number}>;
-        timestamp: number;
-    } | null = null;
-
     /**
      * 分析选中卡片的尺寸，返回统一选项
      * 重点：只返回用户真正需要的信息

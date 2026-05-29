@@ -11,7 +11,7 @@ import type { CanvasNode } from "../types/canvas";
 
 export type MergeOrder = 'position' | 'badge' | 'manual';
 
-export interface BuildMergedContentOptions {
+interface BuildMergedContentOptions {
     selection?: CanvasNode[];
     snapshots?: CardSnapshot[];
     order: MergeOrder;

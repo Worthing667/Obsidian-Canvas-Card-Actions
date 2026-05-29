@@ -1,7 +1,7 @@
 import type CanvasLoomSettings from "../settings/ICanvasLoomSettings";
 import type { CanvasData } from "../types/canvas";
 
-export interface CanvasPerformanceStats {
+interface CanvasPerformanceStats {
     nodeCount: number;
     edgeCount: number;
     textNodeCount: number;

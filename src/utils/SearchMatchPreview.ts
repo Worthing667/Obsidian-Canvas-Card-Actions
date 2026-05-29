@@ -4,14 +4,14 @@ export interface SearchMatchPreviewRange {
     value: string;
 }
 
-export interface SearchMatchPreviewOptions {
+interface SearchMatchPreviewOptions {
     before?: number;
     after?: number;
 }
 
-export type SearchMatchPreviewPartKind = "context" | "match" | "ellipsis";
+type SearchMatchPreviewPartKind = "context" | "match" | "ellipsis";
 
-export interface SearchMatchPreviewPart {
+interface SearchMatchPreviewPart {
     kind: SearchMatchPreviewPartKind;
     text: string;
 }

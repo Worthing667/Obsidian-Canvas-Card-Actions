@@ -13,12 +13,7 @@ type StoragePlugin = Pick<Plugin, "loadData" | "saveData"> & {
 
 const LEGACY_SETTINGS_BACKUP_KEY = "canvas-loom:settings-backup";
 
-export interface IStorageAdapter {
-    loadSettings(): Promise<CanvasLoomSettings>;
-    saveSettings(settings: CanvasLoomSettings): Promise<void>;
-}
-
-export class StorageAdapter implements IStorageAdapter {
+export class StorageAdapter {
     constructor(
         private plugin: StoragePlugin,
         private defaultSettings: CanvasLoomSettings

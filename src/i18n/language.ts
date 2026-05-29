@@ -1,7 +1,7 @@
 import { moment, type App } from "obsidian";
 import type { CanvasLoomLanguageSetting } from "../settings/ICanvasLoomSettings";
 
-export type ResolvedCanvasLoomLanguage = "en" | "zh-CN";
+type ResolvedCanvasLoomLanguage = "en" | "zh-CN";
 
 const LANGUAGE_SETTINGS: CanvasLoomLanguageSetting[] = ["auto", "en", "zh-CN"];
 

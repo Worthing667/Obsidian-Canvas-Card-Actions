@@ -6,7 +6,7 @@ import type { CanvasNodeData } from "../types/canvas";
 
 export type SearchReplaceScope = "canvas" | "selection";
 
-export interface SearchReplaceQueryOptions {
+interface SearchReplaceQueryOptions {
     query: string;
     scope: SearchReplaceScope;
     selectedNodeIds?: Set<string>;
@@ -18,7 +18,7 @@ export interface SearchReplaceOptions extends SearchReplaceQueryOptions {
     replacement: string;
 }
 
-export interface SearchMatchRange {
+interface SearchMatchRange {
     start: number;
     end: number;
     value: string;
@@ -34,14 +34,14 @@ export interface CardSearchResult {
     ranges: SearchMatchRange[];
 }
 
-export interface SearchReplaceResult {
+interface SearchReplaceResult {
     cards: CardSearchResult[];
     totalCards: number;
     totalMatches: number;
     error?: string;
 }
 
-export interface ReplaceTarget {
+interface ReplaceTarget {
     nodeId: string;
     matchIndex: number;
 }

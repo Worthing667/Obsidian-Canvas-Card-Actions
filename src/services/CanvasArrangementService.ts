@@ -8,16 +8,16 @@ export interface ArrangeSelectedTextCardsOptions {
     spacing: number;
 }
 
-export interface ArrangeSelectedTextCardsResult {
+interface ArrangeSelectedTextCardsResult {
     count: number;
 }
 
-export interface ArrangeSpacingPreference {
+interface ArrangeSpacingPreference {
     horizontalSpacing: number;
     verticalSpacing: number;
 }
 
-export type ArrangeSelectedTextCardSpacingOptions = ArrangeSpacingPreference;
+type ArrangeSelectedTextCardSpacingOptions = ArrangeSpacingPreference;
 
 export const DEFAULT_ARRANGE_SPACING = 0;
 

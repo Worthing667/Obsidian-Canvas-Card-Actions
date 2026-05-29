@@ -173,7 +173,7 @@ export class DragSortModal extends Modal {
 
             // 拖拽事件
             row.addEventListener("dragstart", (e) => this.onDragStart(e, index));
-            row.addEventListener("dragover", (e) => this.onDragOver(e, index));
+            row.addEventListener("dragover", (e) => this.onDragOver(e));
             row.addEventListener("dragenter", (e) => this.onDragEnter(e, row));
             row.addEventListener("dragleave", (e) => this.onDragLeave(e, row));
             row.addEventListener("drop", (e) => this.onDrop(e, index));
@@ -192,7 +192,7 @@ export class DragSortModal extends Modal {
         }
     }
 
-    private onDragOver(e: DragEvent, index: number): void {
+    private onDragOver(e: DragEvent): void {
         e.preventDefault();
         if (e.dataTransfer) {
             e.dataTransfer.dropEffect = "move";

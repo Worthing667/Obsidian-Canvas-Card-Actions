@@ -4,7 +4,7 @@ import { BadgeData } from "../domain/models/Badge";
 import { t } from "../i18n";
 import type { CanvasNode } from "../types/canvas";
 
-export interface BadgeRenderEntry {
+interface BadgeRenderEntry {
     id: string;
     badge: string;
 }

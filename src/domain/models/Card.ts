@@ -5,18 +5,9 @@ export interface Position {
     y: number;
 }
 
-export interface CardDimensions {
+interface CardDimensions {
     width: number;
     height: number;
-}
-
-export interface Card {
-    id: string;
-    text: string;
-    position: Position;
-    dimensions: CardDimensions;
-    color?: string;
-    badge?: string;
 }
 
 export class CardData {

@@ -85,7 +85,6 @@ export class CanvasGlobalFindReplaceToolbarService {
     private currentPreviewEl: HTMLElement | null = null;
     private statusEl: HTMLElement | null = null;
     private activeButtonEl: HTMLElement | null = null;
-    private activeControlsEl: HTMLElement | null = null;
     private pinnedContext: ActiveCanvasContext | null = null;
     private highlightedNodeId: string | null = null;
     private activeMatchMarkEl: HTMLElement | null = null;
@@ -324,7 +323,6 @@ export class CanvasGlobalFindReplaceToolbarService {
 
         if (this.isContextPinned(context)) {
             this.activeButtonEl = button;
-            this.activeControlsEl = controlsEl;
         }
     }
 
@@ -345,7 +343,6 @@ export class CanvasGlobalFindReplaceToolbarService {
         button.toggleClass("is-active", this.isContextPinned(context));
         if (this.isContextPinned(context)) {
             this.activeButtonEl = button;
-            this.activeControlsEl = host;
         }
     }
 
@@ -1080,7 +1077,6 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.clearActiveMatchHighlight();
         this.pinnedContext = null;
         this.activeButtonEl = null;
-        this.activeControlsEl = null;
         this.disconnectControlsObserver();
         this.disconnectResizeObserver();
         this.removePanel();

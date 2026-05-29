@@ -833,8 +833,7 @@ export class MergeWorkbenchView extends ItemView {
         button.addEventListener("click", () => {
             this.context.state = this.workbenchService.setSortMode(
                 this.context.state,
-                mode,
-                this.context.sortPriority
+                mode
             );
             this.render();
         });

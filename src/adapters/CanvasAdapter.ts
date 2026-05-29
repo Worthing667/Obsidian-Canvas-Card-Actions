@@ -20,7 +20,7 @@ export interface ICanvasAdapter {
     removeNodes(ids: Set<string>): Promise<void>;
 }
 
-export interface LocateNodeOptions {
+interface LocateNodeOptions {
     padding?: number;
 }
 

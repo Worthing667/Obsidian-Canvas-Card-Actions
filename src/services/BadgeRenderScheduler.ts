@@ -1,7 +1,7 @@
 import { BadgeService } from "./BadgeService";
 import { PerformanceService } from "./PerformanceService";
 
-export interface BadgeRenderScheduleOptions {
+interface BadgeRenderScheduleOptions {
     key: string;
     badgeService: BadgeService;
     debounceMs: number;

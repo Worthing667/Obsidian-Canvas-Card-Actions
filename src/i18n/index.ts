@@ -6,7 +6,6 @@ import { resolveLanguage } from "./language";
 import type { TranslationDictionary, TranslationKey, TranslationParams } from "./types";
 
 export { normalizeLanguageSetting, resolveLanguage } from "./language";
-export type { ResolvedCanvasLoomLanguage } from "./language";
 export type { TranslationKey, TranslationParams } from "./types";
 
 interface TranslationRuntimeContext {
