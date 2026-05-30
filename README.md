@@ -12,52 +12,59 @@ It turns scattered Canvas text cards into a repeatable workflow: split long note
 
 The default language is **Auto**: Simplified Chinese is used when Obsidian is running in Chinese, and English is used for other Obsidian languages. You can also choose **English** or **Simplified Chinese** manually in the plugin settings.
 
-## Hero Demo
+## Visual Tour
 
-[![Canvas Loom preview workspace](Demo/侧栏工作台.png)](Demo/侧栏工作台：预览卡片组_复制_新建文稿_新建卡片_清空.mp4)
+![Canvas Loom preview, sort, and export workflow](Demo/readme/hero-workflow.png)
+
+Canvas Loom is designed around a single loop: select Canvas cards, load them into the Loom workspace, adjust the order, preview the merged text, and export it back to Canvas, a Markdown note, or the clipboard.
+
+Demo video: [Preview workspace, copy, create note, create card](Demo/侧栏工作台：预览卡片组_复制_新建文稿_新建卡片_清空.mp4)
 
 ## Core Workflows
 
 ### Split Cards
 
-[![Split cards by delimiter, blank lines, or headings](Demo/长卡片_三种卡片拆分方式（自动计算）.png)](Demo/卡片拆分_三种拆分方式_限制拆分后的单行卡片数量.mp4)
+![Split one long Canvas card by delimiter, blank lines, or headings](Demo/readme/split-cards.png)
 
 Split one long text card by a custom delimiter, blank lines, or Markdown heading level. Canvas Loom keeps the original card in place and creates the remaining content as new Canvas cards.
 
+Demo video: [Split cards by delimiter, blank lines, or headings](Demo/卡片拆分_三种拆分方式_限制拆分后的单行卡片数量.mp4)
+
 ### Merge Cards
 
-[![Merge selected Canvas cards](Demo/卡片组.png)](Demo/一键拼合：拼合后是否保存原卡片_按位置or标记顺序拼合.mp4)
+![Preview selected Canvas cards before merging](Demo/readme/hero-workflow.png)
 
 Merge selected cards directly, or send them to the Loom workspace first — a three-panel sidebar (Preview, Sort, Find & Replace) where you can sort, preview, search, and export the final text.
 
+Demo video: [Merge selected Canvas cards](Demo/一键拼合：拼合后是否保存原卡片_按位置or标记顺序拼合.mp4)
+
 ### Sort by Position or Badge
 
-[![Sort card group by position or badge](Demo/预览_按标记排序.png)](Demo/预览卡片组：按位置排序和按标记排序的区别.mp4)
+![Compare position sorting and badge sorting](Demo/readme/sort-comparison.png)
 
 Position sorting follows the visual layout of the Canvas. Badge sorting follows numeric badges such as `1`, `2.1`, or `10.3.2`, so output order can stay stable even when card positions change.
 
+Demo video: [Compare position sorting and badge sorting](Demo/预览卡片组：按位置排序和按标记排序的区别.mp4)
+
+### Badge Cards
+
+![Batch add or remove Canvas card badges](Demo/readme/badge-management.png)
+
+Add or edit numeric badges on one card, or batch-number selected cards by their current canvas position. Badges can drive the merge order without forcing you to keep the visual layout fixed.
+
+Demo video: [Add badges by position order](Demo/添加卡片标记_两种按位置排序添加标记的效果.mp4)
+
 ### Clean Layout
 
-[![Auto-fit card height and arrange spacing](Demo/卡片组_整理间距.png)](Demo/自适应高度_调整间距.mp4)
+![Auto-fit Canvas card height and arrange spacing](Demo/readme/layout-cleanup.png)
 
 Resize cards to fit their text and arrange selected cards with cleaner horizontal or vertical spacing.
+
+Demo video: [Auto-fit card height and arrange spacing](Demo/自适应高度_调整间距.mp4)
 
 ### Find & Replace in Canvas
 
 Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or the `Ctrl+F` (macOS) hotkey. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can jump to matched cards with temporary match highlighting. You can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
-
-## Screenshots
-
-<table>
-  <tr>
-    <td width="50%"><img src="Demo/预览_按标记排序.png" alt="Preview workspace sorted by badge" /></td>
-    <td width="50%"><img src="Demo/卡片标记效果.png" alt="Canvas card badge rendering" /></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="Demo/多卡片属性管理器.png" alt="Multiple card property manager" /></td>
-    <td width="50%"><img src="Demo/设置界面功能展示.png" alt="Canvas Loom settings" /></td>
-  </tr>
-</table>
 
 ## Feature Overview
 
