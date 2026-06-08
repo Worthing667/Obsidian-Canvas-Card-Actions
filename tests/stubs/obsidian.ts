@@ -10,6 +10,19 @@ export class App {}
 
 export class View {}
 
+export class ItemView {
+  contentEl: any;
+  app: any;
+
+  constructor(public leaf: any) {
+    this.app = leaf?.app || {};
+    this.contentEl = {
+      empty: () => undefined,
+      addClass: () => undefined,
+    };
+  }
+}
+
 export const moment = {
   locale: () => 'en',
 };

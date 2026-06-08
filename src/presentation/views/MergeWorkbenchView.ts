@@ -100,6 +100,7 @@ export class MergeWorkbenchView extends ItemView {
     onClose(): Promise<void> {
         this.clearPreviewTimer();
         this.clearFindRefreshTimer();
+        this.context.findReplace?.service.clearHighlightedMatch();
         return Promise.resolve();
     }
 
@@ -615,6 +616,9 @@ export class MergeWorkbenchView extends ItemView {
 
             row.dataset.index = String(item.flatIndex);
             row.addEventListener("click", () => this.setCurrentFindMatch(item.flatIndex, true));
+            if (item.flatIndex === this.findCurrentFlatIndex) {
+                row.scrollIntoView({ block: "nearest" });
+            }
 
             const index = row.createDiv({ cls: "canvas-loom-fr-result-index" });
             index.setText(String(item.flatIndex + 1));
@@ -642,6 +646,7 @@ export class MergeWorkbenchView extends ItemView {
             const service = this.context.findReplace?.service;
             if (service?.selectNode(current.card.nodeId)) {
                 service.locateNode(current.card.nodeId);
+                service.highlightSearchMatch(current);
             }
         }
 

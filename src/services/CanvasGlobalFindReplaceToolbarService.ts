@@ -5,15 +5,12 @@ import { SearchReplaceService } from "./SearchReplaceService";
 import type { Canvas } from "../types/canvas";
 import type { CanvasDiagnostics } from "../adapters/CanvasAdapter";
 import { renderSearchMatchPreview } from "../utils/SearchMatchPreview";
-import { findNthTextMatchIndex } from "../utils/TextMatchLocator";
+import { CanvasFindActiveMatchHighlighter } from "../utils/CanvasFindHighlight";
 import { t } from "../i18n";
 
 const BUTTON_CLASS = "canvas-loom-global-fr-button";
 const PANEL_CLASS = "canvas-loom-global-fr-panel";
 const FALLBACK_CONTROL_CLASS = "canvas-loom-global-fr-fallback-control";
-const ACTIVE_CARD_CLASS = "canvas-loom-find-active-card";
-const ACTIVE_CARD_PULSE_CLASS = "canvas-loom-find-pulse";
-const ACTIVE_MATCH_CLASS = "canvas-loom-find-active-match";
 const PANEL_MARGIN = 8;
 const PANEL_MIN_WIDTH = 220;
 const PANEL_PREFERRED_WIDTH_WITH_REPLACE = 320;
@@ -88,9 +85,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     private statusEl: HTMLElement | null = null;
     private activeButtonEl: HTMLElement | null = null;
     private pinnedContext: ActiveCanvasContext | null = null;
-    private highlightedNodeId: string | null = null;
-    private activeMatchMarkEl: HTMLElement | null = null;
-    private highlightPulseTimer: number | null = null;
+    private readonly activeMatchHighlighter = new CanvasFindActiveMatchHighlighter();
     private previousButton: HTMLButtonElement | null = null;
     private nextButton: HTMLButtonElement | null = null;
     private replaceCurrentButton: HTMLButtonElement | null = null;
@@ -807,161 +802,11 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private applyActiveMatchHighlight(canvas: Canvas, match: FlatSearchMatch): void {
-        const nodeId = match.card.nodeId;
-        const node = canvas.nodes?.get(nodeId) || null;
-        const nodeEl = node?.nodeEl || null;
-        if (!nodeEl) {
-            this.clearActiveMatchHighlight();
-            return;
-        }
-
-        this.clearActiveRenderedMatch();
-        this.clearHighlightedCardIfChanged(canvas, nodeId);
-
-        nodeEl.addClass(ACTIVE_CARD_CLASS);
-        nodeEl.removeClass(ACTIVE_CARD_PULSE_CLASS);
-        void nodeEl.offsetWidth;
-        nodeEl.addClass(ACTIVE_CARD_PULSE_CLASS);
-        this.highlightedNodeId = nodeId;
-        this.applyRenderedMatchHighlight(nodeEl, match);
-
-        if (this.highlightPulseTimer !== null) {
-            window.clearTimeout(this.highlightPulseTimer);
-        }
-        this.highlightPulseTimer = window.setTimeout(() => {
-            this.highlightPulseTimer = null;
-            nodeEl.removeClass(ACTIVE_CARD_PULSE_CLASS);
-        }, 480);
+        this.activeMatchHighlighter.apply(canvas, match);
     }
 
     private clearActiveMatchHighlight(): void {
-        if (this.highlightPulseTimer !== null) {
-            window.clearTimeout(this.highlightPulseTimer);
-            this.highlightPulseTimer = null;
-        }
-
-        this.clearActiveRenderedMatch();
-        if (!this.highlightedNodeId || !this.pinnedContext) {
-            this.highlightedNodeId = null;
-            return;
-        }
-
-        this.clearNodeHighlight(this.pinnedContext.canvas, this.highlightedNodeId);
-        this.highlightedNodeId = null;
-    }
-
-    private clearNodeHighlight(canvas: Canvas, nodeId: string): void {
-        const node = canvas.nodes?.get(nodeId) || null;
-        node?.nodeEl?.removeClass(ACTIVE_CARD_CLASS);
-        node?.nodeEl?.removeClass(ACTIVE_CARD_PULSE_CLASS);
-    }
-
-    private clearHighlightedCardIfChanged(canvas: Canvas, nodeId: string): void {
-        if (!this.highlightedNodeId || this.highlightedNodeId === nodeId) {
-            return;
-        }
-
-        this.clearNodeHighlight(canvas, this.highlightedNodeId);
-    }
-
-    private applyRenderedMatchHighlight(nodeEl: HTMLElement, match: FlatSearchMatch): void {
-        const range = match.card.ranges[match.matchIndex];
-        if (!range?.value) {
-            return;
-        }
-
-        const contentEl = this.getNodeTextContentElement(nodeEl);
-        if (!contentEl) {
-            return;
-        }
-
-        const visibleText = contentEl.textContent || "";
-        const sameValueOccurrence = match.card.ranges
-            .slice(0, match.matchIndex)
-            .filter((item) => item.value === range.value)
-            .length;
-        const visibleStart = findNthTextMatchIndex(visibleText, range.value, sameValueOccurrence);
-        if (visibleStart === -1) {
-            return;
-        }
-
-        const domRange = this.createDomRangeForTextSpan(contentEl, visibleStart, visibleStart + range.value.length);
-        if (!domRange) {
-            return;
-        }
-
-        const mark = contentEl.ownerDocument.createElement("mark");
-        mark.className = ACTIVE_MATCH_CLASS;
-        mark.appendChild(domRange.extractContents());
-        domRange.insertNode(mark);
-        this.activeMatchMarkEl = mark;
-        mark.scrollIntoView({ block: "nearest", inline: "nearest" });
-    }
-
-    private getNodeTextContentElement(nodeEl: HTMLElement): HTMLElement | null {
-        const contentEl = nodeEl.querySelector(".canvas-node-content");
-        if (contentEl instanceof HTMLElement) {
-            return contentEl;
-        }
-
-        return nodeEl;
-    }
-
-    private createDomRangeForTextSpan(rootEl: HTMLElement, start: number, end: number): Range | null {
-        const doc = rootEl.ownerDocument;
-        const walker = doc.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT);
-        let currentOffset = 0;
-        let startNode: Text | null = null;
-        let endNode: Text | null = null;
-        let startOffset = 0;
-        let endOffset = 0;
-
-        while (walker.nextNode()) {
-            const node = walker.currentNode as Text;
-            const nodeTextLength = node.data.length;
-            const nodeStart = currentOffset;
-            const nodeEnd = currentOffset + nodeTextLength;
-
-            if (!startNode && start >= nodeStart && start <= nodeEnd) {
-                startNode = node;
-                startOffset = start - nodeStart;
-            }
-
-            if (!endNode && end >= nodeStart && end <= nodeEnd) {
-                endNode = node;
-                endOffset = end - nodeStart;
-                break;
-            }
-
-            currentOffset = nodeEnd;
-        }
-
-        if (!startNode || !endNode) {
-            return null;
-        }
-
-        const range = doc.createRange();
-        range.setStart(startNode, startOffset);
-        range.setEnd(endNode, endOffset);
-        return range;
-    }
-
-    private clearActiveRenderedMatch(): void {
-        const mark = this.activeMatchMarkEl;
-        if (!mark) {
-            return;
-        }
-
-        const parent = mark.parentNode;
-        if (parent) {
-            while (mark.firstChild) {
-                parent.insertBefore(mark.firstChild, mark);
-            }
-            parent.removeChild(mark);
-            parent.normalize();
-        }
-
-        this.activeMatchMarkEl = null;
+        this.activeMatchHighlighter.clear();
     }
 
     private createSearchReplaceService(canvas: Canvas): SearchReplaceService {

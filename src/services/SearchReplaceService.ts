@@ -3,6 +3,7 @@ import { PositionSortStrategy } from "../domain/strategies";
 import { t } from "../i18n";
 import { extractErrorMessage } from "../utils/errorUtils";
 import { isTextNodeData } from "../utils/canvasNodeUtils";
+import { CanvasFindActiveMatchHighlighter } from "../utils/CanvasFindHighlight";
 import type { CardSnapshot } from "../types/WorkbenchState";
 import type { CanvasNodeData } from "../types/canvas";
 
@@ -66,6 +67,8 @@ interface TextReplacementPlan {
 }
 
 export class SearchReplaceService {
+    private readonly activeMatchHighlighter = new CanvasFindActiveMatchHighlighter();
+
     constructor(private canvasAdapter: ICanvasAdapter) {}
 
     hasTextCards(selectedNodeIds?: Set<string>): boolean {
@@ -158,6 +161,21 @@ export class SearchReplaceService {
         return typeof locator.locateNode === "function"
             ? locator.locateNode(nodeId)
             : false;
+    }
+
+    highlightSearchMatch(match: { card: CardSearchResult; matchIndex: number }): boolean {
+        const node = this.canvasAdapter.findNodeById(match.card.nodeId);
+        if (!node?.nodeEl) {
+            this.activeMatchHighlighter.clear();
+            return false;
+        }
+
+        this.activeMatchHighlighter.applyToNodeElement(node.nodeEl, match);
+        return true;
+    }
+
+    clearHighlightedMatch(): void {
+        this.activeMatchHighlighter.clear();
     }
 
     private async applyReplacement(
