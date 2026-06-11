@@ -698,6 +698,29 @@
     color: var(--text-muted);
 }
 
+.canvas-loom-workbench button:not(:disabled) {
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.08s ease;
+}
+
+.canvas-loom-workbench button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.canvas-loom-workbench button:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+
+.canvas-loom-workbench button:disabled {
+    cursor: not-allowed;
+}
+
 .canvas-loom-workbench-toolbar {
     padding: 16px 18px 12px;
     display: flex;
@@ -813,6 +836,16 @@
     box-shadow: none;
     font-size: 13px;
     white-space: nowrap;
+}
+
+.canvas-loom-workbench-panel-tabs button:hover:not(:disabled):not(.is-active) {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.canvas-loom-workbench-sort-modes button:hover:not(:disabled):not(.is-active) {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
 }
 
 .canvas-loom-workbench-panel-tabs button.is-active,
@@ -1085,6 +1118,11 @@
     white-space: nowrap;
 }
 
+.canvas-loom-workbench-render-action button:hover:not(:disabled) {
+    border-color: var(--interactive-accent-hover);
+    background: var(--interactive-accent-hover);
+}
+
 .canvas-loom-workbench-render-action button svg {
     width: 14px;
     height: 14px;
@@ -1116,6 +1154,11 @@
     box-shadow: none;
     font-size: 13px;
     white-space: nowrap;
+}
+
+.canvas-loom-workbench-actions button:hover:not(:disabled) {
+    border-color: var(--background-modifier-border-hover);
+    background: var(--background-modifier-hover);
 }
 
 .canvas-loom-workbench-actions button:disabled {
