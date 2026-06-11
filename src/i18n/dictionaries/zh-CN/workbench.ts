@@ -26,7 +26,7 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 		clearWorkbench: "清空工作台",
 		viewPreview: "查看预览",
 		copy: "复制",
-		addAsCard: "添加为新卡片",
+		addAsCard: "拼合为新卡片",
 		newDocument: "新建文稿",
 		replaceCurrent: "替换当前",
 		replaceCard: "替换当前卡片",
@@ -93,7 +93,7 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 	},
 	sortDescription: {
 		empty: "工作台会在收到卡片快照后生成输出内容",
-		manual: "拖拽后的顺序会直接用于复制、添加为新卡片和新建文稿",
+		manual: "拖拽后的顺序会直接用于复制、拼合为新卡片和新建文稿",
 		badge: "相同标记内继续按画布位置排列",
 		xy: "Z字排序，从左至右、从上到下",
 		yx: "倒N排序，从上到下、从左至右"

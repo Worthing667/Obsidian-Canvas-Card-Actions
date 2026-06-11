@@ -392,7 +392,7 @@ export class MergeService implements IMergeService {
             order: options?.order || 'position',
             sortPriority: options?.sortPriority || 'yx',
             manualOrderIds: options?.manualOrderIds,
-            includeBadgePrefix: options?.includeBadgePrefix ?? true,
+            includeBadgePrefix: options?.includeBadgePrefix,
             cardSeparator: options?.cardSeparator
         }));
 

@@ -23,7 +23,7 @@ const workbench = {
 		clearWorkbench: "Clear workbench",
 		viewPreview: "View preview",
 		copy: "Copy",
-		addAsCard: "Add as new card",
+		addAsCard: "Merge into new card",
 		newDocument: "New document",
 		replaceCurrent: "Replace current",
 		replaceCard: "Replace current card",
@@ -90,7 +90,7 @@ const workbench = {
 	},
 	sortDescription: {
 		empty: "The workbench generates output after receiving card snapshots",
-		manual: "The dragged order is used directly for copy, new card, and new document",
+		manual: "The dragged order is used directly for copy, merge into new card, and new document",
 		badge: "Cards with the same badge continue to follow Canvas position order",
 		xy: "Z order: left to right, then top to bottom",
 		yx: "Reverse N order: top to bottom, then left to right"
