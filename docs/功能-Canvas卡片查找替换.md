@@ -24,12 +24,10 @@ Canvas Loom 补的是中间缺口：
 ## 入口
 
 - 命令面板：`Canvas Loom: 查找替换当前画布卡片`
-- 默认热键：macOS 上为 `Control+F`，Windows/Linux 上不设置默认热键
-- 用户仍可在 `Settings -> Hotkeys` 中自行修改
+- 插件不设置默认热键，避免与 Obsidian 或其他插件的快捷键冲突
+- 用户可在 `Settings -> Hotkeys` 中自行配置
 
-插件不默认绑定 `Mod+F`。原因是 Obsidian 自带 `在当前笔记中查找` 和 `在当前笔记中查找并替换` 已经围绕 `Cmd/Ctrl+F` 建立了用户预期。Canvas Loom 如果默认绑定同一组合，会在热键页产生冲突，也会让用户误以为插件替代了 Obsidian 的原生命令。
-
-Obsidian 命令热键里的 `Mod` 会按平台映射：macOS 是 `Command`，Windows/Linux 是 `Ctrl`。`Ctrl` 则是字面意义的 Control/Ctrl，不做平台替换。因此 Canvas Loom 只在 macOS 上给本命令默认设置 `Control+F`；如果在 Windows/Linux 上也默认设置 `Ctrl+F`，仍会和 Obsidian 原生查找冲突。
+Obsidian 自带 `在当前笔记中查找` 和 `在当前笔记中查找并替换` 已经围绕 `Cmd/Ctrl+F` 建立了用户预期。Canvas Loom 不预设任何组合，避免在热键页产生冲突，也避免让用户误以为插件替代了 Obsidian 的原生命令。
 
 ## 为什么 Obsidian 占用查找快捷键，但不做画布卡片查找
 
@@ -63,7 +61,7 @@ Obsidian 命令热键里的 `Mod` 会按平台映射：macOS 是 `Command`，Win
 
 - 查找结果定位到卡片时不会被弹窗遮挡。
 - 查找替换、排序、预览都围绕同一批 Canvas 卡片和快照工作，但交互层级需要分开。
-- `Ctrl+F` 可以直接打开工作台并切到 `查找替换` 面板，符合 Obsidian 用户对“在当前上下文查找”的直觉。
+- 用户配置的命令热键可以直接打开工作台并切到 `查找替换` 面板。
 
 ## 范围规则
 

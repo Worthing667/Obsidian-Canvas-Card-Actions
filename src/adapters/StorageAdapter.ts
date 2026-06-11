@@ -28,11 +28,11 @@ export class StorageAdapter {
     }
 
     private getBackupStorage(): Storage | null {
-        if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) {
+        try {
+            return activeWindow.localStorage ?? null;
+        } catch {
             return null;
         }
-
-        return globalThis.localStorage ?? null;
     }
 
     private getSettingsBackupKey(): string {

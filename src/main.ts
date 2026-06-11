@@ -1,4 +1,4 @@
-import { Menu, Platform, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
+import { Menu, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
 import CanvasLoomSettings, {
     DEFAULT_LANGUAGE,
     DEFAULT_SPLIT_CARDS_PER_ROW,
@@ -674,7 +674,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.canvasEdgeLayerInteractionObserver = new MutationObserver((mutations) => {
             const shouldRefresh = mutations.some((mutation) => {
-                return mutation.target instanceof HTMLElement
+                return mutation.target.instanceOf(HTMLElement)
                     && (mutation.target.classList.contains("canvas-node")
                         || Boolean(mutation.target.closest(".canvas-node")));
             });
@@ -733,7 +733,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private hasActiveCanvasCard(): boolean {
         const rootEl = this.resolveActiveCanvasRootEl();
         const activeElement = activeDocument.activeElement;
-        if (activeElement instanceof HTMLElement
+        if (activeElement?.instanceOf(HTMLElement)
             && (!rootEl || rootEl.contains(activeElement))
             && activeElement.closest(".canvas-node")) {
             return true;
@@ -758,12 +758,15 @@ export default class CanvasLoomPlugin extends Plugin {
             return null;
         }
 
-        if (activeView.canvas.wrapperEl instanceof HTMLElement) {
-            return activeView.canvas.wrapperEl;
+        const wrapperEl = activeView.canvas.wrapperEl;
+        if (wrapperEl?.instanceOf(HTMLElement)) {
+            return wrapperEl;
         }
 
         const viewWithContainer = activeView as View & { containerEl?: HTMLElement };
-        return viewWithContainer.containerEl instanceof HTMLElement ? viewWithContainer.containerEl : null;
+        return viewWithContainer.containerEl?.instanceOf(HTMLElement)
+            ? viewWithContainer.containerEl
+            : null;
     }
 
     onunload() {
@@ -786,7 +789,6 @@ export default class CanvasLoomPlugin extends Plugin {
         this.addCommand({
             id: 'find-replace-canvas-cards',
             name: this.translate("commands.findReplaceCanvasCards"),
-            hotkeys: Platform.isMacOS ? [{ modifiers: ["Ctrl"], key: "f" }] : [],
             checkCallback: (checking: boolean) => {
                 const context = this.getActiveCanvasContext();
                 if (!context) {

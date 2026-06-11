@@ -53,7 +53,7 @@ export function renderSearchMatchPreview(
     range: SearchMatchPreviewRange,
     options: SearchMatchPreviewOptions = {}
 ): void {
-    const doc = container.ownerDocument || document;
+    const doc = container.ownerDocument;
     const parts = buildSearchMatchPreviewParts(text, range, options);
 
     parts.forEach((part) => {

@@ -29,6 +29,16 @@ class MockHTMLElement {
     dataset: Record<string, string> = {};
     style = new MockStyle();
 
+    instanceOf<T>(type: { new (): T }): this is MockHTMLElement & T {
+        return this instanceof type;
+    }
+
+    setCssProps(props: Record<string, string>): void {
+        Object.entries(props).forEach(([name, value]) => {
+            this.style.setProperty(name, value);
+        });
+    }
+
     querySelector(): null {
         return null;
     }

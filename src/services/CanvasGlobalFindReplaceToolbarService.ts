@@ -316,7 +316,7 @@ export class CanvasGlobalFindReplaceToolbarService {
 
     private injectControlButton(context: ActiveCanvasContext): void {
         const controlsEl = this.getCanvasControlsElement(context.rootEl);
-        const existingButton = context.rootEl.querySelector(`.${BUTTON_CLASS}`) as HTMLButtonElement | null;
+        const existingButton = context.rootEl.querySelector<HTMLButtonElement>(`.${BUTTON_CLASS}`);
         const targetEl = this.getButtonTargetElement(controlsEl);
 
         if (!targetEl) {
@@ -339,14 +339,14 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private injectFallbackControl(context: ActiveCanvasContext): void {
-        let host = context.rootEl.querySelector(`.${FALLBACK_CONTROL_CLASS}`) as HTMLElement | null;
+        let host = context.rootEl.querySelector<HTMLElement>(`.${FALLBACK_CONTROL_CLASS}`);
         if (!host) {
             host = context.rootEl.ownerDocument.createElement("div");
             host.className = FALLBACK_CONTROL_CLASS;
             context.rootEl.appendChild(host);
         }
 
-        let button = host.querySelector(`.${BUTTON_CLASS}`) as HTMLButtonElement | null;
+        let button = host.querySelector<HTMLButtonElement>(`.${BUTTON_CLASS}`);
         if (!button) {
             button = this.createControlButton(context.rootEl.ownerDocument);
             host.appendChild(button);
@@ -392,7 +392,7 @@ export class CanvasGlobalFindReplaceToolbarService {
 
     private renderPanel(context: ActiveCanvasContext): void {
         const ownerDocument = context.rootEl.ownerDocument;
-        let panel = ownerDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
+        let panel = ownerDocument.body.querySelector<HTMLElement>(`.${PANEL_CLASS}`);
         if (!panel) {
             panel = ownerDocument.createElement("div");
             panel.className = PANEL_CLASS;
@@ -512,7 +512,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         this.updateCurrentPreview();
         this.updateActionButtons();
         this.observeCanvasResize(context.rootEl);
-        requestAnimationFrame(() => this.positionPanel());
+        window.requestAnimationFrame(() => this.positionPanel());
 
         if (this.focusQueryOnRender) {
             this.focusQueryOnRender = false;
@@ -895,8 +895,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private getCanvasControlsElement(rootEl: HTMLElement): HTMLElement | null {
-        const controls = rootEl.querySelector(".canvas-controls");
-        return controls instanceof HTMLElement ? controls : null;
+        return rootEl.querySelector<HTMLElement>(".canvas-controls");
     }
 
     private getButtonTargetElement(controlsEl: HTMLElement | null): HTMLElement | null {
@@ -904,8 +903,8 @@ export class CanvasGlobalFindReplaceToolbarService {
             return null;
         }
 
-        const firstGroup = controlsEl.querySelector(".canvas-control-group");
-        if (firstGroup instanceof HTMLElement) {
+        const firstGroup = controlsEl.querySelector<HTMLElement>(".canvas-control-group");
+        if (firstGroup) {
             return firstGroup;
         }
 
@@ -918,17 +917,17 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         const rootEl = this.pinnedContext.rootEl;
-        const panel = rootEl.ownerDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
+        const panel = rootEl.ownerDocument.body.querySelector<HTMLElement>(`.${PANEL_CLASS}`);
         const button =
             (this.activeButtonEl && rootEl.contains(this.activeButtonEl)
                 ? this.activeButtonEl
-                : rootEl.querySelector(`.${BUTTON_CLASS}`)) as HTMLElement | null;
+                : rootEl.querySelector<HTMLElement>(`.${BUTTON_CLASS}`));
 
         if (!panel || !button) {
             return;
         }
 
-        const viewportRect = rootEl ? this.getCanvasViewportRect(rootEl) : null;
+        const viewportRect = this.getCanvasViewportRect(rootEl);
         const buttonRect = button.getBoundingClientRect();
         const panelHeight = panel.offsetHeight || 100;
         const viewportLeft = Math.max(viewportRect?.left ?? 0, 0);
@@ -963,7 +962,6 @@ export class CanvasGlobalFindReplaceToolbarService {
 
         panel.style.top = `${top}px`;
         panel.style.left = `${left}px`;
-        panel.style.right = "auto";
         panel.style.width = `${width}px`;
         panel.style.maxWidth = `${width}px`;
     }

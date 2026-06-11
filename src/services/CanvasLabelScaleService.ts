@@ -103,7 +103,7 @@ export class CanvasLabelScaleService {
     }
 
     private applyOverride(wrapperEl: HTMLElement): void {
-        wrapperEl.style.setProperty(ZOOM_MULTIPLIER_PROPERTY, "1");
+        wrapperEl.setCssProps({ [ZOOM_MULTIPLIER_PROPERTY]: "1" });
     }
 
     private resolveCanvasWrapper(view: CanvasViewLike | undefined): HTMLElement | null {
@@ -111,8 +111,9 @@ export class CanvasLabelScaleService {
             return null;
         }
 
-        if (view.canvas?.wrapperEl instanceof HTMLElement) {
-            return view.canvas.wrapperEl;
+        const wrapperEl = view.canvas?.wrapperEl;
+        if (wrapperEl?.instanceOf(HTMLElement)) {
+            return wrapperEl;
         }
 
         return view.containerEl?.querySelector(".canvas-wrapper") || null;

@@ -116,8 +116,8 @@ export class CanvasFindActiveMatchHighlighter {
     }
 
     private getNodeTextContentElement(nodeEl: HTMLElement): HTMLElement | null {
-        const contentEl = nodeEl.querySelector(".canvas-node-content");
-        if (contentEl instanceof HTMLElement) {
+        const contentEl = nodeEl.querySelector<HTMLElement>(".canvas-node-content");
+        if (contentEl) {
             return contentEl;
         }
 

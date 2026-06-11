@@ -653,33 +653,34 @@ export class CanvasSelectionToolbarService {
             return null;
         }
 
-        if (canvas.wrapperEl instanceof HTMLElement) {
-            return canvas.wrapperEl;
+        const wrapperEl = canvas.wrapperEl;
+        if (wrapperEl?.instanceOf(HTMLElement)) {
+            return wrapperEl;
         }
 
-        if (activeView.containerEl instanceof HTMLElement) {
+        if (activeView.containerEl?.instanceOf(HTMLElement)) {
             return activeView.containerEl;
         }
 
         const menuEl = this.getCanvasMenuElement(canvas);
-        return menuEl instanceof HTMLElement ? menuEl : null;
+        return menuEl?.instanceOf(HTMLElement) ? menuEl : null;
     }
 
     private getCanvasMenuElement(canvas: Canvas): HTMLElement | null {
         const internalMenuEl = canvas.menu?.menuEl;
-        if (internalMenuEl instanceof HTMLElement) {
+        if (internalMenuEl?.instanceOf(HTMLElement)) {
             return internalMenuEl;
         }
 
-        if (canvas.wrapperEl instanceof HTMLElement) {
-            const menuEl = canvas.wrapperEl.querySelector(".canvas-menu");
-            if (menuEl instanceof HTMLElement) {
+        const wrapperEl = canvas.wrapperEl;
+        if (wrapperEl?.instanceOf(HTMLElement)) {
+            const menuEl = wrapperEl.querySelector<HTMLElement>(".canvas-menu");
+            if (menuEl) {
                 return menuEl;
             }
         }
 
-        const viewMenuEl = this.getActiveCanvasView()?.containerEl?.querySelector(".canvas-menu");
-        return viewMenuEl instanceof HTMLElement ? viewMenuEl : null;
+        return this.getActiveCanvasView()?.containerEl?.querySelector<HTMLElement>(".canvas-menu") || null;
     }
 
     private removeInjectedElements(menuEl?: HTMLElement | null): void {

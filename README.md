@@ -64,7 +64,7 @@ Demo video: [Auto-fit card height and arrange spacing](Demo/自适应高度_调�
 
 ### Find & Replace in Canvas
 
-Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or the `Ctrl+F` (macOS) hotkey. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can jump to matched cards with temporary match highlighting. You can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
+Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or assign a hotkey in Obsidian settings. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can jump to matched cards with temporary match highlighting. You can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
 
 ## Feature Overview
 
