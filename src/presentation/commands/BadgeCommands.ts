@@ -23,16 +23,17 @@ export class OpenBadgeModalCommand implements ICommand {
     }
 }
 
-export class OpenBatchBadgeModalCommand implements ICommand {
+export class OpenSequenceToolsCommand implements ICommand {
     constructor(
-        private openModal: (nodes: CanvasNode[]) => Promise<void>,
+        private openTools: () => void,
         private selection: CanvasNode[],
         private canEditSelection: (nodes: CanvasNode[]) => boolean,
         private settings?: Partial<CanvasLoomSettings>
     ) {}
 
-    async execute(): Promise<void> {
-        await this.openModal(this.selection);
+    execute(): Promise<void> {
+        this.openTools();
+        return Promise.resolve();
     }
 
     canExecute(): boolean {
@@ -40,6 +41,6 @@ export class OpenBatchBadgeModalCommand implements ICommand {
     }
 
     getDescription(): string {
-        return t("commands.batchEditBadge", undefined, { settings: this.settings });
+        return t("commands.openSequenceTools", undefined, { settings: this.settings });
     }
 }

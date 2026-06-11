@@ -26,7 +26,7 @@ import {
     CopySingleCardCommand,
     OpenSplitCardModalCommand,
     OpenBadgeModalCommand,
-    OpenBatchBadgeModalCommand,
+    OpenSequenceToolsCommand,
     SelectSameColorCardsCommand,
     OpenSameColorGroupWorkbenchCommand,
     MergeToCanvasCardCommand,
@@ -122,7 +122,37 @@ export default class CanvasLoomPlugin extends Plugin {
         this.commandRegistry = new CommandRegistry();
         this.performanceService = new PerformanceService(() => this.settings);
         this.badgeRenderScheduler = new BadgeRenderScheduler();
-        this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(this.app, () => this.settings);
+        this.canvasSelectionToolbarService = new CanvasSelectionToolbarService(
+            this.app,
+            () => this.settings,
+            {
+                openNumbering: (canvas, nodes) => {
+                    const services = this.getOrCreateCanvasServices(canvas);
+                    if (nodes.length === 1) {
+                        void services.badgeService.getCurrentBadge(nodes[0]).then((currentBadge) => {
+                            new BadgeModal(
+                                this.app,
+                                nodes[0],
+                                services.badgeService,
+                                currentBadge?.content || ""
+                            ).open();
+                        });
+                        return;
+                    }
+
+                    new BatchBadgeModal(
+                        this.app,
+                        nodes,
+                        services.badgeService,
+                        this.settings.sortPriority
+                    ).open();
+                },
+                removeBadges: async (canvas, nodes) => {
+                    const services = this.getOrCreateCanvasServices(canvas);
+                    return services.badgeService.removeBadges(nodes);
+                }
+            }
+        );
         this.canvasGlobalFindReplaceToolbarService = new CanvasGlobalFindReplaceToolbarService(
             this.app,
             this.performanceService
@@ -185,7 +215,7 @@ export default class CanvasLoomPlugin extends Plugin {
             }
 
             this.setupCanvasServices(canvas);
-            this.addSelectionMenuCommands(menu, selection, this.resolveCanvasFileForCanvas(canvas));
+            this.addSelectionMenuCommands(menu, canvas, this.resolveCanvasFileForCanvas(canvas));
         }));
     }
 
@@ -305,11 +335,12 @@ export default class CanvasLoomPlugin extends Plugin {
         }
     }
 
-    private addSelectionMenuCommands(menu: Menu, selection: Set<CanvasNode>, canvasFile: TFile | null): void {
+    private addSelectionMenuCommands(menu: Menu, canvas: Canvas, canvasFile: TFile | null): void {
         if (!this.contentService || !this.mergeService) {
             return;
         }
 
+        const selection = canvas.selection || new Set<CanvasNode>();
         const selectionArray = Array.from(selection);
         if (selectionArray.length === 0) {
             return;
@@ -326,16 +357,19 @@ export default class CanvasLoomPlugin extends Plugin {
         }
 
         if (this.badgeService && this.hasBadgeEditableSelection(selectionArray)) {
-            const batchBadgeCommand = new OpenBatchBadgeModalCommand(
-                async (nodes) => {
-                    new BatchBadgeModal(this.app, nodes, this.badgeService, this.settings.sortPriority).open();
+            const sequenceToolsCommand = new OpenSequenceToolsCommand(
+                () => {
+                    const viewWindow = canvas.wrapperEl?.ownerDocument.defaultView || window;
+                    viewWindow.setTimeout(() => {
+                        this.canvasSelectionToolbarService.openSequenceTools(canvas);
+                    }, 0);
                 },
                 selectionArray,
                 (nodes) => this.hasBadgeEditableSelection(nodes),
                 this.settings
             );
-            this.commandRegistry.registerCommand("open-batch-badge-modal", batchBadgeCommand);
-            this.commandRegistry.addCommandToMenu(menu, "open-batch-badge-modal", this.translate("menu.batchEditBadge"), "tag");
+            this.commandRegistry.registerCommand("open-sequence-tools", sequenceToolsCommand);
+            this.commandRegistry.addCommandToMenu(menu, "open-sequence-tools", this.translate("menu.sequenceTools"), "tag");
         }
 
         const quickCopyCommand = new QuickCopyCommand(this.contentService, selectionArray, this.settings);
@@ -841,10 +875,10 @@ export default class CanvasLoomPlugin extends Plugin {
 
         this.registerCanvasSelectionCommand(
             'batch-edit-selected-card-badges',
-            this.translate("commands.batchEditSelectedCardBadges"),
-            ({ selection }) => new OpenBatchBadgeModalCommand(
-                async (nodes) => {
-                    new BatchBadgeModal(this.app, nodes, this.badgeService, this.settings.sortPriority).open();
+            this.translate("commands.openSequenceTools"),
+            ({ selection, canvas }) => new OpenSequenceToolsCommand(
+                () => {
+                    this.canvasSelectionToolbarService.openSequenceTools(canvas);
                 },
                 selection,
                 (nodes) => this.hasBadgeEditableSelection(nodes),
@@ -895,8 +929,8 @@ export default class CanvasLoomPlugin extends Plugin {
     private registerCanvasSelectionCommand(
         id: string,
         name: string,
-        factory: (context: { selection: CanvasNode[]; file: TFile | null }) => ICommand,
-        canExecuteWhileChecking?: (context: { selection: CanvasNode[]; file: TFile | null }) => boolean
+        factory: (context: { canvas: Canvas; selection: CanvasNode[]; file: TFile | null }) => ICommand,
+        canExecuteWhileChecking?: (context: { canvas: Canvas; selection: CanvasNode[]; file: TFile | null }) => boolean
     ): void {
         this.addCommand({
             id,
@@ -913,6 +947,7 @@ export default class CanvasLoomPlugin extends Plugin {
 
                 this.setupCanvasServices(context.canvas);
                 const command = factory({
+                    canvas: context.canvas,
                     selection: context.selection,
                     file: context.file
                 });
@@ -981,7 +1016,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private isBadgeEditableNode(node: CanvasNode): boolean {
         const nodeData = node.getData?.();
         const isTextCard = node.text !== undefined || nodeData?.type === "text";
-        const isMarkdownEmbed = node.nodeEl?.querySelector(".markdown-embed") !== null;
+        const isMarkdownEmbed = !!node.nodeEl?.querySelector(".markdown-embed");
         return isTextCard || isMarkdownEmbed;
     }
 

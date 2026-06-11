@@ -29,6 +29,7 @@ const notice = {
 	badgeRemoveFailed: "Failed to remove badge. See the console for details.",
 	noBadgeableTextCards: "No text cards available for badges",
 	batchBadgesSet: "Added badges to {count} cards",
+	batchBadgesUnchanged: "The selected cards already use these badges",
 	batchBadgesSetFailed: "Failed to set badges in batch. See the console for details.",
 	noRemovableBadgeTextCards: "No text cards with removable badges found",
 	batchBadgesRemoved: "Removed badges from {count} cards",

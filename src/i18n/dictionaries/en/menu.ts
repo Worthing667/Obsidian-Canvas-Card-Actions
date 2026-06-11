@@ -4,7 +4,7 @@ const menu = {
 	copyCardContent: "Copy card content",
 	selectSameColorCards: "Select cards with the same color",
 	manageCardProperties: "Manage card properties",
-	batchEditBadge: "Batch edit badges",
+	sequenceTools: "Edit numbers",
 	quickCopy: "Quick copy",
 	quickMerge: "Quick merge",
 	previewCardGroup: "Preview card group"

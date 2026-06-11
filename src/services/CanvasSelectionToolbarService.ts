@@ -11,14 +11,77 @@ import {
 } from "./CanvasAutoFitService";
 import { t } from "../i18n";
 import { extractErrorMessage } from "../utils/errorUtils";
-import { hasCanvasEditingNode } from "../utils/canvasEditingState";
+import { hasCanvasEditingNode, isCanvasNodeEditing } from "../utils/canvasEditingState";
 import type { TranslationKey, TranslationParams } from "../i18n";
 import type CanvasLoomSettings from "../settings/ICanvasLoomSettings";
-import type { Canvas } from "../types/canvas";
+import type { Canvas, CanvasNode } from "../types/canvas";
 
 const BUTTON_CLASS = "canvas-loom-arrange-toolbar-button";
 const AUTO_HEIGHT_BUTTON_CLASS = "canvas-loom-auto-height-toolbar-button";
 const POPOVER_CLASS = "canvas-loom-arrange-popover";
+const SEQUENCE_BUTTON_CLASS = "canvas-loom-sequence-toolbar-button";
+const SEQUENCE_POPOVER_CLASS = "canvas-loom-sequence-popover";
+
+interface SequenceToolsActions {
+    openNumbering(canvas: Canvas, nodes: CanvasNode[]): void;
+    removeBadges(canvas: Canvas, nodes: CanvasNode[]): Promise<number>;
+}
+
+export interface SequenceToolsSelectionState {
+    mode: "single" | "multiple";
+    nodes: CanvasNode[];
+    badgeCount: number;
+    currentBadge: string | null;
+}
+
+function isSequenceToolNode(node: CanvasNode): boolean {
+    const nodeData = node.getData?.();
+    const isTextCard = node.text !== undefined || nodeData?.type === "text";
+    const isMarkdownEmbed = !!node.nodeEl?.querySelector(".markdown-embed");
+    return isTextCard || isMarkdownEmbed;
+}
+
+function getUniqueSequenceToolNodes(selection?: Set<CanvasNode>): CanvasNode[] {
+    const seenIds = new Set<string>();
+
+    return Array.from(selection || []).filter((node) => {
+        if (!node?.id || seenIds.has(node.id) || !isSequenceToolNode(node)) {
+            return false;
+        }
+
+        seenIds.add(node.id);
+        return true;
+    });
+}
+
+export function shouldShowSequenceToolsToolbarButton(selection?: Set<CanvasNode>): boolean {
+    const nodes = getUniqueSequenceToolNodes(selection);
+    return nodes.length > 0 && !nodes.some((node) => isCanvasNodeEditing(node));
+}
+
+export function countSelectedBadges(selection?: Set<CanvasNode>): number {
+    return getUniqueSequenceToolNodes(selection).filter((node) => {
+        const badge = node.getData?.()?.badge;
+        return typeof badge === "string" && badge.trim().length > 0;
+    }).length;
+}
+
+export function getSequenceToolsSelectionState(
+    selection?: Set<CanvasNode>
+): SequenceToolsSelectionState {
+    const nodes = getUniqueSequenceToolNodes(selection);
+    const badges = nodes.map((node) => {
+        const badge = node.getData?.()?.badge;
+        return typeof badge === "string" && badge.trim().length > 0 ? badge.trim() : null;
+    });
+
+    return {
+        mode: nodes.length === 1 ? "single" : "multiple",
+        nodes,
+        badgeCount: badges.filter((badge): badge is string => badge !== null).length,
+        currentBadge: nodes.length === 1 ? badges[0] : null
+    };
+}
 
 export class CanvasSelectionToolbarService {
     private observer: MutationObserver | null = null;
@@ -30,7 +93,8 @@ export class CanvasSelectionToolbarService {
 
     constructor(
         private readonly app: App,
-        private readonly getSettings?: () => Partial<CanvasLoomSettings>
+        private readonly getSettings?: () => Partial<CanvasLoomSettings>,
+        private readonly sequenceToolsActions?: SequenceToolsActions
     ) {
         this.arrangePreferenceStore = new ArrangeSessionPreferenceStore();
     }
@@ -133,8 +197,10 @@ export class CanvasSelectionToolbarService {
 
         const existingArrangeButton = menuEl.querySelector(`.${BUTTON_CLASS}`);
         const existingAutoHeightButton = menuEl.querySelector(`.${AUTO_HEIGHT_BUTTON_CLASS}`);
+        const existingSequenceButton = menuEl.querySelector(`.${SEQUENCE_BUTTON_CLASS}`);
         const shouldShowAutoHeight = shouldShowAutoHeightToolbarButton(canvas.selection);
         const shouldShowArrangement = shouldShowArrangementToolbarButton(canvas.selection);
+        const shouldShowSequenceTools = shouldShowSequenceToolsToolbarButton(canvas.selection);
 
         if (!shouldShowAutoHeight) {
             existingAutoHeightButton?.remove();
@@ -143,6 +209,11 @@ export class CanvasSelectionToolbarService {
         if (!shouldShowArrangement) {
             existingArrangeButton?.remove();
             menuEl.querySelector(`.${POPOVER_CLASS}`)?.remove();
+        }
+
+        if (!shouldShowSequenceTools) {
+            existingSequenceButton?.remove();
+            menuEl.querySelector(`.${SEQUENCE_POPOVER_CLASS}`)?.remove();
         }
 
         if (shouldShowArrangement && !existingArrangeButton) {
@@ -158,6 +229,30 @@ export class CanvasSelectionToolbarService {
                 menuEl.appendChild(autoHeightButton);
             }
         }
+
+        if (shouldShowSequenceTools && !existingSequenceButton) {
+            menuEl.appendChild(this.createSequenceToolsButton(canvas, menuEl));
+        }
+    }
+
+    openSequenceTools(canvas: Canvas | null = this.getActiveCanvas()): boolean {
+        if (!canvas || hasCanvasEditingNode(canvas) || !shouldShowSequenceToolsToolbarButton(canvas.selection)) {
+            return false;
+        }
+
+        const menuEl = this.getCanvasMenuElement(canvas);
+        if (!menuEl) {
+            return false;
+        }
+
+        let button = menuEl.querySelector<HTMLButtonElement>(`.${SEQUENCE_BUTTON_CLASS}`);
+        if (!button) {
+            button = this.createSequenceToolsButton(canvas, menuEl);
+            menuEl.appendChild(button);
+        }
+
+        this.showSequenceToolsPopover(canvas, menuEl);
+        return true;
     }
 
     private createAutoHeightButton(canvas: Canvas): HTMLButtonElement {
@@ -218,6 +313,99 @@ export class CanvasSelectionToolbarService {
         });
 
         return button;
+    }
+
+    private createSequenceToolsButton(canvas: Canvas, menuEl: HTMLElement): HTMLButtonElement {
+        const button = activeDocument.createElement("button");
+        button.type = "button";
+        button.className = `clickable-icon ${SEQUENCE_BUTTON_CLASS}`;
+        button.setAttribute("aria-label", this.translate("toolbar.sequenceTools.label"));
+        button.setAttribute("title", this.translate("toolbar.sequenceTools.label"));
+
+        try {
+            setIcon(button, "tag");
+        } catch {
+            button.textContent = this.translate("toolbar.sequenceTools.fallbackText");
+        }
+
+        button.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const existing = menuEl.querySelector(`.${SEQUENCE_POPOVER_CLASS}`);
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            this.showSequenceToolsPopover(canvas, menuEl);
+        });
+
+        return button;
+    }
+
+    private showSequenceToolsPopover(canvas: Canvas, menuEl: HTMLElement): void {
+        menuEl.querySelectorAll(`.${POPOVER_CLASS}, .${SEQUENCE_POPOVER_CLASS}`)
+            .forEach((element) => element.remove());
+        menuEl.appendChild(this.createSequenceToolsPopover(canvas));
+    }
+
+    private createSequenceToolsPopover(canvas: Canvas): HTMLElement {
+        const state = getSequenceToolsSelectionState(canvas.selection);
+        const popover = activeDocument.createElement("div");
+        popover.className = SEQUENCE_POPOVER_CLASS;
+        popover.addEventListener("click", (event) => event.stopPropagation());
+
+        const summary = activeDocument.createElement("div");
+        summary.className = "canvas-loom-sequence-summary";
+        summary.textContent = state.mode === "single"
+            ? state.currentBadge
+                ? this.translate("toolbar.sequenceTools.single.summaryWithBadge", {
+                    badge: state.currentBadge
+                })
+                : this.translate("toolbar.sequenceTools.single.summaryWithoutBadge")
+            : this.translate("toolbar.sequenceTools.multiple.summary", {
+                selectedCount: state.nodes.length,
+                badgeCount: state.badgeCount
+            });
+        popover.appendChild(summary);
+
+        const numberButton = activeDocument.createElement("button");
+        numberButton.type = "button";
+        numberButton.textContent = this.translate(
+            state.mode === "single"
+                ? "toolbar.sequenceTools.single.setNumber"
+                : "toolbar.sequenceTools.multiple.batchNumber"
+        );
+        numberButton.disabled = !this.sequenceToolsActions;
+        numberButton.addEventListener("click", () => {
+            popover.remove();
+            this.sequenceToolsActions?.openNumbering(canvas, state.nodes);
+        });
+        popover.appendChild(numberButton);
+
+        const removeButton = activeDocument.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "mod-warning";
+        removeButton.textContent = state.mode === "single"
+            ? this.translate("toolbar.sequenceTools.single.remove")
+            : this.translate("toolbar.sequenceTools.multiple.remove", {
+                count: state.badgeCount
+            });
+        removeButton.disabled = state.badgeCount === 0 || !this.sequenceToolsActions;
+        removeButton.addEventListener("click", () => {
+            if (removeButton.disabled || !this.sequenceToolsActions) {
+                return;
+            }
+
+            removeButton.disabled = true;
+            void this.sequenceToolsActions.removeBadges(canvas, state.nodes).finally(() => {
+                popover.remove();
+                this.scheduleInjection();
+            });
+        });
+        popover.appendChild(removeButton);
+
+        return popover;
     }
 
     private toggleArrangePopover(canvas: Canvas, menuEl: HTMLElement): void {
@@ -495,7 +683,9 @@ export class CanvasSelectionToolbarService {
     }
 
     private removeInjectedElements(menuEl?: HTMLElement | null): void {
-        menuEl?.querySelectorAll(`.${BUTTON_CLASS}, .${AUTO_HEIGHT_BUTTON_CLASS}, .${POPOVER_CLASS}`)
+        menuEl?.querySelectorAll(
+            `.${BUTTON_CLASS}, .${AUTO_HEIGHT_BUTTON_CLASS}, .${POPOVER_CLASS}, .${SEQUENCE_BUTTON_CLASS}, .${SEQUENCE_POPOVER_CLASS}`
+        )
             .forEach((element) => element.remove());
     }
 }

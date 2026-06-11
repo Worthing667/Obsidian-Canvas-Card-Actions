@@ -3,11 +3,17 @@ import { BadgeData } from '../../domain/models/Badge';
 import { PositionSortStrategy } from '../../domain/strategies';
 import type { SortPriority } from '../../domain/strategies';
 import { IBadgeService } from '../../services/BadgeService';
+import {
+    createBadgeSequence,
+    resolveDefaultBatchBadgeMode,
+    type BatchBadgeApplyMode
+} from '../../services/BatchBadgePlan';
 import type { CanvasNode } from '../../types/canvas';
 import { modalT } from './modalI18n';
 
 export class BatchBadgeModal extends Modal {
     private orderedNodes: CanvasNode[];
+    private applyMode: BatchBadgeApplyMode;
 
     constructor(
         app: App,
@@ -17,6 +23,10 @@ export class BatchBadgeModal extends Modal {
     ) {
         super(app);
         this.orderedNodes = this.getOrderedBadgeNodes(selection, sortPriority);
+        this.applyMode = resolveDefaultBatchBadgeMode(
+            this.orderedNodes.length,
+            this.getExistingBadgeCount()
+        );
     }
 
     onOpen() {
@@ -25,8 +35,30 @@ export class BatchBadgeModal extends Modal {
 
         contentEl.createEl("h2", { text: this.t("modal.batchBadge.title") });
 
+        const existingCount = this.getExistingBadgeCount();
+        const missingCount = this.orderedNodes.length - existingCount;
         const summary = contentEl.createDiv({ cls: "canvas-loom-badge-hint" });
-        summary.setText(this.t("modal.batchBadge.summary", { count: this.orderedNodes.length }));
+        summary.setText(this.t("modal.batchBadge.summary", {
+            count: this.orderedNodes.length,
+            existingCount,
+            missingCount
+        }));
+
+        let modeSelect: HTMLSelectElement | null = null;
+        if (existingCount > 0 && missingCount > 0) {
+            const modeContainer = contentEl.createDiv({ cls: "canvas-loom-badge-input-container" });
+            modeContainer.createEl("label", { text: this.t("modal.batchBadge.scopeLabel") });
+            modeSelect = modeContainer.createEl("select");
+            const missingOption = activeDocument.createElement("option");
+            missingOption.value = "missing";
+            missingOption.text = this.t("modal.batchBadge.scope.missing");
+            modeSelect.add(missingOption);
+            const allOption = activeDocument.createElement("option");
+            allOption.value = "all";
+            allOption.text = this.t("modal.batchBadge.scope.all");
+            modeSelect.add(allOption);
+            modeSelect.value = this.applyMode;
+        }
 
         const inputContainer = contentEl.createDiv();
         inputContainer.addClass("canvas-loom-badge-input-container");
@@ -44,32 +76,29 @@ export class BatchBadgeModal extends Modal {
 
         const buttonContainer = contentEl.createDiv({ cls: "canvas-loom-badge-actions" });
 
-        const removeButton = buttonContainer.createEl("button", { text: this.t("modal.batchBadge.removeSelected") });
-        removeButton.addEventListener("click", () => {
-            void this.removeBadges().then(() => {
-                this.close();
-            });
-        });
-
         const cancelButton = buttonContainer.createEl("button", { text: this.t("modal.common.cancel") });
         cancelButton.addEventListener("click", () => {
             this.close();
         });
 
-        const confirmButton = buttonContainer.createEl("button", { text: this.t("modal.batchBadge.add") });
+        const confirmButton = buttonContainer.createEl("button", { text: this.t("modal.batchBadge.add", { count: 0 }) });
         confirmButton.addClass("mod-cta");
         confirmButton.addEventListener("click", () => {
-            const sequence = this.validateInput(input.value, validation, preview, confirmButton);
-            if (!sequence) {
+            const plan = this.validateInput(input.value, validation, preview, confirmButton);
+            if (!plan) {
                 return;
             }
 
-            void this.setBadges(sequence).then(() => {
+            void this.setBadges(plan.nodes, plan.sequence).then(() => {
                 this.close();
             });
         });
 
         input.addEventListener("input", () => {
+            this.validateInput(input.value, validation, preview, confirmButton);
+        });
+        modeSelect?.addEventListener("change", () => {
+            this.applyMode = modeSelect?.value === "all" ? "all" : "missing";
             this.validateInput(input.value, validation, preview, confirmButton);
         });
 
@@ -78,12 +107,12 @@ export class BatchBadgeModal extends Modal {
                 return;
             }
 
-            const sequence = this.validateInput(input.value, validation, preview, confirmButton);
-            if (!sequence) {
+            const plan = this.validateInput(input.value, validation, preview, confirmButton);
+            if (!plan) {
                 return;
             }
 
-            void this.setBadges(sequence).then(() => {
+            void this.setBadges(plan.nodes, plan.sequence).then(() => {
                 this.close();
             });
         });
@@ -98,7 +127,7 @@ export class BatchBadgeModal extends Modal {
         validationEl: HTMLElement,
         previewEl: HTMLElement,
         confirmButton: HTMLButtonElement
-    ): string[] | null {
+    ): { nodes: CanvasNode[]; sequence: string[] } | null {
         const value = inputValue.trim();
         validationEl.removeClass("is-error");
         validationEl.removeClass("is-muted");
@@ -118,27 +147,31 @@ export class BatchBadgeModal extends Modal {
             return null;
         }
 
-        const sequence = this.createBadgeSequence(value, this.orderedNodes.length);
+        const targetNodes = this.getTargetNodes();
+        if (targetNodes.length === 0) {
+            validationEl.addClass("is-error");
+            validationEl.setText(this.t("modal.batchBadge.validation.noTargets"));
+            confirmButton.disabled = true;
+            confirmButton.setText(this.t("modal.batchBadge.add", { count: 0 }));
+            return null;
+        }
+
+        const sequence = createBadgeSequence(value, targetNodes.length);
         validationEl.addClass("is-muted");
         validationEl.setText(this.t("modal.batchBadge.validation.valid"));
-        previewEl.setText(this.t("modal.batchBadge.preview", { preview: this.formatPreview(sequence) }));
+        previewEl.setText(this.t("modal.batchBadge.preview", {
+            preview: this.formatPreview(targetNodes, sequence)
+        }));
         confirmButton.disabled = false;
-        return sequence;
+        confirmButton.setText(this.t("modal.batchBadge.add", { count: targetNodes.length }));
+        return { nodes: targetNodes, sequence };
     }
 
-    private async setBadges(sequence: string[]): Promise<void> {
+    private async setBadges(nodes: CanvasNode[], sequence: string[]): Promise<void> {
         try {
-            await this.badgeService.setBadges(this.orderedNodes, sequence);
+            await this.badgeService.setBadges(nodes, sequence);
         } catch (error) {
             console.error("Failed to set badges in batch:", error);
-        }
-    }
-
-    private async removeBadges(): Promise<void> {
-        try {
-            await this.badgeService.removeBadges(this.orderedNodes);
-        } catch (error) {
-            console.error("Failed to remove badges in batch:", error);
         }
     }
 
@@ -157,20 +190,30 @@ export class BatchBadgeModal extends Modal {
         })).map((item) => item.node);
     }
 
-    private createBadgeSequence(startBadge: string, count: number): string[] {
-        const parts = BadgeData.normalize(startBadge).split(".");
-        const lastPart = Number(parts[parts.length - 1]);
-        const prefix = parts.slice(0, -1);
-
-        return Array.from({ length: count }, (_, index) => {
-            return [...prefix, String(lastPart + index)].join(".");
-        });
+    private getExistingBadgeCount(): number {
+        return this.orderedNodes.filter((node) => this.hasBadge(node)).length;
     }
 
-    private formatPreview(sequence: string[]): string {
-        const visibleItems = sequence.slice(0, 5);
-        const suffix = sequence.length > visibleItems.length ? " ..." : "";
-        return `${visibleItems.join(this.t("modal.common.listSeparator"))}${suffix}`;
+    private getTargetNodes(): CanvasNode[] {
+        return this.applyMode === "missing"
+            ? this.orderedNodes.filter((node) => !this.hasBadge(node))
+            : this.orderedNodes;
+    }
+
+    private hasBadge(node: CanvasNode): boolean {
+        const badge = node.getData?.()?.badge;
+        return typeof badge === "string" && badge.trim().length > 0;
+    }
+
+    private formatPreview(nodes: CanvasNode[], sequence: string[]): string {
+        const visibleItems = nodes.slice(0, 5).map((node, index) => {
+            const firstLine = (node.getData?.()?.text || "").split(/\r?\n/, 1)[0].trim();
+            const text = firstLine || this.t("modal.common.emptyCard");
+            const previewText = text.length > 24 ? `${text.slice(0, 24)}...` : text;
+            return `${sequence[index]} → ${previewText}`;
+        });
+        const suffix = nodes.length > visibleItems.length ? "\n..." : "";
+        return `${visibleItems.join("\n")}${suffix}`;
     }
 
     private t(key: Parameters<typeof modalT>[1], params?: Parameters<typeof modalT>[2]): string {

@@ -32,6 +32,7 @@ const notice: WidenTranslationValues<typeof enNotice> = {
 	badgeRemoveFailed: "移除标记失败，请查看控制台了解详情",
 	noBadgeableTextCards: "未找到可标记的文本卡片",
 	batchBadgesSet: "已为 {count} 张卡片添加标记",
+	batchBadgesUnchanged: "所选卡片的标记无需更改",
 	batchBadgesSetFailed: "批量设置标记失败，请查看控制台了解详情",
 	noRemovableBadgeTextCards: "未找到可移除标记的文本卡片",
 	batchBadgesRemoved: "已移除 {count} 张卡片的标记",

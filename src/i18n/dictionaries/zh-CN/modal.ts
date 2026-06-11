@@ -15,10 +15,10 @@ const modal: WidenTranslationValues<typeof enModal> = {
 		emptyCardTitle: "空卡片"
 	},
 	badge: {
-		title: "设置排序标记",
-		label: "排序标记（仅支持数字）：",
+		title: "设置序号",
+		label: "序号（仅支持数字）：",
 		placeholder: "例如：1、2.1、10.3.2",
-		hint: "提示：排序标记会自动保存在画布文件中",
+		hint: "序号会作为独立标记保存在画布文件中",
 		remove: "移除标记",
 		validation: {
 			empty: "留空可移除，或直接使用“移除标记”。",
@@ -27,17 +27,22 @@ const modal: WidenTranslationValues<typeof enModal> = {
 		}
 	},
 	batchBadge: {
-		title: "批量设置排序标记",
-		summary: "将按画布位置顺序为 {count} 张卡片连续编号。",
+		title: "批量编号",
+		summary: "按画布位置排列的 {count} 张卡片：已有标记 {existingCount} 张，未标记 {missingCount} 张。",
+		scopeLabel: "编号范围：",
+		scope: {
+			missing: "仅编号未标记卡片",
+			all: "重新编号全部选中卡片"
+		},
 		startLabel: "起始标记：",
-		removeSelected: "移除所选标记",
-		add: "添加标记",
+		add: "为 {count} 张卡片编号",
 		validation: {
 			noCards: "当前选区没有可标记的文本卡片。",
+			noTargets: "当前编号范围内没有需要处理的卡片。",
 			invalid: "只支持数字序号，格式如 1、2、2.1。",
 			valid: "层级标记会递增最后一段，例如 2.1、2.2、2.3。"
 		},
-		preview: "预览：{preview}"
+		preview: "预览：\n{preview}"
 	},
 	split: {
 		title: "拆分卡片",

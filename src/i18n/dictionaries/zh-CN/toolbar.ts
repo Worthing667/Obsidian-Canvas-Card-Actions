@@ -16,6 +16,21 @@ const toolbar: WidenTranslationValues<typeof enToolbar> = {
 			horizontal: "水平",
 			vertical: "垂直"
 		}
+	},
+	sequenceTools: {
+		label: "序号工具",
+		fallbackText: "序",
+		single: {
+			summaryWithBadge: "当前卡片标记：{badge}",
+			summaryWithoutBadge: "当前卡片未设置标记",
+			setNumber: "设置序号...",
+			remove: "移除标记"
+		},
+		multiple: {
+			summary: "已选 {selectedCount} 张，其中 {badgeCount} 张有标记",
+			batchNumber: "批量编号...",
+			remove: "移除 {count} 个标记"
+		}
 	}
 };
 

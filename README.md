@@ -50,7 +50,7 @@ Demo video: [Compare position sorting and number sorting](Demo/预览卡片组�
 
 ![Batch add or remove Canvas card badges](Demo/readme/badge-management.png)
 
-Add or edit numeric badges on one card, or batch-number selected cards by their current canvas position. Badges remain independent from card content and act as a fallback source for number sorting.
+Add or edit numeric badges on one card. After selecting multiple text cards, use the badge button in the floating selection toolbar to batch-number them or remove existing badges. Mixed selections default to numbering only cards without badges. Badges remain independent from card content and act as a fallback source for number sorting.
 
 Demo video: [Add badges by position order](Demo/添加卡片标记_两种按位置排序添加标记的效果.mp4)
 
@@ -78,6 +78,8 @@ Search and replace text across all text cards on the current canvas or within a 
   Process selected cards with the default sorting mode from settings.
 - `Add/Edit badge`
   Add numeric outline-style badges such as `1`, `2.1`, or `10.3.2`.
+- `Number tools`
+  Batch-number selected cards or remove existing badges from the floating selection toolbar.
 - `Manage card properties`
   Inspect one card or batch-adjust selected card dimensions, width, height, aspect ratio, and layout.
 - `Arrange spacing` / `Auto-fit height`

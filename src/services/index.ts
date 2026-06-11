@@ -2,6 +2,7 @@ export * from './CardService';
 export * from './BadgeService';
 export * from './BadgeRenderScheduler';
 export * from './ContentService';
+export * from './BatchBadgePlan';
 export * from './ColorGroupService';
 export * from './MergeService';
 export * from './PreviewWorkbenchService';

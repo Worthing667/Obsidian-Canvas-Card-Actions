@@ -12,10 +12,10 @@ const modal = {
 		emptyCardTitle: "Empty card"
 	},
 	badge: {
-		title: "Set badge",
-		label: "Badge number:",
+		title: "Set number",
+		label: "Number:",
 		placeholder: "Example: 1, 2.1, 10.3.2",
-		hint: "Badges are saved in the Canvas file.",
+		hint: "The number is stored as an independent badge in the Canvas file.",
 		remove: "Remove badge",
 		validation: {
 			empty: "Leave blank to remove it, or use Remove badge.",
@@ -24,17 +24,22 @@ const modal = {
 		}
 	},
 	batchBadge: {
-		title: "Set badges in bulk",
-		summary: "Cards will be numbered by Canvas position order. Selected cards: {count}.",
+		title: "Number cards",
+		summary: "{count} cards in position order: {existingCount} badged, {missingCount} unbadged.",
+		scopeLabel: "Numbering scope:",
+		scope: {
+			missing: "Only cards without badges",
+			all: "Renumber all selected cards"
+		},
 		startLabel: "Start badge:",
-		removeSelected: "Remove selected badges",
-		add: "Add badges",
+		add: "Number {count} cards",
 		validation: {
 			noCards: "The current selection has no text cards that can be badged.",
+			noTargets: "There are no cards to number in the selected scope.",
 			invalid: "Use numeric badge numbers only, such as 1, 2, or 2.1.",
 			valid: "Hierarchical badges increment the last segment, such as 2.1, 2.2, 2.3."
 		},
-		preview: "Preview: {preview}"
+		preview: "Preview:\n{preview}"
 	},
 	split: {
 		title: "Split card",

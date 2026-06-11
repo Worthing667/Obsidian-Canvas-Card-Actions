@@ -128,34 +128,41 @@ export class BadgeService implements IBadgeService {
 
             const canvasData = this.canvasAdapter.getData();
             const nodeDataById = new Map(canvasData.nodes.map((nodeData) => [nodeData.id, nodeData]));
-            let updatedCount = 0;
+            const changedAssignments = assignments.filter(({ node, badge }) => {
+                const nodeData = nodeDataById.get(node.id);
+                if (!nodeData) {
+                    return false;
+                }
 
-            assignments.forEach(({ node, badge }) => {
+                return nodeData.badge !== badge.content || "badgeType" in nodeData;
+            });
+
+            changedAssignments.forEach(({ node, badge }) => {
                 const nodeData = nodeDataById.get(node.id);
                 if (!nodeData) {
                     return;
                 }
+                nodeData.badge = badge.content;
+                delete nodeData.badgeType;
+            });
 
+            if (changedAssignments.length === 0) {
+                new Notice(t("notice.batchBadgesUnchanged"));
+                return 0;
+            }
+
+            await this.canvasAdapter.setData(canvasData);
+            await this.canvasAdapter.requestSave();
+            changedAssignments.forEach(({ node, badge }) => {
                 if (this.isBadgeDisplayEnabled()) {
                     this.applyBadgeToNode(node, badge);
                 } else {
                     this.clearBadgeFromNode(node);
                 }
-
-                nodeData.badge = badge.content;
-                delete nodeData.badgeType;
-                updatedCount += 1;
             });
-
-            if (updatedCount === 0) {
-                throw new Error(t("errors.badgeNodeNotFound"));
-            }
-
-            await this.canvasAdapter.setData(canvasData);
-            await this.canvasAdapter.requestSave();
             this.refreshBadgeDomSoon();
-            new Notice(t("notice.batchBadgesSet", { count: updatedCount }));
-            return updatedCount;
+            new Notice(t("notice.batchBadgesSet", { count: changedAssignments.length }));
+            return changedAssignments.length;
         } catch (error) {
             console.error("Failed to set badges in batch:", error);
             new Notice(t("notice.batchBadgesSetFailed"));
@@ -174,29 +181,31 @@ export class BadgeService implements IBadgeService {
 
             const canvasData = this.canvasAdapter.getData();
             const nodeDataById = new Map(canvasData.nodes.map((nodeData) => [nodeData.id, nodeData]));
-            let updatedCount = 0;
+            const nodesWithBadges = targetNodes.filter((node) => {
+                const nodeData = nodeDataById.get(node.id);
+                return typeof nodeData?.badge === "string" && nodeData.badge.trim().length > 0;
+            });
 
-            targetNodes.forEach((node) => {
+            nodesWithBadges.forEach((node) => {
                 const nodeData = nodeDataById.get(node.id);
                 if (!nodeData) {
                     return;
                 }
-
-                this.clearBadgeFromNode(node);
                 delete nodeData.badge;
                 delete nodeData.badgeType;
-                updatedCount += 1;
             });
 
-            if (updatedCount === 0) {
-                throw new Error(t("errors.badgeRemovalNodeNotFound"));
+            if (nodesWithBadges.length === 0) {
+                new Notice(t("notice.noRemovableBadgeTextCards"));
+                return 0;
             }
 
             await this.canvasAdapter.setData(canvasData);
             await this.canvasAdapter.requestSave();
+            nodesWithBadges.forEach((node) => this.clearBadgeFromNode(node));
             this.refreshBadgeDomSoon();
-            new Notice(t("notice.batchBadgesRemoved", { count: updatedCount }));
-            return updatedCount;
+            new Notice(t("notice.batchBadgesRemoved", { count: nodesWithBadges.length }));
+            return nodesWithBadges.length;
         } catch (error) {
             console.error("Failed to remove badges in batch:", error);
             new Notice(t("notice.batchBadgesRemoveFailed"));
@@ -309,7 +318,7 @@ export class BadgeService implements IBadgeService {
     isValidBadgeNode(node: CanvasNode): boolean {
         const nodeData = node.getData?.();
         const isTextCard = node.text !== undefined || nodeData?.type === "text";
-        const isMarkdownEmbed = node.nodeEl?.querySelector('.markdown-embed') !== null;
+        const isMarkdownEmbed = !!node.nodeEl?.querySelector('.markdown-embed');
         return isTextCard || isMarkdownEmbed;
     }
 
