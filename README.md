@@ -90,7 +90,8 @@ Search and replace text across all text cards on the current canvas or within a 
 ## Settings
 
 - `Language`: controls whether the plugin follows Obsidian automatically or uses English / Simplified Chinese explicitly.
-- `Canvas card delimiter`: controls the delimiter used when splitting cards.
+- `Canvas card delimiter`: controls the delimiter used when splitting cards and can also be used as the merge separator.
+- `Insert separator when merging`: inserts the current Canvas card delimiter between adjacent cards in multi-card output.
 - `Card sorting priority`: controls whether position-based sorting prioritizes vertical or horizontal order.
 - `Quick action sorting mode`: controls the default sorting mode for quick copy and quick merge.
 - `Enable badges`: controls whether card badges are shown.
@@ -108,7 +109,8 @@ Search and replace text across all text cards on the current canvas or within a 
 - No proactive network access
 - Reads Canvas or Markdown content only when the user runs a command
 - Creates or modifies files in the current vault only when the user explicitly exports, merges, or creates a note
-- Supports copying selected card content to the system clipboard
+- Writes generated text to the system clipboard only after the user explicitly runs a copy action
+- Never reads the system clipboard or accesses content copied from outside Obsidian
 
 ## Installation
 

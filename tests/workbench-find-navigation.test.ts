@@ -1,6 +1,29 @@
 import * as assert from 'node:assert/strict';
-import { MergeWorkbenchView } from '../src/presentation/views/MergeWorkbenchView';
+import { resolve } from 'node:path';
 import { CanvasFindActiveMatchHighlighter } from '../src/utils/CanvasFindHighlight';
+
+const moduleLoader = require("node:module") as {
+  _resolveFilename(
+    request: string,
+    parent: unknown,
+    isMain: boolean,
+    options?: unknown
+  ): string;
+};
+const resolveFilename = moduleLoader._resolveFilename;
+
+moduleLoader._resolveFilename = function (
+  request: string,
+  parent: unknown,
+  isMain: boolean,
+  options?: unknown
+): string {
+  if (request === "obsidian") {
+    return resolve("tests/stubs/obsidian.ts");
+  }
+
+  return resolveFilename.call(this, request, parent, isMain, options);
+};
 
 class MockClassList {
   private readonly values = new Set<string>();
@@ -83,6 +106,7 @@ class MockElement {
 (globalThis as any).HTMLElement = MockElement;
 
 function createWorkbenchView(): any {
+  const MergeWorkbenchView = workbenchViewConstructor;
   const view = Object.create(MergeWorkbenchView.prototype) as any;
   view.findResultListEl = new MockElement('canvas-loom-fr-results');
   view.findQuery = 'alpha';
@@ -90,6 +114,11 @@ function createWorkbenchView(): any {
   view.translate = (_key: string) => '';
   return view;
 }
+
+let workbenchViewConstructor: typeof import('../src/presentation/views/MergeWorkbenchView').MergeWorkbenchView;
+
+void (async () => {
+workbenchViewConstructor = (await import('../src/presentation/views/MergeWorkbenchView')).MergeWorkbenchView;
 
 function testActiveWorkbenchResultScrollsIntoViewAfterRender() {
   const view = createWorkbenchView();
@@ -145,6 +174,7 @@ function testWorkbenchCurrentMatchHighlightsLocatedCard() {
   view.context = {
     findReplace: {
       service: {
+        isCanvasEditing: () => false,
         selectNode: (nodeId: string) => {
           calls.push(`select:${nodeId}`);
           return true;
@@ -171,3 +201,4 @@ testActiveWorkbenchResultScrollsIntoViewAfterRender();
 testCanvasFindHighlighterMarksActiveCard();
 testWorkbenchCurrentMatchHighlightsLocatedCard();
 console.log('workbench find navigation tests passed');
+})();

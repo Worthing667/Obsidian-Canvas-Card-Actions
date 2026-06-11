@@ -773,6 +773,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.badgeRenderScheduler.cancelAll();
         this.canvasSelectionToolbarService.stop();
         this.canvasGlobalFindReplaceToolbarService.stop();
+        this.canvasLabelScaleService.dispose();
         this.canvasPerformanceModeService.stop();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         activeDocument.body.classList.remove("canvas-loom-edges-above-cards");

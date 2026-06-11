@@ -1,5 +1,28 @@
 import * as assert from 'node:assert/strict';
-import { CanvasGlobalFindReplaceToolbarService } from '../src/services/CanvasGlobalFindReplaceToolbarService';
+import { resolve } from 'node:path';
+
+const moduleLoader = require("node:module") as {
+  _resolveFilename(
+    request: string,
+    parent: unknown,
+    isMain: boolean,
+    options?: unknown
+  ): string;
+};
+const resolveFilename = moduleLoader._resolveFilename;
+
+moduleLoader._resolveFilename = function (
+  request: string,
+  parent: unknown,
+  isMain: boolean,
+  options?: unknown
+): string {
+  if (request === "obsidian") {
+    return resolve("tests/stubs/obsidian.ts");
+  }
+
+  return resolveFilename.call(this, request, parent, isMain, options);
+};
 
 class MockHTMLElement {
   className = '';
@@ -51,7 +74,10 @@ class MockMutationObserver {
   removeEventListener: () => undefined,
 };
 
-function createService(): CanvasGlobalFindReplaceToolbarService {
+void (async () => {
+const { CanvasGlobalFindReplaceToolbarService } = await import('../src/services/CanvasGlobalFindReplaceToolbarService');
+
+function createService(): InstanceType<typeof CanvasGlobalFindReplaceToolbarService> {
   return new CanvasGlobalFindReplaceToolbarService({
     workspace: {
       onLayoutReady: () => undefined,
@@ -63,7 +89,7 @@ function createService(): CanvasGlobalFindReplaceToolbarService {
   } as never);
 }
 
-function testControlsObserverPrefersCanvasControlsElement() {
+function testControlsObserverTracksCanvasRootForControlReplacement() {
   const service = createService() as any;
   const rootEl = new MockHTMLElement('canvas-root');
   const controlsEl = new MockHTMLElement('canvas-controls');
@@ -71,7 +97,7 @@ function testControlsObserverPrefersCanvasControlsElement() {
 
   service.observeCanvasControls(rootEl);
 
-  assert.equal(MockMutationObserver.observedTargets[0], controlsEl);
+  assert.equal(MockMutationObserver.observedTargets[0], rootEl);
 }
 
 function testFlatMatchesAreCachedUntilResultsChange() {
@@ -96,6 +122,7 @@ function testFlatMatchesAreCachedUntilResultsChange() {
   assert.equal(first.length, 2);
 }
 
-testControlsObserverPrefersCanvasControlsElement();
+testControlsObserverTracksCanvasRootForControlReplacement();
 testFlatMatchesAreCachedUntilResultsChange();
 console.log('canvas global find replace performance tests passed');
+})();

@@ -1,5 +1,31 @@
 import * as assert from 'node:assert/strict';
-import { SearchReplaceService } from '../src/services/SearchReplaceService';
+import { resolve } from 'node:path';
+
+const moduleLoader = require("node:module") as {
+  _resolveFilename(
+    request: string,
+    parent: unknown,
+    isMain: boolean,
+    options?: unknown
+  ): string;
+};
+const resolveFilename = moduleLoader._resolveFilename;
+
+moduleLoader._resolveFilename = function (
+  request: string,
+  parent: unknown,
+  isMain: boolean,
+  options?: unknown
+): string {
+  if (request === "obsidian") {
+    return resolve("tests/stubs/obsidian.ts");
+  }
+
+  return resolveFilename.call(this, request, parent, isMain, options);
+};
+
+void (async () => {
+const { SearchReplaceService } = await import('../src/services/SearchReplaceService');
 
 function createAdapterWithReadCount() {
   let getDataCalls = 0;
@@ -50,3 +76,4 @@ function testFindMatchesReadsCanvasDataOncePerQuery() {
 
 testFindMatchesReadsCanvasDataOncePerQuery();
 console.log('search replace performance tests passed');
+})();

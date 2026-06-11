@@ -1,7 +1,33 @@
 import * as assert from 'node:assert/strict';
-import { BadgeService } from '../src/services/BadgeService';
+import { resolve } from 'node:path';
 
-function createBadgeService(): BadgeService {
+const moduleLoader = require("node:module") as {
+  _resolveFilename(
+    request: string,
+    parent: unknown,
+    isMain: boolean,
+    options?: unknown
+  ): string;
+};
+const resolveFilename = moduleLoader._resolveFilename;
+
+moduleLoader._resolveFilename = function (
+  request: string,
+  parent: unknown,
+  isMain: boolean,
+  options?: unknown
+): string {
+  if (request === "obsidian") {
+    return resolve("tests/stubs/obsidian.ts");
+  }
+
+  return resolveFilename.call(this, request, parent, isMain, options);
+};
+
+void (async () => {
+const { BadgeService } = await import('../src/services/BadgeService');
+
+function createBadgeService(): InstanceType<typeof BadgeService> {
   return new BadgeService({
     getData: () => ({ nodes: [], edges: [] }),
     setData: async () => undefined,
@@ -63,3 +89,4 @@ function testDisposeCancelsPendingBadgeRefresh() {
 
 testDisposeCancelsPendingBadgeRefresh();
 console.log('badge service dispose tests passed');
+})();

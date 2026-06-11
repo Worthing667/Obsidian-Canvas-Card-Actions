@@ -147,7 +147,7 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
 3. 本地执行 `npm run build` 成功
 4. 本地执行静态检查后，不存在明显的官方规范风险项，例如运行时注入样式、裸 `any`、未处理 Promise、直接写 `innerHTML`
    建议额外使用 `eslint-plugin-obsidianmd` 复查一次，重点关注样式加载方式、`activeWindow` 兼容、Promise 处理和废弃 API 使用
-5. `README.md` 和 `README-EN.md` 已包含功能说明、安装方式和权限与隐私说明
+5. `README.md` 和 `README-ZH.md` 已包含功能说明、安装方式和权限与隐私说明
 6. 仓库中不存在明显无意义的调试日志或演示性质的提交内容
 7. GitHub Release 已包含 `manifest.json`、`main.js`、`styles.css`
 8. GitHub Release 的 tag 与当前仓库约定一致，例如 `1.4.1`
@@ -175,7 +175,7 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
   "id": "canvas-loom",
   "name": "Canvas Loom",
   "author": "沃辛",
-  "description": "为 Canvas 添加卡片拼合、拆分、内容复制和添加标记功能。Adds Canvas card merging, splitting, content copying, and markers.",
+  "description": "Split, sort, merge, preview, and clean up Canvas cards. Supports English and Simplified Chinese.",
   "repo": "woxin667/Canvas-Loom"
 }
 ```
