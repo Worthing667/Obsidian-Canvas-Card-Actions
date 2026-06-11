@@ -1,5 +1,9 @@
 import { Menu, Platform, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
-import CanvasLoomSettings, { DEFAULT_LANGUAGE, DEFAULT_SPLIT_CARDS_PER_ROW } from "./settings/ICanvasLoomSettings";
+import CanvasLoomSettings, {
+    DEFAULT_LANGUAGE,
+    DEFAULT_SPLIT_CARDS_PER_ROW,
+    resolveMergeCardSeparator
+} from "./settings/ICanvasLoomSettings";
 import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
 
 import { CanvasAdapter, ClipboardAdapter, StorageAdapter, VaultAdapter } from './adapters';
@@ -228,7 +232,8 @@ export default class CanvasLoomPlugin extends Plugin {
                 this.vaultAdapter,
                 searchReplaceService,
                 this.performanceService,
-                () => this.settings.mergeCleanupMode
+                () => this.settings.mergeCleanupMode,
+                () => resolveMergeCardSeparator(this.settings)
             )
         };
 

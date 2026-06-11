@@ -53,7 +53,8 @@ export class MergeService implements IMergeService {
         private vaultAdapter: IVaultAdapter,
         private searchReplaceService?: SearchReplaceService,
         private performanceService?: PerformanceService,
-        private getMergeCleanupMode?: () => MergeCleanupMode
+        private getMergeCleanupMode?: () => MergeCleanupMode,
+        private getMergeCardSeparator?: () => string | null
     ) {}
 
     async mergeToCanvasCard(selection: CanvasNode[], options?: MergeExecutionOptions): Promise<boolean> {
@@ -259,7 +260,7 @@ export class MergeService implements IMergeService {
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
                     includeBadgePrefix: currentState.sortMode === 'badge',
-                    cardSeparator: currentState.cardSeparator
+                    cardSeparator: this.resolveCardSeparator(currentState.cardSeparator)
                 }, t("notice.workbenchCurrentOrderCopied"));
             },
             onCreateCard: async (currentState: WorkbenchState) => {
@@ -270,7 +271,7 @@ export class MergeService implements IMergeService {
                     manualOrderIds: currentState.manualOrderIds,
                     cleanupMode: this.resolveCleanupMode(options?.cleanupMode, true),
                     includeBadgePrefix: currentState.sortMode === 'badge',
-                    cardSeparator: currentState.cardSeparator
+                    cardSeparator: this.resolveCardSeparator(currentState.cardSeparator)
                 });
             },
             onCreateMarkdown: async (currentState: WorkbenchState) => {
@@ -280,7 +281,7 @@ export class MergeService implements IMergeService {
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
                     includeBadgePrefix: currentState.sortMode === 'badge',
-                    cardSeparator: currentState.cardSeparator
+                    cardSeparator: this.resolveCardSeparator(currentState.cardSeparator)
                 });
             }
         };
@@ -485,6 +486,19 @@ export class MergeService implements IMergeService {
         } catch (error) {
             console.error("Failed to read merge cleanup mode:", error);
             return fallback || 'keep-source';
+        }
+    }
+
+    private resolveCardSeparator(fallback: string | null): string | null {
+        if (!this.getMergeCardSeparator) {
+            return fallback;
+        }
+
+        try {
+            return this.getMergeCardSeparator();
+        } catch (error) {
+            console.error("Failed to read merge card separator:", error);
+            return fallback;
         }
     }
 
