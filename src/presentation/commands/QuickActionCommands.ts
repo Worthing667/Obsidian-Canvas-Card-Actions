@@ -19,7 +19,6 @@ export class QuickCopyCommand implements ICommand {
             selection: this.selection,
             order,
             sortPriority: this.settings.sortPriority,
-            includeBadgePrefix: order === 'badge',
             cardSeparator: resolveMergeCardSeparator(this.settings)
         }, t("notice.quickCopyExecuted", undefined, { settings: this.settings }));
     }

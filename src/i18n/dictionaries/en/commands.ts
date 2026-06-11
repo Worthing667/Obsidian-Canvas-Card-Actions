@@ -16,7 +16,7 @@ const commands = {
 	batchEditBadge: "Batch edit badges",
 	copyCardContent: "Copy card content",
 	copyContentByPosition: "Copy content by position",
-	copyContentByBadgeOrder: "Copy content by badge order",
+	copyContentByBadgeOrder: "Copy content by number order",
 	copyByManualOrder: "Manually sort and copy",
 	splitCardByDelimiter: "Split card by delimiter",
 	splitCard: "Split card",

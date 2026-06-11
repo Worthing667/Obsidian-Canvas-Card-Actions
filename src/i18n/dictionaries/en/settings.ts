@@ -42,10 +42,10 @@ const settings = {
 	},
 	defaultSortMode: {
 		name: "Quick action sort mode",
-		desc: "Choose whether quick copy and quick merge use position order or badge order by default.",
+		desc: "Choose whether quick copy and quick merge use position order or number order by default.",
 		option: {
 			position: "Position order",
-			badge: "Badge order"
+			badge: "Number order"
 		}
 	},
 	mergeCleanupMode: {

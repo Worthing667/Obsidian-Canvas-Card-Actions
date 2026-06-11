@@ -45,10 +45,10 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	},
 	defaultSortMode: {
 		name: "一键排序方式",
-		desc: "设置一键复制、一键拼合默认按位置还是按标记处理",
+		desc: "设置一键复制、一键拼合默认按位置还是按序号处理",
 		option: {
 			position: "按位置顺序",
-			badge: "按标记顺序"
+			badge: "按序号顺序"
 		}
 	},
 	mergeCleanupMode: {

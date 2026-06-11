@@ -47,7 +47,7 @@ const workbench = {
 	},
 	sortMode: {
 		position: "Position",
-		badge: "Badge"
+		badge: "Number"
 	},
 	find: {
 		label: {
@@ -82,16 +82,16 @@ const workbench = {
 	order: {
 		manualSuffix: "{label} + manual adjustments",
 		position: "Position",
-		badge: "Badge",
-		badgeManualTitle: "Badge order with manual adjustments",
-		badgeTitle: "Badge order",
+		badge: "Number",
+		badgeManualTitle: "Number order with manual adjustments",
+		badgeTitle: "Number order",
 		positionManualTitle: "Position order with manual adjustments",
 		positionTitle: "Position order"
 	},
 	sortDescription: {
 		empty: "The workbench generates output after receiving card snapshots",
 		manual: "The dragged order is used directly for copy, merge into new card, and new document",
-		badge: "Cards with the same badge continue to follow Canvas position order",
+		badge: "Uses the first-line number, then the card badge; cards without either follow Canvas position order",
 		xy: "Z order: left to right, then top to bottom",
 		yx: "Reverse N order: top to bottom, then left to right"
 	},

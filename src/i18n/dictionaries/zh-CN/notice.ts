@@ -37,7 +37,7 @@ const notice: WidenTranslationValues<typeof enNotice> = {
 	batchBadgesRemoved: "已移除 {count} 张卡片的标记",
 	batchBadgesRemoveFailed: "批量移除标记失败，请查看控制台了解详情",
 	copyByPositionSuccess: "已按位置顺序复制卡片内容",
-	copyByBadgeSuccess: "已按标记顺序复制卡片内容",
+	copyByBadgeSuccess: "已按序号顺序复制卡片内容",
 	copyGenericFailed: "复制失败，请查看控制台了解详情",
 	singleCardEmpty: "卡片内容为空",
 	singleCardCopied: "卡片内容已复制到剪贴板",

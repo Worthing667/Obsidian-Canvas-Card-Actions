@@ -1,4 +1,4 @@
-import { BadgeSortStrategy, PositionSortStrategy, SortPriority } from "../domain/strategies";
+import { PositionSortStrategy, SequenceSortStrategy, SortPriority } from "../domain/strategies";
 import { ICanvasAdapter } from "../adapters/CanvasAdapter";
 import { IClipboardAdapter } from "../adapters/ClipboardAdapter";
 import { BadgeData } from "../domain/models/Badge";
@@ -64,11 +64,10 @@ export class ContentService implements IContentService {
             await this.copyMergedContent({
                 selection,
                 order: 'badge',
-                sortPriority,
-                includeBadgePrefix: true
+                sortPriority
             }, t("notice.copyByBadgeSuccess"));
         } catch (error) {
-            console.error("Failed to copy content by badge order:", error);
+            console.error("Failed to copy content by number order:", error);
             new Notice(t("notice.copyGenericFailed"));
         }
     }
@@ -128,7 +127,7 @@ export class ContentService implements IContentService {
             return { content: '', count: 0 };
         }
 
-        const includeBadgePrefix = options.includeBadgePrefix ?? options.order === 'badge';
+        const includeBadgePrefix = options.includeBadgePrefix ?? false;
         const content = formatMergedCardsContent(
             orderedCards.map(card => ({ text: card.text, badge: card.badge })),
             {
@@ -186,8 +185,8 @@ export class ContentService implements IContentService {
         }
 
         if (options.order === 'badge') {
-            const badgeSorter = new BadgeSortStrategy(options.sortPriority || 'yx');
-            return badgeSorter.sort(snapshots);
+            const sequenceSorter = new SequenceSortStrategy(options.sortPriority || 'yx');
+            return sequenceSorter.sort(snapshots);
         }
 
         if (options.order === 'manual') {

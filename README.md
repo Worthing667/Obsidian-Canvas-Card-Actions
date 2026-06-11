@@ -6,7 +6,7 @@ Simplified Chinese documentation is available in [README-ZH.md](./README-ZH.md).
 
 Canvas Loom is an Obsidian Canvas plugin for splitting, sorting, merging, previewing, and cleaning up Canvas text cards.
 
-It turns scattered Canvas text cards into a repeatable workflow: split long notes into cards, sort selected cards by position or badge, preview the merged result, export it, and clean up the layout without leaving Canvas.
+It turns scattered Canvas text cards into a repeatable workflow: split long notes into cards, sort selected cards by position or number, preview the merged result, export it, and clean up the layout without leaving Canvas.
 
 ## Language Support
 
@@ -38,19 +38,19 @@ Merge selected cards directly, or send them to the Loom workspace first — a th
 
 Demo video: [Merge selected Canvas cards](Demo/一键拼合：拼合后是否保存原卡片_按位置or标记顺序拼合.mp4)
 
-### Sort by Position or Badge
+### Sort by Position or Number
 
-![Compare position sorting and badge sorting](Demo/readme/sort-comparison.png)
+![Compare position sorting and number sorting](Demo/readme/sort-comparison.png)
 
-Position sorting follows the visual layout of the Canvas. Badge sorting follows numeric badges such as `1`, `2.1`, or `10.3.2`, so output order can stay stable even when card positions change.
+Position sorting follows the visual layout of the Canvas. Number sorting first reads a number from the card's first line, falls back to an independent numeric badge, and places cards without either at the end in Canvas position order.
 
-Demo video: [Compare position sorting and badge sorting](Demo/预览卡片组：按位置排序和按标记排序的区别.mp4)
+Demo video: [Compare position sorting and number sorting](Demo/预览卡片组：按位置排序和按标记排序的区别.mp4)
 
 ### Badge Cards
 
 ![Batch add or remove Canvas card badges](Demo/readme/badge-management.png)
 
-Add or edit numeric badges on one card, or batch-number selected cards by their current canvas position. Badges can drive the merge order without forcing you to keep the visual layout fixed.
+Add or edit numeric badges on one card, or batch-number selected cards by their current canvas position. Badges remain independent from card content and act as a fallback source for number sorting.
 
 Demo video: [Add badges by position order](Demo/添加卡片标记_两种按位置排序添加标记的效果.mp4)
 

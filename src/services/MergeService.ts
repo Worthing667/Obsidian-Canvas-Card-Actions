@@ -259,7 +259,6 @@ export class MergeService implements IMergeService {
                     order,
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
-                    includeBadgePrefix: currentState.sortMode === 'badge',
                     cardSeparator: this.resolveCardSeparator(currentState.cardSeparator)
                 }, t("notice.workbenchCurrentOrderCopied"));
             },
@@ -270,7 +269,6 @@ export class MergeService implements IMergeService {
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
                     cleanupMode: this.resolveCleanupMode(options?.cleanupMode, true),
-                    includeBadgePrefix: currentState.sortMode === 'badge',
                     cardSeparator: this.resolveCardSeparator(currentState.cardSeparator)
                 });
             },
@@ -280,7 +278,6 @@ export class MergeService implements IMergeService {
                     order,
                     sortPriority,
                     manualOrderIds: currentState.manualOrderIds,
-                    includeBadgePrefix: currentState.sortMode === 'badge',
                     cardSeparator: this.resolveCardSeparator(currentState.cardSeparator)
                 });
             }

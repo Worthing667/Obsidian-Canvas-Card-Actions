@@ -1,4 +1,4 @@
-import { BadgeSortStrategy, PositionSortStrategy, SortPriority } from "../domain/strategies";
+import { PositionSortStrategy, SequenceSortStrategy, SortPriority } from "../domain/strategies";
 import { formatMergedCardsContent } from "./MergedContentFormatter";
 import { t } from "../i18n";
 import type { MergeOrder } from "./ContentService";
@@ -153,11 +153,10 @@ export class PreviewWorkbenchService {
 
     buildPreviewContent(state: WorkbenchState, sortPriority: SortPriority): string {
         const cards = this.getOrderedCards(state, sortPriority);
-        const includeBadgePrefix = state.sortMode === 'badge';
         return formatMergedCardsContent(
             cards.map(card => ({ text: card.text, badge: card.badge })),
             {
-                includeBadgePrefix,
+                includeBadgePrefix: false,
                 cardSeparator: state.cardSeparator
             }
         );
@@ -174,7 +173,7 @@ export class PreviewWorkbenchService {
         const textCards = this.getTextCards(cards);
 
         if (sortMode === 'badge') {
-            const sorter = new BadgeSortStrategy(sortPriority);
+            const sorter = new SequenceSortStrategy(sortPriority);
             return sorter.sort(textCards);
         }
 

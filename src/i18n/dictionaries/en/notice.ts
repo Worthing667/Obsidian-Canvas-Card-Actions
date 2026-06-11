@@ -34,7 +34,7 @@ const notice = {
 	batchBadgesRemoved: "Removed badges from {count} cards",
 	batchBadgesRemoveFailed: "Failed to remove badges in batch. See the console for details.",
 	copyByPositionSuccess: "Copied card content in position order",
-	copyByBadgeSuccess: "Copied card content in badge order",
+	copyByBadgeSuccess: "Copied card content in number order",
 	copyGenericFailed: "Copy failed. See the console for details.",
 	singleCardEmpty: "Card content is empty",
 	singleCardCopied: "Card content copied to clipboard",

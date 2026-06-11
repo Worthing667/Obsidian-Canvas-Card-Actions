@@ -19,7 +19,7 @@ const commands: WidenTranslationValues<typeof enCommands> = {
 	batchEditBadge: "批量编辑标记",
 	copyCardContent: "复制卡片内容",
 	copyContentByPosition: "按位置复制内容",
-	copyContentByBadgeOrder: "按标记顺序复制内容",
+	copyContentByBadgeOrder: "按序号顺序复制内容",
 	copyByManualOrder: "手动排序复制",
 	splitCardByDelimiter: "按分隔符拆分卡片",
 	splitCard: "拆分卡片",

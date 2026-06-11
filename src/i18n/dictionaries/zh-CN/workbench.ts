@@ -50,7 +50,7 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 	},
 	sortMode: {
 		position: "位置",
-		badge: "标记"
+		badge: "序号"
 	},
 	find: {
 		label: {
@@ -85,16 +85,16 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 	order: {
 		manualSuffix: "{label} + 手动调整",
 		position: "位置",
-		badge: "标记",
-		badgeManualTitle: "按标记排序并手动调整",
-		badgeTitle: "按标记排序",
+		badge: "序号",
+		badgeManualTitle: "按序号排序并手动调整",
+		badgeTitle: "按序号排序",
 		positionManualTitle: "按位置排序并手动调整",
 		positionTitle: "按位置排序"
 	},
 	sortDescription: {
 		empty: "工作台会在收到卡片快照后生成输出内容",
 		manual: "拖拽后的顺序会直接用于复制、拼合为新卡片和新建文稿",
-		badge: "相同标记内继续按画布位置排列",
+		badge: "优先读取第一行序号，其次读取卡片标记；无序号卡片按画布位置排列",
 		xy: "Z字排序，从左至右、从上到下",
 		yx: "倒N排序，从上到下、从左至右"
 	},

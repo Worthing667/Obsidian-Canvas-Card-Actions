@@ -95,8 +95,8 @@ void (async () => {
     assert.equal(await executeQuickMerge("position"), "card content");
   });
 
-  test("标记排序的一键拼合输出标记前缀", async () => {
-    assert.equal(await executeQuickMerge("badge"), "[1] card content");
+  test("序号排序的一键拼合不输出标记前缀", async () => {
+    assert.equal(await executeQuickMerge("badge"), "card content");
   });
 
   test("工作台新卡片按钮明确表达拼合动作", () => {
@@ -107,6 +107,21 @@ void (async () => {
     assert.equal(
       t("workbench.button.addAsCard", undefined, { settings: { language: "en" } }),
       "Merge into new card"
+    );
+  });
+
+  test("原标记排序入口显示为统一的序号排序", () => {
+    assert.equal(
+      t("workbench.sortMode.badge", undefined, { settings: { language: "zh-CN" } }),
+      "序号"
+    );
+    assert.equal(
+      t("workbench.sortMode.badge", undefined, { settings: { language: "en" } }),
+      "Number"
+    );
+    assert.equal(
+      t("settings.defaultSortMode.option.badge", undefined, { settings: { language: "zh-CN" } }),
+      "按序号顺序"
     );
   });
 })();
