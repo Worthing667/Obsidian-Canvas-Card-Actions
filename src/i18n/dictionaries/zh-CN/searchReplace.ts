@@ -20,6 +20,7 @@ const searchReplace: WidenTranslationValues<typeof enSearchReplace> = {
 		replacementPlaceholder: "替换为"
 	},
 	status: {
+		editingPaused: "卡片正在编辑，查找替换已暂停。",
 		prompt: "输入内容后在当前画布中查找。范围内共有 {totalCards} 张文本卡片。",
 		noMatches: "没有匹配内容。范围内共有 {totalCards} 张文本卡片。",
 		matches: "找到 {totalMatches} 处命中，分布在 {matchedCards} / {totalCards} 张文本卡片中。"

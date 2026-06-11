@@ -1,6 +1,7 @@
 import { CanvasData, CanvasDataModel, CanvasNodeData } from "../domain/models/CanvasData";
 import { t } from "../i18n";
 import type { Canvas, CanvasNode } from "../types/canvas";
+import { hasCanvasEditingNode } from "../utils/canvasEditingState";
 
 export interface CanvasDiagnostics {
     log(operation: string, details: Record<string, unknown>): void;
@@ -9,6 +10,7 @@ export interface CanvasDiagnostics {
 export interface ICanvasAdapter {
     getData(): CanvasData;
     setData(data: CanvasData): Promise<void>;
+    hasEditingNode?(): boolean;
     getSelectedNodes(): CanvasNode[];
     replaceSelection(nodes: CanvasNode[]): void;
     findNodeById(id: string): CanvasNode | null;
@@ -44,7 +46,15 @@ export class CanvasAdapter implements ICanvasAdapter {
         }
     }
 
+    hasEditingNode(): boolean {
+        return hasCanvasEditingNode(this.canvas);
+    }
+
     async setData(data: CanvasData): Promise<void> {
+        if (this.hasEditingNode()) {
+            throw new Error(t("errors.canvasEditingConflict"));
+        }
+
         const startedAt = performance.now();
         try {
             await this.canvas.setData(data);

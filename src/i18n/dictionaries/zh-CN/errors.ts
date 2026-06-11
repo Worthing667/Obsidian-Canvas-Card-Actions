@@ -5,6 +5,7 @@ const errors: WidenTranslationValues<typeof enErrors> = {
 	saveSettingsFailed: "保存设置失败",
 	canvasGetDataFailed: "无法获取画布数据",
 	canvasSetDataFailed: "无法设置画布数据",
+	canvasEditingConflict: "请先退出卡片编辑状态，再修改画布",
 	canvasSelectionUpdateFailed: "无法更新画布选区",
 	canvasSaveFailed: "保存画布失败",
 	noSelectedTextCards: "没有选中文本卡片",

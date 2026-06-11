@@ -17,6 +17,7 @@ const searchReplace = {
 		replacementPlaceholder: "Replace with"
 	},
 	status: {
+		editingPaused: "Find and replace is paused while a Canvas card is being edited.",
 		prompt: "Enter text to search the current Canvas. The scope contains {totalCards} text cards.",
 		noMatches: "No matches. The scope contains {totalCards} text cards.",
 		matches: "Found {totalMatches} matches across {matchedCards} / {totalCards} text cards."

@@ -1,12 +1,13 @@
 import type { Canvas, CanvasNode } from "../types/canvas";
 import { t } from "../i18n";
+import { isCanvasNodeEditing } from "../utils/canvasEditingState";
 
 export interface FitSelectedTextCardsResult {
     count: number;
 }
 
 export function shouldShowAutoHeightToolbarButton(selection?: Set<CanvasNode> | null): boolean {
-    if (hasEditingNode(selection)) {
+    if (selection && Array.from(selection).some((node) => isCanvasNodeEditing(node))) {
         return false;
     }
 
@@ -14,7 +15,7 @@ export function shouldShowAutoHeightToolbarButton(selection?: Set<CanvasNode> | 
 }
 
 export async function fitSelectedTextCardsToHeight(canvas: Canvas): Promise<FitSelectedTextCardsResult> {
-    if (hasEditingNode(canvas.selection)) {
+    if (canvas.selection && Array.from(canvas.selection).some((node) => isCanvasNodeEditing(node))) {
         throw new Error(t("errors.autoHeightEditing"));
     }
 
@@ -47,40 +48,17 @@ function getResizableAutoHeightNodes(selection?: Set<CanvasNode> | null): Canvas
     return getSelectedAutoHeightNodes(selection).filter((node) => typeof node.onResizeDblclick === "function");
 }
 
-function hasEditingNode(selection?: Set<CanvasNode> | null): boolean {
-    if (!selection || selection.size === 0) {
-        return false;
-    }
-
-    return Array.from(selection).some((node) => isEditingNode(node));
-}
-
 function getSelectedAutoHeightNodes(selection?: Set<CanvasNode> | null): CanvasNode[] {
     if (!selection || selection.size === 0) {
         return [];
     }
 
-    return Array.from(selection).filter((node) => isAutoHeightNode(node) && !isEditingNode(node));
+    return Array.from(selection).filter((node) => isAutoHeightNode(node) && !isCanvasNodeEditing(node));
 }
 
 function isAutoHeightNode(node?: CanvasNode | null): boolean {
     const type = node?.getData?.()?.type;
     return type === "text" || type === "file";
-}
-
-function isEditingNode(node: CanvasNode): boolean {
-    const nodeEl = node.nodeEl;
-    if (!nodeEl) {
-        return false;
-    }
-
-    if (nodeEl.classList?.contains("is-editing")) {
-        return true;
-    }
-
-    return Boolean(nodeEl.querySelector?.(
-        ".cm-focused, textarea:focus, [contenteditable='true']:focus"
-    ));
 }
 
 function createSyntheticResizeDblclickEvent(): MouseEvent {

@@ -510,6 +510,18 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private renderFindResults(): void {
+        const service = this.context.findReplace?.service;
+        if (service?.isCanvasEditing()) {
+            if (this.findStatusEl) {
+                this.findStatusEl.removeClass("is-error");
+                this.findStatusEl.setText(this.translate("searchReplace.status.editingPaused"));
+            }
+            service.clearHighlightedMatch();
+            this.updateFindActionButtons();
+            this.scheduleEditingStateRefresh();
+            return;
+        }
+
         const result = this.refreshFindResults();
         if (!this.findStatusEl || !this.findResultListEl) {
             return;
@@ -640,6 +652,10 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private setCurrentFindMatch(index: number, selectCard: boolean): void {
+        if (this.context.findReplace?.service.isCanvasEditing()) {
+            return;
+        }
+
         this.findCurrentFlatIndex = index;
         const current = this.getCurrentFindMatch();
         if (selectCard && current) {
@@ -654,6 +670,10 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private selectPreviousFindMatch(): void {
+        if (this.context.findReplace?.service.isCanvasEditing()) {
+            return;
+        }
+
         const matches = this.getFlatFindMatches();
         if (matches.length === 0) {
             return;
@@ -666,6 +686,10 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private selectNextFindMatch(): void {
+        if (this.context.findReplace?.service.isCanvasEditing()) {
+            return;
+        }
+
         const matches = this.getFlatFindMatches();
         if (matches.length === 0) {
             return;
@@ -756,7 +780,8 @@ export class MergeWorkbenchView extends ItemView {
     }
 
     private updateFindActionButtons(): void {
-        const hasMatches = this.getFlatFindMatches().length > 0;
+        const hasMatches = this.getFlatFindMatches().length > 0
+            && !this.context.findReplace?.service.isCanvasEditing();
         [
             this.findReplaceCurrentButton,
             this.findReplaceCardButton,
@@ -1037,6 +1062,14 @@ export class MergeWorkbenchView extends ItemView {
             window.clearTimeout(this.findRefreshTimer);
             this.findRefreshTimer = null;
         }
+    }
+
+    private scheduleEditingStateRefresh(): void {
+        this.clearFindRefreshTimer();
+        this.findRefreshTimer = window.setTimeout(() => {
+            this.findRefreshTimer = null;
+            this.renderFindResults();
+        }, 150);
     }
 
     private createEmptyContext(): MergeWorkbenchContext {

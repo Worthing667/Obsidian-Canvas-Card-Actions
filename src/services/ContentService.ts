@@ -9,6 +9,7 @@ import { hasTextNodeContent, resolveCanvasNodeSelection } from "../utils/canvasN
 import { Notice } from "obsidian";
 import type { CardSnapshot } from "../types/WorkbenchState";
 import type { CanvasNode } from "../types/canvas";
+import { isCanvasNodeEditing } from "../utils/canvasEditingState";
 
 export type MergeOrder = 'position' | 'badge' | 'manual';
 
@@ -74,6 +75,11 @@ export class ContentService implements IContentService {
 
     async copySingleCardContent(node: CanvasNode): Promise<void> {
         try {
+            if (isCanvasNodeEditing(node)) {
+                new Notice(t("errors.canvasEditingConflict"));
+                return;
+            }
+
             const nodeData = node.getData();
             if (!nodeData.text) {
                 new Notice(t("notice.singleCardEmpty"));
@@ -113,6 +119,10 @@ export class ContentService implements IContentService {
     }
 
     async buildMergedContent(options: BuildMergedContentOptions): Promise<MergedContentResult> {
+        if (this.canvasAdapter.hasEditingNode?.()) {
+            throw new Error(t("errors.canvasEditingConflict"));
+        }
+
         const orderedCards = await this.getOrderedCards(options);
         if (orderedCards.length === 0) {
             return { content: '', count: 0 };
@@ -135,6 +145,10 @@ export class ContentService implements IContentService {
 
     async createSelectionSnapshot(selection: CanvasNode[]): Promise<CardSnapshot[]> {
         const selectedNodes = this.resolveSelection(selection);
+        if (selectedNodes.some((node) => isCanvasNodeEditing(node))) {
+            throw new Error(t("errors.canvasEditingConflict"));
+        }
+
         const snapshots: CardSnapshot[] = [];
 
         for (const node of selectedNodes) {

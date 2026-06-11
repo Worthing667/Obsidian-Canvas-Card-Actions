@@ -46,6 +46,7 @@ import type { Canvas, CanvasNode } from "./types/canvas";
 import { clearTranslationRuntimeContext, configureTranslationRuntimeContext, t } from "./i18n";
 import type { TranslationKey, TranslationParams } from "./i18n";
 import { isTextNodeData } from "./utils/canvasNodeUtils";
+import { hasCanvasEditingNode } from "./utils/canvasEditingState";
 
 const DEFAULT_SETTINGS: CanvasLoomSettings = {
     language: DEFAULT_LANGUAGE,
@@ -928,33 +929,8 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private shouldIgnoreFindReplaceCommandContext(): boolean {
-        if (!this.getActiveCanvasContext()) {
-            return true;
-        }
-
-        return this.isCanvasCardEditorFocused();
-    }
-
-    private isCanvasCardEditorFocused(): boolean {
-        const activeElement = activeDocument.activeElement;
-        if (activeElement instanceof HTMLElement) {
-            if (activeElement.closest(".canvas-node.is-editing")) {
-                return true;
-            }
-
-            if (activeElement.closest(".canvas-node .cm-editor, .canvas-node textarea, .canvas-node [contenteditable='true']")) {
-                return true;
-            }
-        }
-
-        return Boolean(activeDocument.querySelector(
-            [
-                ".canvas-node.is-editing",
-                ".canvas-node .cm-focused",
-                ".canvas-node textarea:focus",
-                ".canvas-node [contenteditable='true']:focus"
-            ].join(", ")
-        ));
+        const context = this.getActiveCanvasContext();
+        return !context || hasCanvasEditingNode(context.canvas);
     }
 
     private getActiveCanvasContext(): { canvas: Canvas; selection: CanvasNode[]; file: TFile | null } | null {

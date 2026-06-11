@@ -8,6 +8,7 @@ import { arrangeSelectedTextCards } from "./CanvasArrangementService";
 import { extractErrorMessage } from "../utils/errorUtils";
 import { isTextNodeData } from "../utils/canvasNodeUtils";
 import type { CanvasNode } from "../types/canvas";
+import { isCanvasNodeEditing } from "../utils/canvasEditingState";
 import {
     DEFAULT_SPLIT_CARDS_PER_ROW,
     MAX_SPLIT_CARDS_PER_ROW,
@@ -50,6 +51,10 @@ export class CardService implements ICardService {
 
     async splitCard(node: CanvasNode, delimiter: string): Promise<void> {
         await this.measure("card.split.delimiter", { nodeId: node.id }, async () => {
+            if (this.rejectEditingNode(node)) {
+                return;
+            }
+
             const nodeData = node.getData();
             const text = nodeData.text;
 
@@ -76,6 +81,10 @@ export class CardService implements ICardService {
 
     async splitCardByBlankLine(node: CanvasNode, delimiter?: string): Promise<void> {
         await this.measure("card.split.blank-line", { nodeId: node.id }, async () => {
+            if (this.rejectEditingNode(node)) {
+                return;
+            }
+
             const nodeData = node.getData();
             const text = nodeData.text;
 
@@ -102,6 +111,10 @@ export class CardService implements ICardService {
 
     async splitCardByHeadingLevel(node: CanvasNode, level: number): Promise<void> {
         await this.measure("card.split.heading", { nodeId: node.id, level }, async () => {
+            if (this.rejectEditingNode(node)) {
+                return;
+            }
+
             const nodeData = node.getData();
             const text = nodeData.text;
 
@@ -128,6 +141,10 @@ export class CardService implements ICardService {
     }
 
     getAvailableHeadingSplitOptions(node: CanvasNode): HeadingSplitOption[] {
+        if (isCanvasNodeEditing(node)) {
+            return [];
+        }
+
         const text = node?.getData?.()?.text;
         if (!text || typeof text !== "string") {
             return [];
@@ -188,6 +205,15 @@ export class CardService implements ICardService {
         }
 
         await this.performanceService.measure(operation, action, details);
+    }
+
+    private rejectEditingNode(node: CanvasNode): boolean {
+        if (!isCanvasNodeEditing(node)) {
+            return false;
+        }
+
+        new Notice(t("errors.canvasEditingConflict"));
+        return true;
     }
 
     private getDelimitedParts(text: string, delimiter: string): string[] {

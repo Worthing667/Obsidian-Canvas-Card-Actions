@@ -71,12 +71,24 @@ export class SearchReplaceService {
 
     constructor(private canvasAdapter: ICanvasAdapter) {}
 
+    isCanvasEditing(): boolean {
+        return this.canvasAdapter.hasEditingNode?.() === true;
+    }
+
     hasTextCards(selectedNodeIds?: Set<string>): boolean {
+        if (this.isCanvasEditing()) {
+            return false;
+        }
+
         const scope: SearchReplaceScope = selectedNodeIds && selectedNodeIds.size > 0 ? "selection" : "canvas";
         return this.getSearchableNodes({ scope, selectedNodeIds }).length > 0;
     }
 
     getTextCardSnapshots(nodeIds?: Set<string>): CardSnapshot[] {
+        if (this.isCanvasEditing()) {
+            return [];
+        }
+
         return (this.canvasAdapter.getData().nodes || [])
             .filter((nodeData) => {
                 if (!isTextNodeData(nodeData) || typeof nodeData.text !== "string") {
@@ -98,6 +110,10 @@ export class SearchReplaceService {
     }
 
     findMatches(options: SearchReplaceQueryOptions): SearchReplaceResult {
+        if (this.isCanvasEditing()) {
+            return this.createEditingFindResult();
+        }
+
         const compiled = this.compilePattern(options);
         if (compiled.error) {
             return {
@@ -183,6 +199,10 @@ export class SearchReplaceService {
         includeNode: (nodeData: CanvasNodeData) => boolean,
         target?: ReplaceTarget
     ): Promise<ReplaceResult> {
+        if (this.isCanvasEditing()) {
+            return this.createEditingReplaceResult();
+        }
+
         const compiled = this.compilePattern(options);
         if (compiled.error) {
             return {
@@ -259,6 +279,24 @@ export class SearchReplaceService {
 
             return true;
         });
+    }
+
+    private createEditingFindResult(): SearchReplaceResult {
+        return {
+            cards: [],
+            totalCards: 0,
+            totalMatches: 0,
+            error: t("errors.canvasEditingConflict")
+        };
+    }
+
+    private createEditingReplaceResult(): ReplaceResult {
+        return {
+            matchedCount: 0,
+            changedCount: 0,
+            changedNodeCount: 0,
+            error: t("errors.canvasEditingConflict")
+        };
     }
 
     private createCardResult(nodeData: CanvasNodeData, pattern: RegExp): CardSearchResult | null {

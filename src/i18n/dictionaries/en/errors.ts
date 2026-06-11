@@ -2,6 +2,7 @@ const errors = {
 	saveSettingsFailed: "Failed to save settings",
 	canvasGetDataFailed: "Failed to get Canvas data",
 	canvasSetDataFailed: "Failed to set Canvas data",
+	canvasEditingConflict: "Exit card editing before modifying the Canvas",
 	canvasSelectionUpdateFailed: "Failed to update Canvas selection",
 	canvasSaveFailed: "Failed to save Canvas",
 	noSelectedTextCards: "No text cards selected",

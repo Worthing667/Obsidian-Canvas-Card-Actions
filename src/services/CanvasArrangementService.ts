@@ -1,5 +1,6 @@
 import type { Canvas, CanvasNode, CanvasNodeData } from "../types/canvas";
 import { t } from "../i18n";
+import { hasCanvasEditingNode, isCanvasNodeEditing } from "../utils/canvasEditingState";
 import { collectTextNodeIds, isTextNodeData } from "../utils/canvasNodeUtils";
 
 export type ArrangeDirection = "horizontal" | "vertical";
@@ -55,6 +56,10 @@ interface ArrangementCard {
 
 export function shouldShowArrangementToolbarButton(selection?: Set<CanvasNode> | null): boolean {
     if (!selection || selection.size < 2) {
+        return false;
+    }
+
+    if (Array.from(selection).some((node) => isCanvasNodeEditing(node))) {
         return false;
     }
 
@@ -143,6 +148,10 @@ function validateSpacing(spacing: number, label: string): void {
 }
 
 function getArrangementContext(canvas: Canvas): { canvasData: ReturnType<Canvas["getData"]>; cardInfos: ArrangementCard[] } {
+    if (hasCanvasEditingNode(canvas)) {
+        throw new Error(t("errors.canvasEditingConflict"));
+    }
+
     const selectedNodeIds = getSelectedTextNodeIds(canvas);
     if (selectedNodeIds.size < 2) {
         throw new Error(t("errors.arrangementNeedTwoTextCards"));

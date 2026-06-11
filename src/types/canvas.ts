@@ -43,6 +43,7 @@ export interface CanvasData {
 export interface CanvasNode {
     id: string;
     text?: string;
+    isEditing?: boolean;
     nodeEl?: HTMLElement | null;
     canvas?: Canvas;
     getData(): CanvasNodeData;
@@ -58,6 +59,9 @@ export interface Canvas {
     zoom?: number;
     wrapperEl?: HTMLElement;
     canvasRect?: DOMRect;
+    menu?: {
+        menuEl?: HTMLElement;
+    };
     getSelectionData?(): CanvasData;
     getData(): CanvasData;
     setData(data: CanvasData): Promise<void> | void;

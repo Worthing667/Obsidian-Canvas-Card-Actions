@@ -75,6 +75,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     private flatMatchesCache: FlatSearchMatch[] | null = null;
     private totalCards = 0;
     private error = "";
+    private pausedForEditing = false;
     private currentFlatIndex = -1;
     private refreshTimer: number | null = null;
     private focusQueryOnRender = false;
@@ -149,6 +150,11 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         const service = this.createSearchReplaceService(context.canvas);
+        if (service.isCanvasEditing()) {
+            new Notice(t("errors.canvasEditingConflict"));
+            return false;
+        }
+
         if (!service.hasTextCards()) {
             new Notice(t("notice.noSearchableTextCards"));
             return false;
@@ -229,7 +235,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private observeCanvasControls(rootEl: HTMLElement): void {
-        const targetEl = this.getCanvasControlsElement(rootEl) || rootEl;
+        const targetEl = rootEl;
         if (this.observedRootEl === rootEl && this.observedControlsTargetEl === targetEl) {
             return;
         }
@@ -240,6 +246,8 @@ export class CanvasGlobalFindReplaceToolbarService {
         });
         this.controlsObserver.observe(targetEl, {
             childList: true,
+            attributes: true,
+            attributeFilter: ["class"],
             subtree: true,
         });
         this.observedRootEl = rootEl;
@@ -277,13 +285,14 @@ export class CanvasGlobalFindReplaceToolbarService {
     private syncInjectedElements(context: ActiveCanvasContext): void {
         this.removeStaleInjectedElements(context.rootEl);
         this.injectControlButton(context);
+        this.syncEditingState(context);
 
         if (!this.isOpen) {
             this.removePanel();
             return;
         }
 
-        if (!activeDocument.body.querySelector(`.${PANEL_CLASS}`)) {
+        if (!context.rootEl.ownerDocument.body.querySelector(`.${PANEL_CLASS}`)) {
             this.renderForContext(context);
             return;
         }
@@ -300,6 +309,7 @@ export class CanvasGlobalFindReplaceToolbarService {
             return;
         }
 
+        this.pausedForEditing = this.createSearchReplaceService(context.canvas).isCanvasEditing();
         this.refreshResults(context.canvas);
         this.renderPanel(context);
     }
@@ -315,8 +325,9 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         context.rootEl.querySelector(`.${FALLBACK_CONTROL_CLASS}`)?.remove();
-        const button = existingButton || this.createControlButton();
+        const button = existingButton || this.createControlButton(context.rootEl.ownerDocument);
         button.toggleClass("is-active", this.isContextPinned(context));
+        this.updateControlButtonEditingState(button, context);
 
         if (!targetEl.contains(button)) {
             targetEl.appendChild(button);
@@ -330,25 +341,26 @@ export class CanvasGlobalFindReplaceToolbarService {
     private injectFallbackControl(context: ActiveCanvasContext): void {
         let host = context.rootEl.querySelector(`.${FALLBACK_CONTROL_CLASS}`) as HTMLElement | null;
         if (!host) {
-            host = activeDocument.createElement("div");
+            host = context.rootEl.ownerDocument.createElement("div");
             host.className = FALLBACK_CONTROL_CLASS;
             context.rootEl.appendChild(host);
         }
 
         let button = host.querySelector(`.${BUTTON_CLASS}`) as HTMLButtonElement | null;
         if (!button) {
-            button = this.createControlButton();
+            button = this.createControlButton(context.rootEl.ownerDocument);
             host.appendChild(button);
         }
 
         button.toggleClass("is-active", this.isContextPinned(context));
+        this.updateControlButtonEditingState(button, context);
         if (this.isContextPinned(context)) {
             this.activeButtonEl = button;
         }
     }
 
-    private createControlButton(): HTMLButtonElement {
-        const button = activeDocument.createElement("button");
+    private createControlButton(ownerDocument: Document): HTMLButtonElement {
+        const button = ownerDocument.createElement("button");
         button.type = "button";
         button.className = `clickable-icon ${BUTTON_CLASS}`;
         button.setAttribute("aria-label", t("searchReplace.button.open"));
@@ -379,9 +391,10 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private renderPanel(context: ActiveCanvasContext): void {
-        let panel = activeDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
+        const ownerDocument = context.rootEl.ownerDocument;
+        let panel = ownerDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
         if (!panel) {
-            panel = activeDocument.createElement("div");
+            panel = ownerDocument.createElement("div");
             panel.className = PANEL_CLASS;
             panel.addEventListener("mousedown", (event) => event.stopPropagation());
             panel.addEventListener("click", (event) => event.stopPropagation());
@@ -392,7 +405,7 @@ export class CanvasGlobalFindReplaceToolbarService {
                     this.close();
                 }
             });
-            activeDocument.body.appendChild(panel);
+            ownerDocument.body.appendChild(panel);
         }
 
         panel.empty();
@@ -569,6 +582,13 @@ export class CanvasGlobalFindReplaceToolbarService {
 
     private refreshResults(canvas: Canvas): void {
         const service = this.createSearchReplaceService(canvas);
+        if (service.isCanvasEditing()) {
+            this.pausedForEditing = true;
+            this.clearActiveMatchHighlight();
+            return;
+        }
+
+        this.pausedForEditing = false;
         const result = service.findMatches(this.getQueryOptions());
         this.error = result.error || "";
         this.results = result.cards;
@@ -600,6 +620,11 @@ export class CanvasGlobalFindReplaceToolbarService {
 
         this.statusEl.removeClass("is-error");
 
+        if (this.pausedForEditing) {
+            this.statusEl.setText(t("searchReplace.status.editingPaused"));
+            return;
+        }
+
         if (this.error) {
             this.statusEl.addClass("is-error");
             this.statusEl.setText(this.error);
@@ -624,7 +649,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private updateActionButtons(): void {
-        const hasMatches = this.getFlatMatches().length > 0 && !this.error;
+        const hasMatches = this.getFlatMatches().length > 0 && !this.error && !this.pausedForEditing;
         const hasCurrentMatch = hasMatches && this.currentFlatIndex >= 0;
         [
             this.previousButton,
@@ -643,6 +668,10 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private selectPreviousMatch(canvas: Canvas): void {
+        if (this.pausedForEditing) {
+            return;
+        }
+
         const matches = this.getFlatMatches();
         if (matches.length === 0) {
             return;
@@ -655,6 +684,10 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private selectNextMatch(canvas: Canvas): void {
+        if (this.pausedForEditing) {
+            return;
+        }
+
         const matches = this.getFlatMatches();
         if (matches.length === 0) {
             return;
@@ -667,6 +700,10 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private selectCurrentMatch(canvas: Canvas): void {
+        if (this.pausedForEditing) {
+            return;
+        }
+
         const match = this.getCurrentMatch();
         if (!match) {
             return;
@@ -683,6 +720,10 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private async replaceCurrentMatch(canvas: Canvas): Promise<void> {
+        if (this.pausedForEditing) {
+            return;
+        }
+
         const current = this.getCurrentMatch();
         if (!current) {
             return;
@@ -712,6 +753,10 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private async replaceAllMatches(canvas: Canvas): Promise<void> {
+        if (this.pausedForEditing) {
+            return;
+        }
+
         const service = this.createSearchReplaceService(canvas);
         const result = await service.replaceAll(this.getReplaceOptions());
 
@@ -873,7 +918,7 @@ export class CanvasGlobalFindReplaceToolbarService {
         }
 
         const rootEl = this.pinnedContext.rootEl;
-        const panel = activeDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
+        const panel = rootEl.ownerDocument.body.querySelector(`.${PANEL_CLASS}`) as HTMLElement | null;
         const button =
             (this.activeButtonEl && rootEl.contains(this.activeButtonEl)
                 ? this.activeButtonEl
@@ -951,8 +996,17 @@ export class CanvasGlobalFindReplaceToolbarService {
     }
 
     private removePanel(): void {
-        activeDocument.body.querySelectorAll(`.${PANEL_CLASS}`)
-            .forEach((element) => element.remove());
+        const documents = new Set<Document>([activeDocument]);
+        for (const rootEl of this.getKnownCanvasRoots()) {
+            documents.add(rootEl.ownerDocument);
+        }
+        if (this.pinnedContext) {
+            documents.add(this.pinnedContext.rootEl.ownerDocument);
+        }
+        documents.forEach((document) => {
+            document.body.querySelectorAll(`.${PANEL_CLASS}`)
+                .forEach((element) => element.remove());
+        });
     }
 
     private removeInjectedElements(): void {
@@ -993,5 +1047,34 @@ export class CanvasGlobalFindReplaceToolbarService {
             window.clearTimeout(this.refreshTimer);
             this.refreshTimer = null;
         }
+    }
+
+    private syncEditingState(context: ActiveCanvasContext): void {
+        const isEditing = this.createSearchReplaceService(context.canvas).isCanvasEditing();
+        if (this.pausedForEditing === isEditing) {
+            return;
+        }
+
+        this.pausedForEditing = isEditing;
+        if (!this.isOpen || this.pinnedContext?.rootEl !== context.rootEl) {
+            return;
+        }
+
+        this.clearActiveMatchHighlight();
+        if (!isEditing) {
+            this.refreshResults(context.canvas);
+        }
+        this.updateStatus();
+        this.updateCurrentPreview();
+        this.updateActionButtons();
+    }
+
+    private updateControlButtonEditingState(
+        button: HTMLButtonElement,
+        context: ActiveCanvasContext
+    ): void {
+        const isEditing = this.createSearchReplaceService(context.canvas).isCanvasEditing();
+        button.toggleClass("is-disabled", isEditing && !this.isContextPinned(context));
+        button.setAttribute("aria-disabled", String(isEditing && !this.isContextPinned(context)));
     }
 }

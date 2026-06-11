@@ -11,6 +11,7 @@ import {
 } from "./CanvasAutoFitService";
 import { t } from "../i18n";
 import { extractErrorMessage } from "../utils/errorUtils";
+import { hasCanvasEditingNode } from "../utils/canvasEditingState";
 import type { TranslationKey, TranslationParams } from "../i18n";
 import type CanvasLoomSettings from "../settings/ICanvasLoomSettings";
 import type { Canvas } from "../types/canvas";
@@ -23,6 +24,7 @@ export class CanvasSelectionToolbarService {
     private observer: MutationObserver | null = null;
     private observedRootEl: HTMLElement | null = null;
     private pendingInjection = false;
+    private injectedMenuEl: HTMLElement | null = null;
     private workspaceEventRefs: EventRef[] = [];
     private readonly arrangePreferenceStore: ArrangeSessionPreferenceStore;
 
@@ -65,8 +67,8 @@ export class CanvasSelectionToolbarService {
             workspace.offref?.(ref);
         }
         this.workspaceEventRefs = [];
-        activeDocument.querySelectorAll(`.${BUTTON_CLASS}, .${AUTO_HEIGHT_BUTTON_CLASS}, .${POPOVER_CLASS}`)
-            .forEach((element) => element.remove());
+        this.removeInjectedElements(this.injectedMenuEl);
+        this.injectedMenuEl = null;
     }
 
     private scheduleInjection(): void {
@@ -108,11 +110,24 @@ export class CanvasSelectionToolbarService {
     private injectIntoActiveCanvasMenu(): void {
         const canvas = this.getActiveCanvas();
         if (!canvas) {
+            this.removeInjectedElements(this.injectedMenuEl);
+            this.injectedMenuEl = null;
             return;
         }
 
         const menuEl = this.getCanvasMenuElement(canvas);
         if (!menuEl) {
+            this.removeInjectedElements(this.injectedMenuEl);
+            this.injectedMenuEl = null;
+            return;
+        }
+        if (this.injectedMenuEl && this.injectedMenuEl !== menuEl) {
+            this.removeInjectedElements(this.injectedMenuEl);
+        }
+        this.injectedMenuEl = menuEl;
+
+        if (hasCanvasEditingNode(canvas)) {
+            this.removeInjectedElements(menuEl);
             return;
         }
 
@@ -463,11 +478,24 @@ export class CanvasSelectionToolbarService {
     }
 
     private getCanvasMenuElement(canvas: Canvas): HTMLElement | null {
-        const internalMenuEl = (canvas as Canvas & { menu?: { menuEl?: HTMLElement } }).menu?.menuEl;
+        const internalMenuEl = canvas.menu?.menuEl;
         if (internalMenuEl instanceof HTMLElement) {
             return internalMenuEl;
         }
 
-        return activeDocument.querySelector(".canvas-menu");
+        if (canvas.wrapperEl instanceof HTMLElement) {
+            const menuEl = canvas.wrapperEl.querySelector(".canvas-menu");
+            if (menuEl instanceof HTMLElement) {
+                return menuEl;
+            }
+        }
+
+        const viewMenuEl = this.getActiveCanvasView()?.containerEl?.querySelector(".canvas-menu");
+        return viewMenuEl instanceof HTMLElement ? viewMenuEl : null;
+    }
+
+    private removeInjectedElements(menuEl?: HTMLElement | null): void {
+        menuEl?.querySelectorAll(`.${BUTTON_CLASS}, .${AUTO_HEIGHT_BUTTON_CLASS}, .${POPOVER_CLASS}`)
+            .forEach((element) => element.remove());
     }
 }
