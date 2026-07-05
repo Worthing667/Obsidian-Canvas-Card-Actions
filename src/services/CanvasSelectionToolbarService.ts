@@ -495,22 +495,16 @@ export class CanvasSelectionToolbarService {
             return;
         }
 
-        if (spacing === 0) {
-            new Notice(this.translate("notice.spacingZero"));
-            return;
-        }
-
         button.disabled = true;
         const label = this.getDirectionLabel(direction);
         const preference = this.arrangePreferenceStore.get();
-        const horizontalSpacing = direction === "horizontal" ? spacing : 0;
-        const verticalSpacing = direction === "vertical" ? spacing : 0;
+        const spacingOptions: { horizontalSpacing?: number; verticalSpacing?: number } =
+            direction === "horizontal"
+                ? { horizontalSpacing: spacing }
+                : { verticalSpacing: spacing };
 
         try {
-            const result = await arrangeSelectedTextCardSpacing(canvas, {
-                horizontalSpacing,
-                verticalSpacing,
-            });
+            const result = await arrangeSelectedTextCardSpacing(canvas, spacingOptions);
             this.arrangePreferenceStore.remember({
                 ...preference,
                 ...(direction === "horizontal"

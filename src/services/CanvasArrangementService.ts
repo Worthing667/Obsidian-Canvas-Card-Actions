@@ -19,7 +19,10 @@ interface ArrangeSpacingPreference {
     verticalSpacing: number;
 }
 
-type ArrangeSelectedTextCardSpacingOptions = ArrangeSpacingPreference;
+interface ArrangeSelectedTextCardSpacingOptions {
+    horizontalSpacing?: number;
+    verticalSpacing?: number;
+}
 
 export const DEFAULT_ARRANGE_SPACING = 0;
 
@@ -91,12 +94,16 @@ export async function arrangeSelectedTextCardSpacing(
     canvas: Canvas,
     options: ArrangeSelectedTextCardSpacingOptions
 ): Promise<ArrangeSelectedTextCardsResult> {
-    validateSpacing(options.horizontalSpacing, t("toolbar.arrange.horizontalSpacing"));
-    validateSpacing(options.verticalSpacing, t("toolbar.arrange.verticalSpacing"));
+    if (options.horizontalSpacing !== undefined) {
+        validateSpacing(options.horizontalSpacing, t("toolbar.arrange.horizontalSpacing"));
+    }
+    if (options.verticalSpacing !== undefined) {
+        validateSpacing(options.verticalSpacing, t("toolbar.arrange.verticalSpacing"));
+    }
 
     const { canvasData, cardInfos } = getArrangementContext(canvas);
-    const shouldArrangeHorizontal = options.horizontalSpacing > 0;
-    const shouldArrangeVertical = options.verticalSpacing > 0;
+    const shouldArrangeHorizontal = options.horizontalSpacing !== undefined;
+    const shouldArrangeVertical = options.verticalSpacing !== undefined;
 
     if (!shouldArrangeHorizontal && !shouldArrangeVertical) {
         return { count: cardInfos.length };
@@ -112,7 +119,7 @@ export async function arrangeSelectedTextCardSpacing(
         const horizontalPositions = calculateArrangementPositions(
             sortCardsByDirection(cardInfos, "horizontal"),
             "horizontal",
-            options.horizontalSpacing
+            options.horizontalSpacing!
         );
         horizontalPositions.forEach((position, id) => {
             const current = newPositions.get(id);
@@ -126,7 +133,7 @@ export async function arrangeSelectedTextCardSpacing(
         const verticalPositions = calculateArrangementPositions(
             sortCardsByDirection(cardInfos, "vertical"),
             "vertical",
-            options.verticalSpacing
+            options.verticalSpacing!
         );
         verticalPositions.forEach((position, id) => {
             const current = newPositions.get(id);

@@ -10,7 +10,7 @@ function read(path: string): string {
 test("Obsidian API 最低版本覆盖菜单图标接口", () => {
     const manifest = JSON.parse(read("manifest.json")) as { minAppVersion: string };
 
-    assert.equal(manifest.minAppVersion, "0.16.2");
+    assert.equal(manifest.minAppVersion, "1.13.0");
 });
 
 test("源码使用跨窗口安全的 Obsidian DOM API", () => {

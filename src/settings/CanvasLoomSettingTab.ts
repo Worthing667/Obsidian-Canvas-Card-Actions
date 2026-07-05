@@ -1,12 +1,10 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
-import CanvasLoomPlugin from "../main";
+import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
+import type CanvasLoomPlugin from "../main";
 import { normalizeLanguageSetting, t } from "../i18n";
 import type { TranslationKey, TranslationParams } from "../i18n";
 import {
-	type CanvasLoomLanguageSetting,
 	MAX_SPLIT_CARDS_PER_ROW,
 	MIN_SPLIT_CARDS_PER_ROW,
-	type MergeCleanupMode
 } from "./ICanvasLoomSettings";
 
 export default class CanvasLoomSettingTab extends PluginSettingTab {
@@ -17,189 +15,219 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const {containerEl} = this;
+	getControlValue(key: string): unknown {
+		const settings = this.plugin.settings;
+		switch (key) {
+			case "language":
+				return normalizeLanguageSetting(settings.language);
+			case "canvasCardDelimiter":
+				return settings.canvasCardDelimiter;
+			case "insertDelimiterOnMerge":
+				return settings.insertDelimiterOnMerge;
+			case "splitCardsPerRow":
+				return settings.splitCardsPerRow;
+			case "sortPriority":
+				return settings.sortPriority;
+			case "enableBadges":
+				return settings.enableBadges;
+			case "showEdgesAboveCards":
+				return settings.showEdgesAboveCards;
+			case "disableCanvasLabelFontSizeRelativeToZoom":
+				return settings.disableCanvasLabelFontSizeRelativeToZoom;
+			case "defaultSortMode":
+				return settings.defaultSortMode;
+			case "mergeCleanupMode":
+				return settings.mergeCleanupMode;
+			case "enablePerformanceMode":
+				return settings.enablePerformanceMode;
+			case "enablePerformanceDiagnostics":
+				return settings.enablePerformanceDiagnostics;
+			case "largeCanvasNodeThreshold":
+				return settings.largeCanvasNodeThreshold;
+			case "badgeUpdateDebounceMs":
+				return settings.badgeUpdateDebounceMs;
+			default:
+				return undefined;
+		}
+	}
 
-		containerEl.empty();
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		switch (key) {
+			case "language": {
+				this.plugin.settings.language = normalizeLanguageSetting(value);
+				await this.plugin.saveSettings();
+				this.update();
+				return;
+			}
+			case "enableBadges":
+				await this.plugin.setBadgeDisplayEnabled(value as boolean);
+				return;
+			case "showEdgesAboveCards":
+				await this.plugin.setShowEdgesAboveCardsEnabled(value as boolean);
+				return;
+			case "disableCanvasLabelFontSizeRelativeToZoom":
+				await this.plugin.setDisableCanvasLabelFontSizeRelativeToZoomEnabled(value as boolean);
+				return;
+			case "enablePerformanceMode":
+				await this.plugin.setPerformanceModeEnabled(value as boolean);
+				return;
+			default: {
+				const settings = this.plugin.settings as unknown as Record<string, unknown>;
+				settings[key] = value;
+				await this.plugin.saveSettings();
+			}
+		}
+	}
 
+	getSettingDefinitions(): SettingDefinitionItem[] {
 		const translate = (key: TranslationKey, params?: TranslationParams): string => {
-			return t(key, params, {settings: this.plugin.settings, app: this.app});
+			return t(key, params, { settings: this.plugin.settings, app: this.app });
 		};
 
-		new Setting(containerEl)
-			.setName(translate("settings.language.name"))
-			.setDesc(translate("settings.language.desc"))
-			.addDropdown(dropdown => dropdown
-				.addOption("auto", translate("settings.language.option.auto"))
-				.addOption("en", translate("settings.language.option.en"))
-				.addOption("zh-CN", translate("settings.language.option.zhCN"))
-				.setValue(normalizeLanguageSetting(this.plugin.settings.language))
-				.onChange(async (value: CanvasLoomLanguageSetting) => {
-					this.plugin.settings.language = normalizeLanguageSetting(value);
-					await this.plugin.saveSettings();
-					this.display();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.canvasCardDelimiter.name"))
-			.setDesc(translate("settings.canvasCardDelimiter.desc"))
-			.addText(text => text
-				.setPlaceholder('---')
-				.setValue(this.plugin.settings.canvasCardDelimiter)
-				.onChange(async (value) => {
-					this.plugin.settings.canvasCardDelimiter = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.insertDelimiterOnMerge.name"))
-			.setDesc(translate("settings.insertDelimiterOnMerge.desc"))
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.insertDelimiterOnMerge)
-				.onChange(async (value) => {
-					this.plugin.settings.insertDelimiterOnMerge = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.splitCardsPerRow.name"))
-			.setDesc(translate("settings.splitCardsPerRow.desc", {
-				min: MIN_SPLIT_CARDS_PER_ROW,
-				max: MAX_SPLIT_CARDS_PER_ROW
-			}))
-			.addText(text => {
-				text.inputEl.type = 'number';
-				text.inputEl.min = String(MIN_SPLIT_CARDS_PER_ROW);
-				text.inputEl.max = String(MAX_SPLIT_CARDS_PER_ROW);
-				text.inputEl.step = '1';
-				text
-					.setPlaceholder('5')
-					.setValue(String(this.plugin.settings.splitCardsPerRow))
-					.onChange(async (value) => {
-						const parsedValue = Number(value);
-						if (!Number.isInteger(parsedValue)
-							|| parsedValue < MIN_SPLIT_CARDS_PER_ROW
-							|| parsedValue > MAX_SPLIT_CARDS_PER_ROW) {
-							return;
-						}
-
-						this.plugin.settings.splitCardsPerRow = parsedValue;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		new Setting(containerEl)
-			.setName(translate("settings.sortPriority.name"))
-			.setDesc(translate("settings.sortPriority.desc"))
-			.addDropdown(dropdown => dropdown
-				.addOption('yx', translate("settings.sortPriority.option.yx"))
-				.addOption('xy', translate("settings.sortPriority.option.xy"))
-				.setValue(this.plugin.settings.sortPriority)
-				.onChange(async (value: 'yx' | 'xy') => {
-					this.plugin.settings.sortPriority = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.enableBadges.name"))
-			.setDesc(translate("settings.enableBadges.desc"))
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.enableBadges)
-				.onChange(async (value) => {
-					await this.plugin.setBadgeDisplayEnabled(value);
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.showEdgesAboveCards.name"))
-			.setDesc(translate("settings.showEdgesAboveCards.desc"))
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showEdgesAboveCards)
-				.onChange(async (value) => {
-					await this.plugin.setShowEdgesAboveCardsEnabled(value);
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.disableCanvasLabelFontSizeRelativeToZoom.name"))
-			.setDesc(translate("settings.disableCanvasLabelFontSizeRelativeToZoom.desc"))
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.disableCanvasLabelFontSizeRelativeToZoom)
-				.onChange(async (value) => {
-					await this.plugin.setDisableCanvasLabelFontSizeRelativeToZoomEnabled(value);
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.defaultSortMode.name"))
-			.setDesc(translate("settings.defaultSortMode.desc"))
-			.addDropdown(dropdown => dropdown
-				.addOption('position', translate("settings.defaultSortMode.option.position"))
-				.addOption('badge', translate("settings.defaultSortMode.option.badge"))
-				.setValue(this.plugin.settings.defaultSortMode)
-				.onChange(async (value: 'position' | 'badge') => {
-					this.plugin.settings.defaultSortMode = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.mergeCleanupMode.name"))
-			.setDesc(translate("settings.mergeCleanupMode.desc"))
-			.addDropdown(dropdown => dropdown
-				.addOption('keep-source', translate("settings.mergeCleanupMode.option.keepSource"))
-				.addOption('delete-source', translate("settings.mergeCleanupMode.option.deleteSource"))
-				.setValue(this.plugin.settings.mergeCleanupMode)
-				.onChange(async (value: MergeCleanupMode) => {
-					this.plugin.settings.mergeCleanupMode = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.enablePerformanceMode.name"))
-			.setDesc(translate("settings.enablePerformanceMode.desc"))
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.enablePerformanceMode)
-				.onChange(async (value) => {
-					await this.plugin.setPerformanceModeEnabled(value);
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.enablePerformanceDiagnostics.name"))
-			.setDesc(translate("settings.enablePerformanceDiagnostics.desc"))
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.enablePerformanceDiagnostics)
-				.onChange(async (value) => {
-					this.plugin.settings.enablePerformanceDiagnostics = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.largeCanvasNodeThreshold.name"))
-			.setDesc(translate("settings.largeCanvasNodeThreshold.desc"))
-			.addText(text => text
-				.setPlaceholder('80')
-				.setValue(String(this.plugin.settings.largeCanvasNodeThreshold))
-				.onChange(async (value) => {
-					const parsedValue = Number(value);
-					if (!Number.isFinite(parsedValue) || parsedValue < 1) {
-						return;
-					}
-
-					this.plugin.settings.largeCanvasNodeThreshold = Math.round(parsedValue);
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(translate("settings.badgeUpdateDebounceMs.name"))
-			.setDesc(translate("settings.badgeUpdateDebounceMs.desc"))
-			.addText(text => text
-				.setPlaceholder('150')
-				.setValue(String(this.plugin.settings.badgeUpdateDebounceMs))
-				.onChange(async (value) => {
-					const parsedValue = Number(value);
-					if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-						return;
-					}
-
-					this.plugin.settings.badgeUpdateDebounceMs = Math.round(parsedValue);
-					await this.plugin.saveSettings();
-				}));
+		return [
+			{
+				name: translate("settings.language.name"),
+				desc: translate("settings.language.desc"),
+				control: {
+					type: "dropdown",
+					key: "language",
+					options: {
+						auto: translate("settings.language.option.auto"),
+						en: translate("settings.language.option.en"),
+						"zh-CN": translate("settings.language.option.zhCN"),
+					},
+				},
+			},
+			{
+				name: translate("settings.canvasCardDelimiter.name"),
+				desc: translate("settings.canvasCardDelimiter.desc"),
+				control: {
+					type: "text",
+					key: "canvasCardDelimiter",
+					placeholder: "---",
+				},
+			},
+			{
+				name: translate("settings.insertDelimiterOnMerge.name"),
+				desc: translate("settings.insertDelimiterOnMerge.desc"),
+				control: {
+					type: "toggle",
+					key: "insertDelimiterOnMerge",
+				},
+			},
+			{
+				name: translate("settings.splitCardsPerRow.name"),
+				desc: translate("settings.splitCardsPerRow.desc", {
+					min: MIN_SPLIT_CARDS_PER_ROW,
+					max: MAX_SPLIT_CARDS_PER_ROW,
+				}),
+				control: {
+					type: "number",
+					key: "splitCardsPerRow",
+					placeholder: "5",
+					min: MIN_SPLIT_CARDS_PER_ROW,
+					max: MAX_SPLIT_CARDS_PER_ROW,
+					step: 1,
+				},
+			},
+			{
+				name: translate("settings.sortPriority.name"),
+				desc: translate("settings.sortPriority.desc"),
+				control: {
+					type: "dropdown",
+					key: "sortPriority",
+					options: {
+						yx: translate("settings.sortPriority.option.yx"),
+						xy: translate("settings.sortPriority.option.xy"),
+					},
+				},
+			},
+			{
+				name: translate("settings.enableBadges.name"),
+				desc: translate("settings.enableBadges.desc"),
+				control: {
+					type: "toggle",
+					key: "enableBadges",
+				},
+			},
+			{
+				name: translate("settings.showEdgesAboveCards.name"),
+				desc: translate("settings.showEdgesAboveCards.desc"),
+				control: {
+					type: "toggle",
+					key: "showEdgesAboveCards",
+				},
+			},
+			{
+				name: translate("settings.disableCanvasLabelFontSizeRelativeToZoom.name"),
+				desc: translate("settings.disableCanvasLabelFontSizeRelativeToZoom.desc"),
+				control: {
+					type: "toggle",
+					key: "disableCanvasLabelFontSizeRelativeToZoom",
+				},
+			},
+			{
+				name: translate("settings.defaultSortMode.name"),
+				desc: translate("settings.defaultSortMode.desc"),
+				control: {
+					type: "dropdown",
+					key: "defaultSortMode",
+					options: {
+						position: translate("settings.defaultSortMode.option.position"),
+						badge: translate("settings.defaultSortMode.option.badge"),
+					},
+				},
+			},
+			{
+				name: translate("settings.mergeCleanupMode.name"),
+				desc: translate("settings.mergeCleanupMode.desc"),
+				control: {
+					type: "dropdown",
+					key: "mergeCleanupMode",
+					options: {
+						"keep-source": translate("settings.mergeCleanupMode.option.keepSource"),
+						"delete-source": translate("settings.mergeCleanupMode.option.deleteSource"),
+					},
+				},
+			},
+			{
+				name: translate("settings.enablePerformanceMode.name"),
+				desc: translate("settings.enablePerformanceMode.desc"),
+				control: {
+					type: "toggle",
+					key: "enablePerformanceMode",
+				},
+			},
+			{
+				name: translate("settings.enablePerformanceDiagnostics.name"),
+				desc: translate("settings.enablePerformanceDiagnostics.desc"),
+				control: {
+					type: "toggle",
+					key: "enablePerformanceDiagnostics",
+				},
+			},
+			{
+				name: translate("settings.largeCanvasNodeThreshold.name"),
+				desc: translate("settings.largeCanvasNodeThreshold.desc"),
+				control: {
+					type: "number",
+					key: "largeCanvasNodeThreshold",
+					placeholder: "80",
+					min: 1,
+					step: 1,
+				},
+			},
+			{
+				name: translate("settings.badgeUpdateDebounceMs.name"),
+				desc: translate("settings.badgeUpdateDebounceMs.desc"),
+				control: {
+					type: "number",
+					key: "badgeUpdateDebounceMs",
+					placeholder: "150",
+					min: 0,
+					step: 1,
+				},
+			},
+		];
 	}
 }
