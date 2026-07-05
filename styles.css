@@ -1977,3 +1977,76 @@
         align-items: stretch;
     }
 }
+
+/* ============================================================
+   Zoom Control
+   ============================================================ */
+
+.canvas-loom-zoom-control {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0.6;
+    transition: opacity 150ms ease;
+    /* 控件自身不受画布缩放影响 */
+    --zoom-multiplier: 1;
+}
+
+.canvas-loom-zoom-control:hover {
+    opacity: 1;
+}
+
+.canvas-loom-zoom-preset,
+.canvas-loom-zoom-step {
+    padding: 2px 6px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: var(--font-interface);
+    cursor: pointer;
+    line-height: 1.4;
+    min-width: 32px;
+    text-align: center;
+    transition: background-color 100ms ease, color 100ms ease;
+}
+
+.canvas-loom-zoom-preset:hover,
+.canvas-loom-zoom-step:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.canvas-loom-zoom-preset.is-active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.canvas-loom-zoom-step:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.canvas-loom-zoom-step:disabled:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.canvas-loom-zoom-value {
+    font-size: 11px;
+    font-family: var(--font-monospace);
+    color: var(--text-muted);
+    min-width: 36px;
+    text-align: center;
+    user-select: none;
+}

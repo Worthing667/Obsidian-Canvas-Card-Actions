@@ -71,6 +71,10 @@ const settings = {
 	badgeUpdateDebounceMs: {
 		name: "Badge refresh delay",
 		desc: "Controls the wait time before refreshing badge display, in milliseconds."
+	},
+	enableZoomControl: {
+		name: "Show zoom control on canvas",
+		desc: "Display a zoom control bar inside the canvas with preset zoom levels (50%, 75%, 100%, 125%, 150%) and fine adjustment buttons."
 	}
 } as const;
 

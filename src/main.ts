@@ -19,6 +19,7 @@ import {
     CanvasGlobalFindReplaceToolbarService,
     CanvasLabelScaleService,
     CanvasPerformanceModeService,
+    CanvasZoomControlService,
     SearchReplaceService
 } from './services';
 import {
@@ -63,6 +64,7 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     enablePerformanceDiagnostics: false,
     largeCanvasNodeThreshold: 80,
     badgeUpdateDebounceMs: 150,
+    enableZoomControl: true,
 };
 
 interface CanvasServiceBundle {
@@ -91,6 +93,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private canvasGlobalFindReplaceToolbarService: CanvasGlobalFindReplaceToolbarService;
     private canvasLabelScaleService: CanvasLabelScaleService;
     private canvasPerformanceModeService: CanvasPerformanceModeService;
+    private canvasZoomControlService: CanvasZoomControlService;
     private commandRegistry: CommandRegistry;
     private vaultAdapter: VaultAdapter;
     private canvasEdgeLayerRefreshTimeout: number | null = null;
@@ -162,6 +165,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.app,
             () => this.settings.largeCanvasNodeThreshold
         );
+        this.canvasZoomControlService = new CanvasZoomControlService(this.app);
     }
 
     private registerSettingTab(): void {
@@ -173,11 +177,13 @@ export default class CanvasLoomPlugin extends Plugin {
         this.syncCanvasPerformanceMode();
         this.syncCanvasEdgeLayerClass();
         this.syncCanvasLabelScale();
+        this.syncCanvasZoomControl();
         this.registerCanvasEdgeLayerInteractionTracking();
 
         this.registerMergePreviewView();
         this.canvasSelectionToolbarService.start();
         this.canvasGlobalFindReplaceToolbarService.start();
+        this.canvasZoomControlService.start();
     }
 
     private registerMergePreviewView(): void {
@@ -421,6 +427,7 @@ export default class CanvasLoomPlugin extends Plugin {
                 window.setTimeout(() => {
                     this.syncCanvasLabelScale();
                     this.syncCanvasPerformanceMode();
+                    this.syncCanvasZoomControl();
 
                     if (this.settings.enableBadges) {
                         void this.loadCanvasBadges(file);
@@ -433,6 +440,7 @@ export default class CanvasLoomPlugin extends Plugin {
             this.app.workspace.on("layout-change", () => {
                 this.syncCanvasLabelScale();
                 this.syncCanvasPerformanceMode();
+                this.syncCanvasZoomControl();
             })
         );
     }
@@ -630,6 +638,16 @@ export default class CanvasLoomPlugin extends Plugin {
         this.canvasPerformanceModeService.stop();
     }
 
+    async setZoomControlEnabled(enabled: boolean) {
+        this.settings.enableZoomControl = enabled;
+        await this.saveSettings();
+        this.syncCanvasZoomControl();
+    }
+
+    private syncCanvasZoomControl(): void {
+        this.canvasZoomControlService.setEnabled(this.settings.enableZoomControl);
+    }
+
     private registerCanvasEdgeLayerInteractionTracking(): void {
         const scheduleRefresh = () => this.scheduleCanvasEdgeLayerInteractionRefresh();
         const eventNames: Array<keyof DocumentEventMap> = [
@@ -778,6 +796,7 @@ export default class CanvasLoomPlugin extends Plugin {
         this.canvasGlobalFindReplaceToolbarService.stop();
         this.canvasLabelScaleService.dispose();
         this.canvasPerformanceModeService.stop();
+        this.canvasZoomControlService.stop();
         activeDocument.body.classList.remove("canvas-loom-performance-mode");
         activeDocument.body.classList.remove("canvas-loom-edges-above-cards");
         activeDocument.body.classList.remove("canvas-loom-card-interaction-active");

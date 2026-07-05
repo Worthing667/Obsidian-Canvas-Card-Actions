@@ -46,6 +46,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				return settings.largeCanvasNodeThreshold;
 			case "badgeUpdateDebounceMs":
 				return settings.badgeUpdateDebounceMs;
+			case "enableZoomControl":
+				return settings.enableZoomControl;
 			default:
 				return undefined;
 		}
@@ -70,6 +72,9 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				return;
 			case "enablePerformanceMode":
 				await this.plugin.setPerformanceModeEnabled(value as boolean);
+				return;
+			case "enableZoomControl":
+				await this.plugin.setZoomControlEnabled(value as boolean);
 				return;
 			default: {
 				const settings = this.plugin.settings as unknown as Record<string, unknown>;
@@ -226,6 +231,14 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 					placeholder: "150",
 					min: 0,
 					step: 1,
+				},
+			},
+			{
+				name: translate("settings.enableZoomControl.name"),
+				desc: translate("settings.enableZoomControl.desc"),
+				control: {
+					type: "toggle",
+					key: "enableZoomControl",
 				},
 			},
 		];

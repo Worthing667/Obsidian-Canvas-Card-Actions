@@ -74,6 +74,10 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	badgeUpdateDebounceMs: {
 		name: "标记刷新延迟",
 		desc: "控制标记显示刷新的等待时间，单位毫秒"
+	},
+	enableZoomControl: {
+		name: "在画布内显示缩放控件",
+		desc: "在画布底部显示缩放倍率控制条，包含预设倍率按钮（50%、75%、100%、125%、150%）和微调按钮。"
 	}
 };
 

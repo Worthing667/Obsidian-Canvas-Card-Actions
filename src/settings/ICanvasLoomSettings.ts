@@ -22,6 +22,7 @@ export default interface CanvasLoomSettings {
 	enablePerformanceDiagnostics: boolean;
 	largeCanvasNodeThreshold: number;
 	badgeUpdateDebounceMs: number;
+	enableZoomControl: boolean; // 是否在画布内显示缩放倍率控件
 }
 
 export function resolveMergeCardSeparator(

@@ -42,6 +42,7 @@ function settings(defaultSortMode: "position" | "badge"): CanvasLoomSettings {
     enablePerformanceDiagnostics: false,
     largeCanvasNodeThreshold: 80,
     badgeUpdateDebounceMs: 150,
+    enableZoomControl: true,
   };
 }
 
