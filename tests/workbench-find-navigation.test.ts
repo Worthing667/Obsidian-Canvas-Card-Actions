@@ -158,7 +158,7 @@ function testCanvasFindHighlighterMarksActiveCard() {
   assert.equal(nodeEl.classList.contains('canvas-loom-find-pulse'), true);
 }
 
-function testWorkbenchCurrentMatchHighlightsLocatedCard() {
+function testWorkbenchCurrentMatchOnlySelectsAndLocatesCard() {
   const calls: string[] = [];
   const view = createWorkbenchView();
   view.findCurrentFlatIndex = 0;
@@ -194,11 +194,11 @@ function testWorkbenchCurrentMatchHighlightsLocatedCard() {
 
   view.setCurrentFindMatch(0, true);
 
-  assert.deepEqual(calls, ['select:a', 'locate:a', 'highlight:a']);
+  assert.deepEqual(calls, ['select:a', 'locate:a']);
 }
 
 testActiveWorkbenchResultScrollsIntoViewAfterRender();
 testCanvasFindHighlighterMarksActiveCard();
-testWorkbenchCurrentMatchHighlightsLocatedCard();
+testWorkbenchCurrentMatchOnlySelectsAndLocatesCard();
 console.log('workbench find navigation tests passed');
 })();

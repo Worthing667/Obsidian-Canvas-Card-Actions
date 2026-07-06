@@ -662,7 +662,6 @@ export class MergeWorkbenchView extends ItemView {
             const service = this.context.findReplace?.service;
             if (service?.selectNode(current.card.nodeId)) {
                 service.locateNode(current.card.nodeId);
-                service.highlightSearchMatch(current);
             }
         }
 

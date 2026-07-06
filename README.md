@@ -64,7 +64,7 @@ Demo video: [Auto-fit card height and arrange spacing](Demo/自适应高度_调�
 
 ### Find & Replace in Canvas
 
-Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or assign a hotkey in Obsidian settings. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can jump to matched cards with temporary match highlighting. You can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
+Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or assign a hotkey in Obsidian settings. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can jump to matched cards by selecting and locating them on the canvas. You can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
 
 ## Feature Overview
 
@@ -73,7 +73,7 @@ Search and replace text across all text cards on the current canvas or within a 
 - `Preview card group`
   Load selected text cards into the Loom workspace. Switch between Preview, Sort, and Find & Replace tabs; change sorting; drag-adjust the current order; preview merged output; and export it.
 - `Find & Replace in Canvas`
-  Search across all canvas text cards or within the current selection, with case-sensitive and regex matching. Navigate matches one by one, jump to matched cards with temporary highlighting, replace the current match, all matches in a card, or all matches across the canvas.
+  Search across all canvas text cards or within the current selection, with case-sensitive and regex matching. Navigate matches one by one, jump to matched cards by selecting and locating them, replace the current match, all matches in a card, or all matches across the canvas.
 - `Quick copy` / `Quick merge`
   Process selected cards with the default sorting mode from settings.
 - `Add/Edit badge`
