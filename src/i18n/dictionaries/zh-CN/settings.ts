@@ -39,9 +39,9 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 		name: "连线显示在卡片上方",
 		desc: "空闲时让 Canvas 连线显示在普通卡片上方；选中或编辑卡片时会临时让卡片压过连线，避免影响文字编辑。不修改 Canvas 文件"
 	},
-	disableCanvasLabelFontSizeRelativeToZoom: {
-		name: "连线标签和 Group 标题不跟随画布缩放",
-		desc: "开启后使用 Advanced Canvas 同款缩放补偿，让连线标签和 Group 标题在缩放时保持可读大小"
+	canvasLabelZoomCompensation: {
+		name: "连线标签和 Group 标题可读性补偿",
+		desc: "控制连线标签和 Group 标题抵抗 Canvas 缩放变化的程度。0% 完全跟随画布缩放，100% 尽量保持默认可读大小。"
 	},
 	defaultSortMode: {
 		name: "一键排序方式",
@@ -77,7 +77,7 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	},
 	enableZoomControl: {
 		name: "在画布内显示缩放控件",
-		desc: "在画布底部显示缩放倍率控制条，包含预设倍率按钮（50%、75%、100%、125%、150%）和微调按钮。"
+		desc: "在画布底部显示缩放倍率控制条，包含滑块、百分比输入框和微调按钮。"
 	}
 };
 

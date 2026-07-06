@@ -35,7 +35,7 @@ function settings(defaultSortMode: "position" | "badge"): CanvasLoomSettings {
     sortPriority: "yx",
     enableBadges: true,
     showEdgesAboveCards: false,
-    disableCanvasLabelFontSizeRelativeToZoom: false,
+    canvasLabelZoomCompensation: 100,
     defaultSortMode,
     mergeCleanupMode: "keep-source",
     enablePerformanceMode: false,

@@ -2,6 +2,7 @@ import { Menu, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
 import CanvasLoomSettings, {
     DEFAULT_LANGUAGE,
     DEFAULT_SPLIT_CARDS_PER_ROW,
+    DEFAULT_CANVAS_LABEL_ZOOM_COMPENSATION,
     resolveMergeCardSeparator
 } from "./settings/ICanvasLoomSettings";
 import CanvasLoomSettingTab from "./settings/CanvasLoomSettingTab";
@@ -57,7 +58,7 @@ const DEFAULT_SETTINGS: CanvasLoomSettings = {
     sortPriority: 'yx',
     enableBadges: true,
     showEdgesAboveCards: false,
-    disableCanvasLabelFontSizeRelativeToZoom: false,
+    canvasLabelZoomCompensation: DEFAULT_CANVAS_LABEL_ZOOM_COMPENSATION,
     defaultSortMode: 'position',
     mergeCleanupMode: 'keep-source',
     enablePerformanceMode: false,
@@ -594,8 +595,8 @@ export default class CanvasLoomPlugin extends Plugin {
         this.syncCanvasEdgeLayerClass();
     }
 
-    async setDisableCanvasLabelFontSizeRelativeToZoomEnabled(enabled: boolean) {
-        this.settings.disableCanvasLabelFontSizeRelativeToZoom = enabled;
+    async setCanvasLabelZoomCompensation(value: number) {
+        this.settings.canvasLabelZoomCompensation = value;
         await this.saveSettings();
         this.syncCanvasLabelScale();
     }
@@ -625,7 +626,7 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private syncCanvasLabelScale(): void {
-        this.canvasLabelScaleService.syncCanvasWrappers(this.settings.disableCanvasLabelFontSizeRelativeToZoom);
+        this.canvasLabelScaleService.syncCanvasWrappers(this.settings.canvasLabelZoomCompensation);
     }
 
     private syncCanvasPerformanceMode(): void {

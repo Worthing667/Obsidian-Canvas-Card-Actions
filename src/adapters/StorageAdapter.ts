@@ -95,6 +95,13 @@ export class StorageAdapter {
             migratedData.defaultSortMode = migratedData.mergeDefaultOrder;
         }
 
+        // 迁移布尔开关 → 百分比滑块（v1.x → v2.x）
+        if (typeof (migratedData as Record<string, unknown>).disableCanvasLabelFontSizeRelativeToZoom === "boolean") {
+            const legacyValue = (migratedData as Record<string, unknown>).disableCanvasLabelFontSizeRelativeToZoom;
+            (migratedData as Record<string, unknown>).canvasLabelZoomCompensation = legacyValue ? 100 : 0;
+            delete (migratedData as Record<string, unknown>).disableCanvasLabelFontSizeRelativeToZoom;
+        }
+
         migratedData.language = normalizeLanguageSetting(migratedData.language);
         delete migratedData.mergeDefaultOrder;
         return migratedData;

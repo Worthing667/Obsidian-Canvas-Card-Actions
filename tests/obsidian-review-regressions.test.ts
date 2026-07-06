@@ -39,7 +39,7 @@ test("审核指出的静态样式通过 Obsidian 样式 API 或 CSS 声明", () 
 
     assert.doesNotMatch(toolbarSource, /\.style\.right\s*=\s*["']auto["']/);
     assert.match(styles, /\.canvas-loom-global-fr-panel\s*\{[^}]*\bright:\s*auto;/s);
-    assert.match(labelScaleSource, /\.setCssProps\(\{\s*\[ZOOM_MULTIPLIER_PROPERTY\]:\s*"1"\s*\}\)/);
+    assert.match(labelScaleSource, /\.setCssProps\(\{\s*\[ZOOM_MULTIPLIER_PROPERTY\]:\s*target\s*\}\)/);
 });
 
 test("查找替换命令不再声明默认热键，文档同步说明由用户自行配置", () => {

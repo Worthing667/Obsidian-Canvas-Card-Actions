@@ -96,6 +96,8 @@ Search and replace text across all text cards on the current canvas or within a 
 - `Quick action sorting mode`: controls the default sorting mode for quick copy and quick merge.
 - `Enable badges`: controls whether card badges are shown.
 - `Show edges above cards`: places Canvas connections above regular cards while keeping selected or edited cards above connections.
+- `Canvas label readability compensation`: controls how strongly edge labels and group titles resist Canvas zoom changes, with 100% keeping them near the default readable size.
+- `Show zoom control on canvas`: shows a slider, percentage input, and fine adjustment buttons inside Canvas.
 - `Merge cleanup mode`: controls whether source cards are kept or deleted after creating a merged card.
 - `Canvas performance mode`: reduces Canvas Loom's additional rendering cost on large canvases and switches badges to compact dots at low zoom.
 - `Performance diagnostics`: logs Canvas Loom operation timing and Canvas statistics to the developer console.

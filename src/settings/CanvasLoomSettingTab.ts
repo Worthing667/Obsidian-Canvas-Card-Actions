@@ -5,6 +5,8 @@ import type { TranslationKey, TranslationParams } from "../i18n";
 import {
 	MAX_SPLIT_CARDS_PER_ROW,
 	MIN_SPLIT_CARDS_PER_ROW,
+	MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
+	MAX_CANVAS_LABEL_ZOOM_COMPENSATION,
 } from "./ICanvasLoomSettings";
 
 export default class CanvasLoomSettingTab extends PluginSettingTab {
@@ -32,8 +34,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				return settings.enableBadges;
 			case "showEdgesAboveCards":
 				return settings.showEdgesAboveCards;
-			case "disableCanvasLabelFontSizeRelativeToZoom":
-				return settings.disableCanvasLabelFontSizeRelativeToZoom;
+			case "canvasLabelZoomCompensation":
+				return settings.canvasLabelZoomCompensation;
 			case "defaultSortMode":
 				return settings.defaultSortMode;
 			case "mergeCleanupMode":
@@ -67,8 +69,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 			case "showEdgesAboveCards":
 				await this.plugin.setShowEdgesAboveCardsEnabled(value as boolean);
 				return;
-			case "disableCanvasLabelFontSizeRelativeToZoom":
-				await this.plugin.setDisableCanvasLabelFontSizeRelativeToZoomEnabled(value as boolean);
+			case "canvasLabelZoomCompensation":
+				await this.plugin.setCanvasLabelZoomCompensation(value as number);
 				return;
 			case "enablePerformanceMode":
 				await this.plugin.setPerformanceModeEnabled(value as boolean);
@@ -164,11 +166,57 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				},
 			},
 			{
-				name: translate("settings.disableCanvasLabelFontSizeRelativeToZoom.name"),
-				desc: translate("settings.disableCanvasLabelFontSizeRelativeToZoom.desc"),
-				control: {
-					type: "toggle",
-					key: "disableCanvasLabelFontSizeRelativeToZoom",
+				name: translate("settings.canvasLabelZoomCompensation.name"),
+				desc: translate("settings.canvasLabelZoomCompensation.desc"),
+				render: (setting) => {
+					const currentValue = this.plugin.settings.canvasLabelZoomCompensation;
+
+					let sliderComponent: import("obsidian").SliderComponent;
+					let textComponent: import("obsidian").TextComponent;
+					let updating = false;
+
+					setting.addSlider((slider) => {
+						sliderComponent = slider;
+						slider.setLimits(
+							MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
+							MAX_CANVAS_LABEL_ZOOM_COMPENSATION,
+							1
+						);
+						slider.setValue(currentValue);
+						slider.setInstant(true);
+						slider.setDisplayFormat((value: number) => `${value}%`);
+						slider.onChange((value: number) => {
+							if (updating) return;
+							updating = true;
+							textComponent.setValue(String(value));
+							updating = false;
+							void this.setControlValue("canvasLabelZoomCompensation", value);
+						});
+					});
+
+					setting.addText((text) => {
+						textComponent = text;
+						text.setValue(String(currentValue));
+						text.setPlaceholder("0-100");
+						text.inputEl.type = "number";
+						text.inputEl.min = String(MIN_CANVAS_LABEL_ZOOM_COMPENSATION);
+						text.inputEl.max = String(MAX_CANVAS_LABEL_ZOOM_COMPENSATION);
+						text.inputEl.step = "1";
+						text.inputEl.style.width = "60px";
+						text.onChange((value: string) => {
+							if (updating) return;
+							const parsed = parseInt(value, 10);
+							if (isNaN(parsed)) return;
+							const clamped = Math.max(
+								MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
+								Math.min(MAX_CANVAS_LABEL_ZOOM_COMPENSATION, parsed)
+							);
+							updating = true;
+							sliderComponent.setValue(clamped);
+							updating = false;
+							void this.setControlValue("canvasLabelZoomCompensation", clamped);
+						});
+					});
 				},
 			},
 			{

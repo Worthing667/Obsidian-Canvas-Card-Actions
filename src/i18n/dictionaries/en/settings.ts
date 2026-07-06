@@ -36,9 +36,9 @@ const settings = {
 		name: "Show edges above cards",
 		desc: "When idle, show Canvas edges above regular cards. Selected or edited cards temporarily stay above edges so text editing is not disrupted. Canvas files are not modified."
 	},
-	disableCanvasLabelFontSizeRelativeToZoom: {
-		name: "Keep edge labels and group titles readable",
-		desc: "Use Advanced Canvas-style zoom compensation so edge labels and group titles keep a readable size while zooming."
+	canvasLabelZoomCompensation: {
+		name: "Canvas label readability compensation",
+		desc: "Controls how much edge labels and group titles resist Canvas zoom changes. 0% follows the canvas zoom naturally. 100% keeps labels near the default readable size."
 	},
 	defaultSortMode: {
 		name: "Quick action sort mode",
@@ -74,7 +74,7 @@ const settings = {
 	},
 	enableZoomControl: {
 		name: "Show zoom control on canvas",
-		desc: "Display a zoom control bar inside the canvas with preset zoom levels (50%, 75%, 100%, 125%, 150%) and fine adjustment buttons."
+		desc: "Display a zoom control bar inside the canvas with a slider, percentage input, and fine adjustment buttons."
 	}
 } as const;
 

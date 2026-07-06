@@ -57,6 +57,7 @@ export interface Canvas {
     ty?: number;
     tZoom?: number;
     zoom?: number;
+    scale?: number;
     wrapperEl?: HTMLElement;
     canvasRect?: DOMRect;
     menu?: {
@@ -69,6 +70,7 @@ export interface Canvas {
     updateSelection?(selectionUpdater: () => void): void;
     requestFrame?(): void;
     setViewport?(tx: number, ty: number, tZoom: number): void;
+    markViewportChanged?(): void;
     zoomToBbox?(bbox: { minX: number; maxX: number; minY: number; maxY: number }): void;
     zoomToSelection?(): void;
 }

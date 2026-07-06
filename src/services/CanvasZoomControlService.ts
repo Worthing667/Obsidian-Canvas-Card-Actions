@@ -1,4 +1,4 @@
-import { View, type App, type EventRef } from "obsidian";
+import { setIcon, View, type App, type EventRef } from "obsidian";
 import type { Canvas } from "../types/canvas";
 
 type CanvasViewLike = {
@@ -6,26 +6,40 @@ type CanvasViewLike = {
 	containerEl?: HTMLElement;
 };
 
-const ZOOM_PRESETS = [0.5, 0.75, 1.0, 1.25, 1.5];
 const ZOOM_STEP = 0.1;
 const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 5.0;
+const MAX_ZOOM = 2.0;
+const MIN_ZOOM_PERCENT = MIN_ZOOM * 100;
+const MAX_ZOOM_PERCENT = MAX_ZOOM * 100;
+const ZOOM_SLIDER_STEP_PERCENT = 5;
 const POLL_INTERVAL_MS = 200;
-const PRESET_MATCH_THRESHOLD = 0.02;
+const INTERNAL_ZOOM_DISPLAY_LOCK_MS = 1000;
+
+type ViewportState = {
+	tx: number;
+	ty: number;
+	zoom: number;
+};
 
 export class CanvasZoomControlService {
 	private controlEl: HTMLElement | null = null;
 	private currentWrapperEl: HTMLElement | null = null;
 	private currentCanvas: Canvas | null = null;
 	private pollTimerId: number | null = null;
+	private lastRequestedZoom: number | null = null;
+	private internalZoomDisplayLockUntil = 0;
 	private isEnabled = true;
 	private activeLeafUnsub: EventRef | null = null;
-	private boundOnPresetClick: (e: MouseEvent) => void;
 	private boundOnStepClick: (e: MouseEvent) => void;
+	private boundOnSliderInput: (e: Event) => void;
+	private boundOnInputChange: (e: Event) => void;
+	private boundOnInputBlur: (e: Event) => void;
 
 	constructor(private app: Pick<App, "workspace">) {
-		this.boundOnPresetClick = this.onPresetClick.bind(this);
 		this.boundOnStepClick = this.onStepClick.bind(this);
+		this.boundOnSliderInput = this.onSliderInput.bind(this);
+		this.boundOnInputChange = this.onInputChange.bind(this);
+		this.boundOnInputBlur = this.onInputBlur.bind(this);
 	}
 
 	// ============================================================
@@ -106,36 +120,61 @@ export class CanvasZoomControlService {
 		this.controlEl = doc.createElement("div");
 		this.controlEl.className = "canvas-loom-zoom-control";
 
-		// 预设按钮
-		ZOOM_PRESETS.forEach((preset) => {
-			const btn = doc.createElement("button");
-			btn.className = "canvas-loom-zoom-preset";
-			btn.dataset.zoom = String(preset);
-			btn.textContent = `${Math.round(preset * 100)}%`;
-			btn.addEventListener("click", this.boundOnPresetClick);
-			this.controlEl!.appendChild(btn);
-		});
+		const adjustGroup = doc.createElement("div");
+		adjustGroup.className = "canvas-loom-zoom-adjust";
 
 		// 减号按钮
 		const decBtn = doc.createElement("button");
 		decBtn.className = "canvas-loom-zoom-step";
 		decBtn.dataset.action = "decrease";
-		decBtn.textContent = "−"; // minus sign
+		decBtn.ariaLabel = "Zoom out";
+		decBtn.title = "Zoom out";
+		setIcon(decBtn, "minus");
 		decBtn.addEventListener("click", this.boundOnStepClick);
-		this.controlEl.appendChild(decBtn);
+		adjustGroup.appendChild(decBtn);
 
-		// 当前倍率显示
-		const valueEl = doc.createElement("span");
-		valueEl.className = "canvas-loom-zoom-value";
-		this.controlEl.appendChild(valueEl);
+		const sliderEl = doc.createElement("input");
+		sliderEl.className = "canvas-loom-zoom-slider";
+		sliderEl.type = "range";
+		sliderEl.min = String(MIN_ZOOM_PERCENT);
+		sliderEl.max = String(MAX_ZOOM_PERCENT);
+		sliderEl.step = String(ZOOM_SLIDER_STEP_PERCENT);
+		sliderEl.ariaLabel = "Zoom percentage";
+		sliderEl.addEventListener("input", this.boundOnSliderInput);
+		adjustGroup.appendChild(sliderEl);
+
+		const inputWrapEl = doc.createElement("label");
+		inputWrapEl.className = "canvas-loom-zoom-input-wrap";
+
+		const inputEl = doc.createElement("input");
+		inputEl.className = "canvas-loom-zoom-input";
+		inputEl.type = "number";
+		inputEl.min = String(MIN_ZOOM_PERCENT);
+		inputEl.max = String(MAX_ZOOM_PERCENT);
+		inputEl.step = String(ZOOM_SLIDER_STEP_PERCENT);
+		inputEl.placeholder = `${MIN_ZOOM_PERCENT}-${MAX_ZOOM_PERCENT}`;
+		inputEl.ariaLabel = "Zoom percentage";
+		inputEl.addEventListener("change", this.boundOnInputChange);
+		inputEl.addEventListener("blur", this.boundOnInputBlur);
+		inputWrapEl.appendChild(inputEl);
+
+		const suffixEl = doc.createElement("span");
+		suffixEl.className = "canvas-loom-zoom-input-suffix";
+		suffixEl.textContent = "%";
+		inputWrapEl.appendChild(suffixEl);
+		adjustGroup.appendChild(inputWrapEl);
 
 		// 加号按钮
 		const incBtn = doc.createElement("button");
 		incBtn.className = "canvas-loom-zoom-step";
 		incBtn.dataset.action = "increase";
-		incBtn.textContent = "+";
+		incBtn.ariaLabel = "Zoom in";
+		incBtn.title = "Zoom in";
+		setIcon(incBtn, "plus");
 		incBtn.addEventListener("click", this.boundOnStepClick);
-		this.controlEl.appendChild(incBtn);
+		adjustGroup.appendChild(incBtn);
+
+		this.controlEl.appendChild(adjustGroup);
 
 		wrapperEl.appendChild(this.controlEl);
 
@@ -156,65 +195,74 @@ export class CanvasZoomControlService {
 	// 事件处理
 	// ============================================================
 
-	private onPresetClick(e: MouseEvent): void {
-		const btn = e.currentTarget as HTMLButtonElement;
-		const zoom = parseFloat(btn.dataset.zoom || "");
-		if (Number.isFinite(zoom) && this.currentCanvas && this.currentWrapperEl) {
-			this.applyZoom(this.currentCanvas, this.currentWrapperEl, zoom);
-		}
-	}
-
 	private onStepClick(e: MouseEvent): void {
 		const btn = e.currentTarget as HTMLButtonElement;
 		const action = btn.dataset.action;
 		if (!this.currentCanvas || !this.currentWrapperEl) return;
 
-		const currentZoom =
-				this.readViewportFromDOM(this.currentWrapperEl)?.zoom ??
-				this.resolveZoom(this.currentCanvas);
+		const currentZoom = this.resolveCurrentZoom(
+			this.currentCanvas,
+			this.currentWrapperEl
+		);
 		let newZoom: number;
 		if (action === "increase") {
 			newZoom = currentZoom + ZOOM_STEP;
 		} else {
 			newZoom = currentZoom - ZOOM_STEP;
 		}
-		this.applyZoom(this.currentCanvas, this.currentWrapperEl, newZoom);
+		this.applyZoom(this.currentCanvas, newZoom);
+	}
+
+	private onSliderInput(e: Event): void {
+		const input = e.currentTarget as HTMLInputElement;
+		const zoom = this.parsePercentZoom(input.value);
+		if (zoom !== null && this.currentCanvas && this.currentWrapperEl) {
+			this.applyZoom(this.currentCanvas, zoom);
+		}
+	}
+
+	private onInputChange(e: Event): void {
+		const input = e.currentTarget as HTMLInputElement;
+		const zoom = this.parsePercentZoom(input.value);
+		if (zoom !== null && this.currentCanvas && this.currentWrapperEl) {
+			this.applyZoom(this.currentCanvas, zoom);
+			return;
+		}
+
+		this.restoreCurrentDisplay();
+	}
+
+	private onInputBlur(e: Event): void {
+		const input = e.currentTarget as HTMLInputElement;
+		if (this.parsePercentZoom(input.value) === null) {
+			this.restoreCurrentDisplay();
+		}
 	}
 
 	// ============================================================
 	// 缩放操作
 	// ============================================================
 
-	private applyZoom(
-		canvas: Canvas,
-		wrapperEl: HTMLElement,
-		newZoom: number
-	): void {
-		const clamped = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+	private applyZoom(canvas: Canvas, newZoom: number): void {
+		const clamped = this.clampZoom(newZoom);
+		const canvasViewport = this.readViewportFromCanvas(canvas);
 
-		// 优先从 DOM 读取真实视口参数，避免 canvas 属性过时导致中心偏移
-		const domViewport = this.readViewportFromDOM(wrapperEl);
-		const currentZoom = domViewport?.zoom ?? this.resolveZoom(canvas);
-		if (currentZoom === clamped) return;
+		if (canvasViewport.zoom === clamped) {
+			this.lastRequestedZoom = clamped;
+			this.updateDisplay(clamped);
+			return;
+		}
 
-		const rect = wrapperEl.getBoundingClientRect();
-		if (rect.width <= 0 || rect.height <= 0) return;
-
-		const tx = domViewport?.tx ?? (canvas.tx ?? 0);
-		const ty = domViewport?.ty ?? (canvas.ty ?? 0);
-
-		// 计算视口中心在画布坐标系中的位置
-		const centerX = (rect.width / 2 - tx) / currentZoom;
-		const centerY = (rect.height / 2 - ty) / currentZoom;
-
-		// 以中心点不变为前提，计算新的平移量
-		const newTx = rect.width / 2 - centerX * clamped;
-		const newTy = rect.height / 2 - centerY * clamped;
-
-		canvas.setViewport?.(newTx, newTy, clamped);
+		canvas.setViewport?.(
+			canvasViewport.tx,
+			canvasViewport.ty,
+			this.scaleToCanvasZoom(clamped)
+		);
+		canvas.markViewportChanged?.();
 		canvas.requestFrame?.();
+		this.lastRequestedZoom = clamped;
+		this.internalZoomDisplayLockUntil = Date.now() + INTERNAL_ZOOM_DISPLAY_LOCK_MS;
 
-		// 立即更新显示
 		this.updateDisplay(clamped);
 	}
 
@@ -225,25 +273,19 @@ export class CanvasZoomControlService {
 	private updateDisplay(zoom: number): void {
 		if (!this.controlEl) return;
 
-		const pct = Math.round(zoom * 100);
-		const valueEl =
-			this.controlEl.querySelector<HTMLElement>(".canvas-loom-zoom-value");
-		if (valueEl) {
-			valueEl.textContent = `${pct}%`;
+		const clampedZoom = this.clampZoom(zoom);
+		const pct = this.zoomToPercent(clampedZoom);
+		const sliderEl =
+			this.controlEl.querySelector<HTMLInputElement>(".canvas-loom-zoom-slider");
+		if (sliderEl) {
+			sliderEl.value = String(pct);
 		}
 
-		// 高亮匹配的预设按钮
-		const presetButtons =
-			this.controlEl.querySelectorAll<HTMLButtonElement>(
-				".canvas-loom-zoom-preset"
-			);
-		presetButtons.forEach((btn) => {
-			const presetZoom = parseFloat(btn.dataset.zoom || "");
-			const isMatch =
-				Number.isFinite(presetZoom) &&
-				Math.abs(zoom - presetZoom) <= PRESET_MATCH_THRESHOLD;
-			btn.classList.toggle("is-active", isMatch);
-		});
+		const inputEl =
+			this.controlEl.querySelector<HTMLInputElement>(".canvas-loom-zoom-input");
+		if (inputEl) {
+			inputEl.value = String(pct);
+		}
 
 		// 禁用到达边界的步进按钮
 		const stepButtons =
@@ -253,11 +295,20 @@ export class CanvasZoomControlService {
 		stepButtons.forEach((btn) => {
 			const action = btn.dataset.action;
 			if (action === "decrease") {
-				btn.disabled = zoom <= MIN_ZOOM;
+				btn.disabled = clampedZoom <= MIN_ZOOM;
 			} else if (action === "increase") {
-				btn.disabled = zoom >= MAX_ZOOM;
+				btn.disabled = clampedZoom >= MAX_ZOOM;
 			}
 		});
+	}
+
+	private restoreCurrentDisplay(): void {
+		if (!this.currentCanvas || !this.currentWrapperEl) return;
+		const zoom = this.resolveCurrentZoom(
+			this.currentCanvas,
+			this.currentWrapperEl
+		);
+		this.updateDisplay(zoom);
 	}
 
 	// ============================================================
@@ -289,7 +340,10 @@ export class CanvasZoomControlService {
 					this.syncControl();
 					return;
 				}
-				const zoom = this.resolveZoom(this.currentCanvas);
+				const zoom = this.resolveCurrentZoom(
+					this.currentCanvas,
+					this.currentWrapperEl
+				);
 				this.updateDisplay(zoom);
 			}
 			// 只有仍处于活跃状态才继续轮询
@@ -332,14 +386,7 @@ export class CanvasZoomControlService {
 	// DOM 视口读取
 	// ============================================================
 
-	/**
-	 * 从 DOM 读取真实的视口变换参数（translate + scale），
-	 * 避免依赖可能过时的 canvas.tx / canvas.ty / canvas.tZoom。
-	 * 返回 null 表示读取失败，调用方应回退到 canvas 属性。
-	 */
-	private readViewportFromDOM(
-		wrapperEl: HTMLElement
-	): { tx: number; ty: number; zoom: number } | null {
+	private readZoomFromDOM(wrapperEl: HTMLElement): number | null {
 		const viewportEl = this.findViewportElement(wrapperEl);
 		if (!viewportEl) return null;
 
@@ -352,20 +399,12 @@ export class CanvasZoomControlService {
 
 		try {
 			const matrix = new win.DOMMatrix(transform);
-			const tx = matrix.e;
-			const ty = matrix.f;
 			const zoom = matrix.a;
 
-			if (
-				!Number.isFinite(tx) ||
-				!Number.isFinite(ty) ||
-				!Number.isFinite(zoom)
-			) {
-				return null;
-			}
+			if (!Number.isFinite(zoom)) return null;
 			if (zoom <= 0) return null;
 
-			return { tx, ty, zoom };
+			return zoom;
 		} catch {
 			return null;
 		}
@@ -412,7 +451,61 @@ export class CanvasZoomControlService {
 	}
 
 	private resolveZoom(canvas: Canvas): number {
-		const zoom = canvas.tZoom ?? canvas.zoom ?? 1;
-		return Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+		if (Number.isFinite(canvas.scale) && canvas.scale! > 0) {
+			return canvas.scale!;
+		}
+
+		const canvasZoom = canvas.tZoom ?? canvas.zoom;
+		if (Number.isFinite(canvasZoom)) {
+			const scale = this.canvasZoomToScale(canvasZoom!);
+			return scale > 0 ? scale : 1;
+		}
+
+		return 1;
+	}
+
+	private readViewportFromCanvas(canvas: Canvas): ViewportState {
+		return {
+			tx: Number.isFinite(canvas.tx) ? canvas.tx! : 0,
+			ty: Number.isFinite(canvas.ty) ? canvas.ty! : 0,
+			zoom: this.resolveZoom(canvas),
+		};
+	}
+
+	private resolveCurrentZoom(canvas: Canvas, wrapperEl: HTMLElement): number {
+		if (
+			this.lastRequestedZoom !== null &&
+			Date.now() < this.internalZoomDisplayLockUntil
+		) {
+			return this.lastRequestedZoom;
+		}
+
+		return this.readZoomFromDOM(wrapperEl) ?? this.lastRequestedZoom ?? this.resolveZoom(canvas);
+	}
+
+	private parsePercentZoom(value: string): number | null {
+		const normalized = value.trim().replace(/%$/, "");
+		if (!normalized) return null;
+
+		const percent = Number(normalized);
+		if (!Number.isFinite(percent)) return null;
+
+		return this.clampZoom(percent / 100);
+	}
+
+	private clampZoom(zoom: number): number {
+		return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
+	}
+
+	private zoomToPercent(zoom: number): number {
+		return Math.round(this.clampZoom(zoom) * 100);
+	}
+
+	private scaleToCanvasZoom(scale: number): number {
+		return Math.log2(scale);
+	}
+
+	private canvasZoomToScale(canvasZoom: number): number {
+		return 2 ** canvasZoom;
 	}
 }
