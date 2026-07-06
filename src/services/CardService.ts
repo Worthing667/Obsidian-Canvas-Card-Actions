@@ -269,11 +269,14 @@ export class CardService implements ICardService {
                     if (section) {
                         sections.push(section);
                     }
+                } else {
+                    const introSection = introLines.join("\n").trim();
+                    if (introSection) {
+                        sections.push(introSection);
+                    }
                 }
 
-                currentLines = introLines.length > 0
-                    ? [...introLines, "", line]
-                    : [line];
+                currentLines = [line];
                 introLines.length = 0;
                 continue;
             }
