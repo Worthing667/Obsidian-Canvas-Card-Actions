@@ -2,6 +2,7 @@ import { Notice, setIcon, View, type App, type EventRef } from "obsidian";
 import {
     ArrangeSessionPreferenceStore,
     arrangeSelectedTextCardSpacing,
+    type ArrangeAxisAnchor,
     type ArrangeDirection,
     shouldShowArrangementToolbarButton
 } from "./CanvasArrangementService";
@@ -421,15 +422,117 @@ export class CanvasSelectionToolbarService {
 
     private createArrangePopover(canvas: Canvas): HTMLElement {
         const preference = this.arrangePreferenceStore.get();
+        let selectedDirection = preference.direction;
+        const draftPreference = { ...preference };
+
         const popover = activeDocument.createElement("div");
         popover.className = POPOVER_CLASS;
         popover.addEventListener("click", (event) => event.stopPropagation());
 
-        const horizontalInput = this.createSpacingInput(preference.horizontalSpacing);
-        const verticalInput = this.createSpacingInput(preference.verticalSpacing);
+        const title = activeDocument.createElement("div");
+        title.className = "canvas-loom-arrange-title";
+        title.textContent = this.translate("toolbar.arrange.label");
+        popover.appendChild(title);
 
-        popover.appendChild(this.createSpacingRow(this.translate("toolbar.arrange.horizontalSpacing"), horizontalInput, "horizontal", canvas));
-        popover.appendChild(this.createSpacingRow(this.translate("toolbar.arrange.verticalSpacing"), verticalInput, "vertical", canvas));
+        const directionButtons = new Map<ArrangeDirection, HTMLButtonElement>();
+        const directionGroup = this.createSegmentedControl();
+        (["horizontal", "vertical"] as ArrangeDirection[]).forEach((direction) => {
+            const button = this.createSegmentButton(this.getDirectionLabel(direction));
+            button.addEventListener("click", () => {
+                this.setPreferenceSpacing(draftPreference, selectedDirection, this.parseSpacing(spacingInput));
+                selectedDirection = direction;
+                draftPreference.direction = direction;
+                updateControls();
+            });
+            directionButtons.set(direction, button);
+            directionGroup.appendChild(button);
+        });
+        popover.appendChild(directionGroup);
+
+        const formRow = activeDocument.createElement("div");
+        formRow.className = "canvas-loom-arrange-form";
+
+        const spacingField = activeDocument.createElement("label");
+        spacingField.className = "canvas-loom-arrange-field";
+        const spacingLabel = activeDocument.createElement("span");
+        spacingLabel.textContent = this.translate("toolbar.arrange.spacing");
+        const spacingInput = this.createSpacingInput(this.getPreferenceSpacing(draftPreference, selectedDirection));
+        spacingInput.setAttribute("aria-label", this.translate("toolbar.arrange.spacing"));
+        spacingField.appendChild(spacingLabel);
+        spacingField.appendChild(spacingInput);
+
+        const spacingUnit = activeDocument.createElement("span");
+        spacingUnit.className = "canvas-loom-arrange-unit";
+        spacingUnit.textContent = "px";
+        spacingField.appendChild(spacingUnit);
+
+        const anchorField = activeDocument.createElement("div");
+        anchorField.className = "canvas-loom-arrange-field";
+        const anchorLabel = activeDocument.createElement("span");
+        anchorLabel.textContent = this.translate("toolbar.arrange.anchor.label");
+        anchorField.appendChild(anchorLabel);
+
+        const anchorButtons = new Map<ArrangeAxisAnchor, HTMLButtonElement>();
+        const anchorGroup = this.createSegmentedControl();
+        (["start", "end"] as ArrangeAxisAnchor[]).forEach((anchor) => {
+            const button = this.createSegmentButton("");
+            button.addEventListener("click", () => {
+                this.setPreferenceSpacing(draftPreference, selectedDirection, this.parseSpacing(spacingInput));
+                this.setPreferenceAnchor(draftPreference, selectedDirection, anchor);
+                updateControls();
+            });
+            anchorButtons.set(anchor, button);
+            anchorGroup.appendChild(button);
+        });
+        anchorField.appendChild(anchorGroup);
+
+        formRow.appendChild(spacingField);
+        formRow.appendChild(anchorField);
+        popover.appendChild(formRow);
+
+        const preview = this.createArrangePreview();
+        popover.appendChild(preview);
+
+        const applyButton = activeDocument.createElement("button");
+        applyButton.type = "button";
+        applyButton.className = "mod-cta canvas-loom-arrange-apply-button";
+        applyButton.textContent = this.translate("toolbar.arrange.apply");
+        applyButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            const anchor = this.getPreferenceAnchor(draftPreference, selectedDirection);
+            void this.applyArrangement(canvas, spacingInput, anchor, selectedDirection, applyButton);
+        });
+        spacingInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                const anchor = this.getPreferenceAnchor(draftPreference, selectedDirection);
+                void this.applyArrangement(canvas, spacingInput, anchor, selectedDirection, applyButton);
+            }
+        });
+        popover.appendChild(applyButton);
+
+        const updateControls = () => {
+            directionButtons.forEach((button, direction) => {
+                const isSelected = direction === selectedDirection;
+                button.toggleClass("is-selected", isSelected);
+                button.setAttribute("aria-pressed", String(isSelected));
+            });
+
+            spacingInput.value = this.formatSpacingInput(this.getPreferenceSpacing(draftPreference, selectedDirection));
+
+            const selectedAnchor = this.getPreferenceAnchor(draftPreference, selectedDirection);
+            anchorButtons.forEach((button, anchor) => {
+                const isSelected = anchor === selectedAnchor;
+                button.textContent = this.getAnchorLabel(selectedDirection, anchor);
+                button.toggleClass("is-selected", isSelected);
+                button.setAttribute("aria-pressed", String(isSelected));
+            });
+
+            preview.classList.toggle("is-vertical", selectedDirection === "vertical");
+            preview.dataset.anchor = selectedAnchor;
+        };
+
+        updateControls();
 
         return popover;
     }
@@ -441,47 +544,43 @@ export class CanvasSelectionToolbarService {
         input.max = "500";
         input.step = "1";
         input.placeholder = "0";
-        input.value = value > 0 ? String(value) : "";
+        input.value = this.formatSpacingInput(value);
         input.addEventListener("focus", () => input.select());
         return input;
     }
 
-    private createSpacingRow(
-        labelText: string,
-        input: HTMLInputElement,
-        direction: ArrangeDirection,
-        canvas: Canvas
-    ): HTMLElement {
-        const row = activeDocument.createElement("div");
-        row.className = "canvas-loom-arrange-spacing";
-        input.setAttribute("aria-label", labelText);
+    private createSegmentedControl(): HTMLElement {
+        const group = activeDocument.createElement("div");
+        group.className = "canvas-loom-arrange-segmented";
+        return group;
+    }
 
+    private createSegmentButton(label: string): HTMLButtonElement {
         const button = activeDocument.createElement("button");
         button.type = "button";
-        button.className = "mod-cta canvas-loom-arrange-axis-button";
-        button.textContent = this.translate("toolbar.arrange.adjust");
-        button.addEventListener("click", (event) => {
-            event.preventDefault();
-            void this.applyArrangement(canvas, input, direction, button);
-        });
-        input.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                void this.applyArrangement(canvas, input, direction, button);
-            }
-        });
+        button.className = "canvas-loom-arrange-segment";
+        button.textContent = label;
+        return button;
+    }
 
-        row.appendChild(activeDocument.createTextNode(labelText));
-        row.appendChild(input);
-        row.appendChild(activeDocument.createTextNode("px"));
-        row.appendChild(button);
+    private createArrangePreview(): HTMLElement {
+        const preview = activeDocument.createElement("div");
+        preview.className = "canvas-loom-arrange-preview";
+        preview.setAttribute("aria-hidden", "true");
 
-        return row;
+        for (let index = 0; index < 3; index += 1) {
+            const card = activeDocument.createElement("span");
+            card.className = "canvas-loom-arrange-preview-card";
+            preview.appendChild(card);
+        }
+
+        return preview;
     }
 
     private async applyArrangement(
         canvas: Canvas,
         input: HTMLInputElement,
+        anchor: ArrangeAxisAnchor,
         direction: ArrangeDirection,
         button: HTMLButtonElement
     ): Promise<void> {
@@ -496,20 +595,26 @@ export class CanvasSelectionToolbarService {
         }
 
         button.disabled = true;
-        const label = this.getDirectionLabel(direction);
+        const label = `${this.getDirectionLabel(direction)} ${this.getAnchorLabel(direction, anchor)}`;
         const preference = this.arrangePreferenceStore.get();
-        const spacingOptions: { horizontalSpacing?: number; verticalSpacing?: number } =
+        const spacingOptions: {
+            horizontalSpacing?: number;
+            verticalSpacing?: number;
+            horizontalAnchor?: ArrangeAxisAnchor;
+            verticalAnchor?: ArrangeAxisAnchor;
+        } =
             direction === "horizontal"
-                ? { horizontalSpacing: spacing }
-                : { verticalSpacing: spacing };
+                ? { horizontalSpacing: spacing, horizontalAnchor: anchor }
+                : { verticalSpacing: spacing, verticalAnchor: anchor };
 
         try {
             const result = await arrangeSelectedTextCardSpacing(canvas, spacingOptions);
             this.arrangePreferenceStore.remember({
                 ...preference,
+                direction,
                 ...(direction === "horizontal"
-                    ? { horizontalSpacing: spacing }
-                    : { verticalSpacing: spacing }),
+                    ? { horizontalSpacing: spacing, horizontalAnchor: anchor }
+                    : { verticalSpacing: spacing, verticalAnchor: anchor }),
             });
             new Notice(this.translate("notice.spacingArranged", {
                 count: result.count,
@@ -539,10 +644,74 @@ export class CanvasSelectionToolbarService {
         return Number(rawValue);
     }
 
+    private formatSpacingInput(value: number): string {
+        return value > 0 ? String(value) : "";
+    }
+
+    private getPreferenceSpacing(
+        preference: ReturnType<ArrangeSessionPreferenceStore["get"]>,
+        direction: ArrangeDirection
+    ): number {
+        return direction === "horizontal"
+            ? preference.horizontalSpacing
+            : preference.verticalSpacing;
+    }
+
+    private setPreferenceSpacing(
+        preference: ReturnType<ArrangeSessionPreferenceStore["get"]>,
+        direction: ArrangeDirection,
+        spacing: number
+    ): void {
+        if (!this.isValidSpacing(spacing)) {
+            return;
+        }
+
+        if (direction === "horizontal") {
+            preference.horizontalSpacing = spacing;
+            return;
+        }
+
+        preference.verticalSpacing = spacing;
+    }
+
+    private getPreferenceAnchor(
+        preference: ReturnType<ArrangeSessionPreferenceStore["get"]>,
+        direction: ArrangeDirection
+    ): ArrangeAxisAnchor {
+        return direction === "horizontal"
+            ? preference.horizontalAnchor
+            : preference.verticalAnchor;
+    }
+
+    private setPreferenceAnchor(
+        preference: ReturnType<ArrangeSessionPreferenceStore["get"]>,
+        direction: ArrangeDirection,
+        anchor: ArrangeAxisAnchor
+    ): void {
+        if (direction === "horizontal") {
+            preference.horizontalAnchor = anchor;
+            return;
+        }
+
+        preference.verticalAnchor = anchor;
+    }
+
     private getDirectionLabel(direction: ArrangeDirection): string {
         return this.translate(direction === "horizontal"
             ? "toolbar.arrange.direction.horizontal"
             : "toolbar.arrange.direction.vertical");
+    }
+
+    private getAnchorLabel(direction: ArrangeDirection, anchor: ArrangeAxisAnchor): string {
+        if (direction === "horizontal") {
+            return this.translate(anchor === "start"
+                ? "toolbar.arrange.anchor.left"
+                : "toolbar.arrange.anchor.right");
+        }
+
+        return this.translate(anchor === "start"
+            ? "toolbar.arrange.anchor.top"
+            : "toolbar.arrange.anchor.bottom");
     }
 
     private localizeAutoHeightError(error: unknown): string {

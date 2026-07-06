@@ -12,9 +12,18 @@ const toolbar: WidenTranslationValues<typeof enToolbar> = {
 		horizontalSpacing: "水平间距",
 		verticalSpacing: "垂直间距",
 		adjust: "调整",
+		spacing: "间距",
+		apply: "应用",
 		direction: {
 			horizontal: "水平",
 			vertical: "垂直"
+		},
+		anchor: {
+			label: "固定边",
+			left: "固定左侧",
+			right: "固定右侧",
+			top: "固定上方",
+			bottom: "固定下方"
 		}
 	},
 	sequenceTools: {

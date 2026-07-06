@@ -1,0 +1,55 @@
+<svg width="720" height="420" viewBox="0 0 720 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <linearGradient id="buttonGold" x1="540" y1="294" x2="650" y2="348" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0D28C"/>
+      <stop offset="1" stop-color="#CFA963"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="720" height="420" rx="18" fill="#171717"/>
+
+  <g filter="url(#shadow)">
+    <rect x="92" y="52" width="536" height="316" rx="14" fill="#262626" stroke="#3D3D3D"/>
+
+    <text x="122" y="96" fill="#ECECEC" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="19" font-weight="700">整理间距</text>
+    <text x="122" y="121" fill="#A8A8A8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="13">选择一个方向，固定一侧，其他卡片按间距移动</text>
+
+    <g>
+      <rect x="122" y="148" width="476" height="46" rx="9" fill="#1F1F1F" stroke="#393939"/>
+      <rect x="126" y="152" width="233" height="38" rx="7" fill="#D6B36A"/>
+      <text x="207" y="176" fill="#1F1A0D" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15" font-weight="650">水平</text>
+      <text x="443" y="176" fill="#AAA" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15" font-weight="600">垂直</text>
+    </g>
+
+    <g>
+      <text x="122" y="226" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="13" font-weight="600">间距</text>
+      <rect x="122" y="238" width="158" height="48" rx="9" fill="#202020" stroke="#3E3E3E"/>
+      <text x="184" y="268" fill="#F0F0F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="20" font-weight="650" text-anchor="end">24</text>
+      <text x="204" y="268" fill="#A8A8A8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15">px</text>
+    </g>
+
+    <g>
+      <text x="306" y="226" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="13" font-weight="600">固定边</text>
+      <rect x="306" y="238" width="204" height="48" rx="9" fill="#1F1F1F" stroke="#3E3E3E"/>
+      <rect x="410" y="242" width="96" height="40" rx="7" fill="#D6B36A"/>
+      <text x="354" y="268" fill="#A9A9A9" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15" font-weight="600" text-anchor="middle">左侧</text>
+      <text x="458" y="268" fill="#1F1A0D" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="15" font-weight="700" text-anchor="middle">右侧</text>
+    </g>
+
+    <g>
+      <rect x="122" y="308" width="354" height="32" rx="8" fill="#202020" stroke="#343434"/>
+      <rect x="142" y="318" width="56" height="12" rx="3" fill="#6F737B"/>
+      <rect x="226" y="318" width="56" height="12" rx="3" fill="#6F737B"/>
+      <rect x="310" y="318" width="56" height="12" rx="3" fill="#E0C276"/>
+      <path d="M382 324H440" stroke="#C9A85E" stroke-width="2" stroke-linecap="round"/>
+      <path d="M432 318L440 324L432 330" stroke="#C9A85E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="142" y="362" fill="#A0A0A0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="12">预览：右侧卡片固定，其他卡片向左整理</text>
+    </g>
+
+    <rect x="512" y="302" width="86" height="46" rx="10" fill="url(#buttonGold)"/>
+    <text x="555" y="331" fill="#1F1A0D" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif" font-size="16" font-weight="800" text-anchor="middle">应用</text>
+  </g>
+</svg>

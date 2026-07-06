@@ -9,9 +9,18 @@ const toolbar = {
 		horizontalSpacing: "Horizontal spacing",
 		verticalSpacing: "Vertical spacing",
 		adjust: "Adjust",
+		spacing: "Spacing",
+		apply: "Apply",
 		direction: {
 			horizontal: "horizontal",
 			vertical: "vertical"
+		},
+		anchor: {
+			label: "Fixed edge",
+			left: "fixed left",
+			right: "fixed right",
+			top: "fixed top",
+			bottom: "fixed bottom"
 		}
 	},
 	sequenceTools: {

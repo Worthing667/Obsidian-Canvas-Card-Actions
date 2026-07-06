@@ -4,10 +4,12 @@ import { hasCanvasEditingNode, isCanvasNodeEditing } from "../utils/canvasEditin
 import { collectTextNodeIds, isTextNodeData } from "../utils/canvasNodeUtils";
 
 export type ArrangeDirection = "horizontal" | "vertical";
+export type ArrangeAxisAnchor = "start" | "end";
 
 export interface ArrangeSelectedTextCardsOptions {
     direction: ArrangeDirection;
     spacing: number;
+    anchor?: ArrangeAxisAnchor;
 }
 
 interface ArrangeSelectedTextCardsResult {
@@ -15,13 +17,18 @@ interface ArrangeSelectedTextCardsResult {
 }
 
 interface ArrangeSpacingPreference {
+    direction: ArrangeDirection;
     horizontalSpacing: number;
     verticalSpacing: number;
+    horizontalAnchor: ArrangeAxisAnchor;
+    verticalAnchor: ArrangeAxisAnchor;
 }
 
 interface ArrangeSelectedTextCardSpacingOptions {
     horizontalSpacing?: number;
     verticalSpacing?: number;
+    horizontalAnchor?: ArrangeAxisAnchor;
+    verticalAnchor?: ArrangeAxisAnchor;
 }
 
 export const DEFAULT_ARRANGE_SPACING = 0;
@@ -39,8 +46,11 @@ export class ArrangeSessionPreferenceStore {
         }
 
         return {
+            direction: "horizontal",
             horizontalSpacing: this.defaultSpacing,
             verticalSpacing: this.defaultSpacing,
+            horizontalAnchor: "start",
+            verticalAnchor: "start",
         };
     }
 
@@ -83,7 +93,12 @@ export async function arrangeSelectedTextCards(
     const { canvasData, cardInfos } = getArrangementContext(canvas);
 
     const sortedInfos = sortCardsByDirection(cardInfos, options.direction);
-    const newPositions = calculateArrangementPositions(sortedInfos, options.direction, options.spacing);
+    const newPositions = calculateArrangementPositions(
+        sortedInfos,
+        options.direction,
+        options.spacing,
+        options.anchor ?? "start"
+    );
 
     await applyArrangementPositions(canvas, canvasData, newPositions);
 
@@ -119,7 +134,8 @@ export async function arrangeSelectedTextCardSpacing(
         const horizontalPositions = calculateArrangementPositions(
             sortCardsByDirection(cardInfos, "horizontal"),
             "horizontal",
-            options.horizontalSpacing!
+            options.horizontalSpacing!,
+            options.horizontalAnchor ?? "start"
         );
         horizontalPositions.forEach((position, id) => {
             const current = newPositions.get(id);
@@ -133,7 +149,8 @@ export async function arrangeSelectedTextCardSpacing(
         const verticalPositions = calculateArrangementPositions(
             sortCardsByDirection(cardInfos, "vertical"),
             "vertical",
-            options.verticalSpacing!
+            options.verticalSpacing!,
+            options.verticalAnchor ?? "start"
         );
         verticalPositions.forEach((position, id) => {
             const current = newPositions.get(id);
@@ -241,22 +258,40 @@ function sortCardsByDirection(cards: ArrangementCard[], direction: ArrangeDirect
 function calculateArrangementPositions(
     cards: ArrangementCard[],
     direction: ArrangeDirection,
-    spacing: number
+    spacing: number,
+    anchor: ArrangeAxisAnchor = "start"
 ): Map<string, { x: number; y: number }> {
-    const anchor = cards[0];
+    const arrangedCards = anchor === "start" ? cards : [...cards].reverse();
+    const anchorCard = arrangedCards[0];
     const newPositions = new Map<string, { x: number; y: number }>();
-    newPositions.set(anchor.id, { x: anchor.x, y: anchor.y });
+    newPositions.set(anchorCard.id, { x: anchorCard.x, y: anchorCard.y });
 
-    let previous = anchor;
-    for (let index = 1; index < cards.length; index += 1) {
-        const current = cards[index];
-        const position = direction === "horizontal"
-            ? { x: previous.x + previous.width + spacing, y: current.y }
-            : { x: current.x, y: previous.y + previous.height + spacing };
+    let previous = anchorCard;
+    for (let index = 1; index < arrangedCards.length; index += 1) {
+        const current = arrangedCards[index];
+        const position = getNextArrangementPosition(previous, current, direction, spacing, anchor);
 
         newPositions.set(current.id, position);
         previous = { ...current, ...position };
     }
 
     return newPositions;
+}
+
+function getNextArrangementPosition(
+    previous: ArrangementCard,
+    current: ArrangementCard,
+    direction: ArrangeDirection,
+    spacing: number,
+    anchor: ArrangeAxisAnchor
+): { x: number; y: number } {
+    if (direction === "horizontal") {
+        return anchor === "start"
+            ? { x: previous.x + previous.width + spacing, y: current.y }
+            : { x: previous.x - current.width - spacing, y: current.y };
+    }
+
+    return anchor === "start"
+        ? { x: current.x, y: previous.y + previous.height + spacing }
+        : { x: current.x, y: previous.y - current.height - spacing };
 }
