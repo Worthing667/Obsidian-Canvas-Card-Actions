@@ -27,6 +27,9 @@ jobs:
       - name: 安装依赖
         run: npm ci
 
+      - name: 校验发布说明
+        run: npm run release:check -- "${{ github.ref_name }}"
+
       - name: 构建插件
         run: npm run build
 
@@ -41,7 +44,8 @@ jobs:
       - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          name: Canvas Loom ${{ github.ref_name }}
+          body_path: docs/releases/${{ github.ref_name }}.md
           files: |
             manifest.json
             main.js

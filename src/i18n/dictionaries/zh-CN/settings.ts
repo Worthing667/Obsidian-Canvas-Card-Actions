@@ -78,6 +78,16 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	enableZoomControl: {
 		name: "在画布内显示缩放控件",
 		desc: "在画布底部显示 10%-200% 缩放倍率控制条，包含滑块、百分比输入框和微调按钮。"
+	},
+	support: {
+		name: "支持开发",
+		desc: "如果 Canvas Loom 对你有帮助，可以扫码支持开发。感谢你的使用。",
+		contactButton: "发送邮件",
+		wechat: "微信",
+		wechatAlt: "微信支持开发收款码",
+		alipay: "支付宝",
+		alipayAlt: "支付宝支持开发收款码",
+		assetMissing: "当前安装包中缺少收款码图片。"
 	}
 };
 

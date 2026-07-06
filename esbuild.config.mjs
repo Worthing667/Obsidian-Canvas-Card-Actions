@@ -97,6 +97,10 @@ const copyToPluginDir = () => {
             treeShaking: true,
             outfile: path.join(outdir, 'main.js'),
             charset: "utf8",
+            loader: {
+                ".jpg": "dataurl",
+                ".png": "dataurl",
+            },
             plugins: [{
                 name: 'copy-obsidian-files',
                 setup(build) {

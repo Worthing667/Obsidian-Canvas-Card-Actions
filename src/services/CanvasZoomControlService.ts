@@ -424,7 +424,7 @@ export class CanvasZoomControlService {
 		for (let i = 0; i < wrapperEl.children.length; i++) {
 			const child = wrapperEl.children[i];
 			if (
-				child instanceof HTMLElement &&
+				child.instanceOf(HTMLElement) &&
 				child.style.transform &&
 				child.style.transform !== "none"
 			) {

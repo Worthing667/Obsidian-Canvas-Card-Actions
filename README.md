@@ -106,13 +106,17 @@ Search and replace text across all text cards on the current canvas or within a 
 ## Privacy
 
 - No account required
-- No paid service integration
+- No paid service required for any feature
 - No ads, telemetry, or uploaded user content
 - No proactive network access
 - Reads Canvas or Markdown content only when the user runs a command
 - Creates or modifies files in the current vault only when the user explicitly exports, merges, or creates a note
 - Writes generated text to the system clipboard only after the user explicitly runs a copy action
 - Never reads the system clipboard or accesses content copied from outside Obsidian
+
+## Contact
+
+For questions or feedback, contact: <anitaoskar770@gmail.com>
 
 ## Installation
 

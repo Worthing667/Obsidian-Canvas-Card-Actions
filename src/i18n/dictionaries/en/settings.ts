@@ -75,6 +75,16 @@ const settings = {
 	enableZoomControl: {
 		name: "Show zoom control on canvas",
 		desc: "Display a 10%-200% zoom control inside the canvas with a slider, percentage input, and fine adjustment buttons."
+	},
+	support: {
+		name: "Contact",
+		desc: "For questions or feedback, contact the developer.",
+		contactButton: "Send email",
+		wechat: "WeChat",
+		wechatAlt: "WeChat support QR code",
+		alipay: "Alipay",
+		alipayAlt: "Alipay support QR code",
+		assetMissing: "Support image is unavailable in this installation."
 	}
 } as const;
 

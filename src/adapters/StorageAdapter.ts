@@ -24,7 +24,7 @@ export class StorageAdapter {
             return {};
         }
 
-        return { ...(data as Record<string, unknown>) } as LegacyStorageData;
+        return { ...data };
     }
 
     private getBackupStorage(): Storage | null {

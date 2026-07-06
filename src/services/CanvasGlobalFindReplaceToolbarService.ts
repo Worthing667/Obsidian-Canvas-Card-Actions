@@ -1,6 +1,6 @@
 import { Notice, setIcon, View, type App, type EventRef } from "obsidian";
 import { CanvasAdapter } from "../adapters/CanvasAdapter";
-import type { CardSearchResult, SearchReplaceOptions, SearchReplaceScope } from "./SearchReplaceService";
+import type { CardSearchResult, SearchReplaceOptions } from "./SearchReplaceService";
 import { SearchReplaceService } from "./SearchReplaceService";
 import type { Canvas } from "../types/canvas";
 import type { CanvasDiagnostics } from "../adapters/CanvasAdapter";
@@ -810,7 +810,7 @@ export class CanvasGlobalFindReplaceToolbarService {
     private getQueryOptions(): Omit<SearchReplaceOptions, "replacement"> {
         return {
             query: this.query,
-            scope: "canvas" as SearchReplaceScope,
+            scope: "canvas",
             caseSensitive: this.caseSensitive,
             regex: this.regex
         };

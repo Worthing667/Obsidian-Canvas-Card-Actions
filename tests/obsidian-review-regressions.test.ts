@@ -41,6 +41,7 @@ test("源码使用跨窗口安全的 Obsidian DOM API", () => {
         "src/services/CanvasLabelScaleService.ts",
         "src/services/CanvasPerformanceModeService.ts",
         "src/services/CanvasSelectionToolbarService.ts",
+        "src/services/CanvasZoomControlService.ts",
         "src/utils/CanvasFindHighlight.ts",
         "src/utils/SearchMatchPreview.ts",
     ];
@@ -53,13 +54,25 @@ test("源码使用跨窗口安全的 Obsidian DOM API", () => {
 });
 
 test("审核指出的静态样式通过 Obsidian 样式 API 或 CSS 声明", () => {
+    const settingsSource = read("src/settings/CanvasLoomSettingTab.ts");
     const toolbarSource = read("src/services/CanvasGlobalFindReplaceToolbarService.ts");
     const labelScaleSource = read("src/services/CanvasLabelScaleService.ts");
     const styles = read("styles.css");
 
+    assert.doesNotMatch(settingsSource, /\.style\.width\s*=/);
+    assert.match(settingsSource, /addClass\("canvas-loom-setting-number-input"\)/);
+    assert.match(styles, /\.canvas-loom-setting-number-input\s*\{[^}]*\bwidth:\s*60px;/s);
     assert.doesNotMatch(toolbarSource, /\.style\.right\s*=\s*["']auto["']/);
     assert.match(styles, /\.canvas-loom-global-fr-panel\s*\{[^}]*\bright:\s*auto;/s);
     assert.match(labelScaleSource, /\.setCssProps\(\{\s*\[ZOOM_MULTIPLIER_PROPERTY\]:\s*target\s*\}\)/);
+});
+
+test("审核指出的不必要类型断言不再出现", () => {
+    const storageSource = read("src/adapters/StorageAdapter.ts");
+    const toolbarSource = read("src/services/CanvasGlobalFindReplaceToolbarService.ts");
+
+    assert.doesNotMatch(storageSource, /data as Record<string, unknown>[\s\S]*as LegacyStorageData/);
+    assert.doesNotMatch(toolbarSource, /as SearchReplaceScope/);
 });
 
 test("查找替换命令不再声明默认热键，文档同步说明由用户自行配置", () => {

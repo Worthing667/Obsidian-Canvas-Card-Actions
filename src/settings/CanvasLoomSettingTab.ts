@@ -1,6 +1,8 @@
-import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
+import { App, PluginSettingTab, type Setting, type SettingDefinitionItem } from "obsidian";
+import alipaySupportImage from "../../docs/support/alipay.jpg";
+import wechatSupportImage from "../../docs/support/wechat.png";
 import type CanvasLoomPlugin from "../main";
-import { normalizeLanguageSetting, t } from "../i18n";
+import { getCurrentLanguage, normalizeLanguageSetting, t } from "../i18n";
 import type { TranslationKey, TranslationParams } from "../i18n";
 import {
 	MAX_SPLIT_CARDS_PER_ROW,
@@ -8,6 +10,11 @@ import {
 	MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
 	MAX_CANVAS_LABEL_ZOOM_COMPENSATION,
 } from "./ICanvasLoomSettings";
+import {
+	SUPPORT_CONTACT_EMAIL,
+	getSupportImageSource,
+	shouldShowSupportQRCodes,
+} from "./supportResources";
 
 export default class CanvasLoomSettingTab extends PluginSettingTab {
 	plugin: CanvasLoomPlugin;
@@ -84,6 +91,66 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				await this.plugin.saveSettings();
 			}
 		}
+	}
+
+	private renderSupportSetting(setting: Setting): void {
+		const translate = (key: TranslationKey, params?: TranslationParams): string => {
+			return t(key, params, { settings: this.plugin.settings, app: this.app });
+		};
+		const language = getCurrentLanguage(this.plugin.settings, this.app);
+
+		if (!shouldShowSupportQRCodes(language)) {
+			const contactEl = setting.controlEl.createDiv({ cls: "canvas-loom-support-contact" });
+			contactEl.createEl("span", {
+				cls: "canvas-loom-support-email",
+				text: SUPPORT_CONTACT_EMAIL,
+			});
+			setting.addButton((button) => {
+				button
+					.setButtonText(translate("settings.support.contactButton"))
+					.onClick(() => {
+						activeWindow.open(`mailto:${SUPPORT_CONTACT_EMAIL}`);
+					});
+			});
+			return;
+		}
+
+		const qrListEl = setting.controlEl.createDiv({ cls: "canvas-loom-support-qr-list" });
+		const assets = [
+			{
+				label: translate("settings.support.wechat"),
+				alt: translate("settings.support.wechatAlt"),
+				source: wechatSupportImage,
+			},
+			{
+				label: translate("settings.support.alipay"),
+				alt: translate("settings.support.alipayAlt"),
+				source: alipaySupportImage,
+			},
+		];
+
+		assets.forEach((asset) => {
+			const itemEl = qrListEl.createDiv({ cls: "canvas-loom-support-qr" });
+			const imageSource = getSupportImageSource(asset.source);
+
+			if (imageSource) {
+				itemEl.createEl("img", {
+					cls: "canvas-loom-support-qr-image",
+					attr: {
+						src: imageSource,
+						alt: asset.alt,
+						loading: "lazy",
+					},
+				});
+			} else {
+				itemEl.createDiv({
+					cls: "canvas-loom-support-qr-missing",
+					text: translate("settings.support.assetMissing"),
+				});
+			}
+
+			itemEl.createDiv({ cls: "canvas-loom-support-qr-label", text: asset.label });
+		});
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
@@ -202,7 +269,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 						text.inputEl.min = String(MIN_CANVAS_LABEL_ZOOM_COMPENSATION);
 						text.inputEl.max = String(MAX_CANVAS_LABEL_ZOOM_COMPENSATION);
 						text.inputEl.step = "1";
-						text.inputEl.style.width = "60px";
+						text.inputEl.addClass("canvas-loom-setting-number-input");
 						text.onChange((value: string) => {
 							if (updating) return;
 							const parsed = parseInt(value, 10);
@@ -287,6 +354,13 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				control: {
 					type: "toggle",
 					key: "enableZoomControl",
+				},
+			},
+			{
+				name: translate("settings.support.name"),
+				desc: translate("settings.support.desc"),
+				render: (setting) => {
+					this.renderSupportSetting(setting);
 				},
 			},
 		];

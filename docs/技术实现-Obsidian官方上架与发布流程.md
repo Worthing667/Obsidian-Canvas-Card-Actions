@@ -28,14 +28,16 @@
 - `package.json`
 - `versions.json`
 - `README.md`
-- `README-EN.md`
+- `README-ZH.md`
+- `docs/releases/<version>.md`
 
 其中：
 
 - `manifest.json` 中的 `version` 是 Obsidian 官方审核和安装使用的主版本号
 - `package.json` 中的 `version` 应与 `manifest.json` 保持一致
 - `versions.json` 需要补充当前版本对应的最低兼容 Obsidian 版本
-- `README.md` 和 `README-EN.md` 中展示的“当前版本”应同步更新，避免页面信息落后于实际发布版本
+- `README.md` 和 `README-ZH.md` 中展示的“当前版本”应同步更新，避免页面信息落后于实际发布版本
+- `docs/releases/<version>.md` 是 GitHub Release 正文，必须在创建 tag 前完成
 
 ### 发布产物
 
@@ -49,6 +51,7 @@
 
 - `main.js` 属于构建产物，不再作为源码文件长期跟踪
 - 仓库根目录中的 `main.js` 由构建命令生成，用于上传到 GitHub Release
+- `docs/support/wechat.png` 与 `docs/support/alipay.jpg` 作为源码资产，通过 esbuild data URL 内联进 `main.js`，不作为单独 Release 资产上传
 - 发布时必须确保 Release 中只上传官方支持的 `manifest.json`、`main.js`、`styles.css`
 
 ## 当前实现需要长期满足的官方规范
@@ -104,6 +107,7 @@ npm run build
 - 产出 `build/main.js`
 - 同步复制 `manifest.json` 与 `styles.css` 到 `build/`
 - 将最新 `build/main.js` 覆盖到仓库根目录的 `main.js`
+- 将 `docs/support/` 中的支持图片内联进 `main.js`
 
 ### 本地安装目录同步
 
@@ -121,6 +125,35 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
 
 如果 `.env` 不存在或没有设置 `PLUGIN_DEST_PATH`，构建会跳过本地同步，但仍会正常生成发布产物。这个逻辑只用于本地测试，不应作为 GitHub Release 的发布依据。
 
+### 发布消息
+
+每次发布前，需要先让 AI 根据上一个 tag 到当前发布 commit 的全部变更拟定发布消息，再由维护者人工确认并保存到：
+
+```text
+docs/releases/<version>.md
+```
+
+发布消息要求：
+
+- 面向用户，简练，不写过细技术细节
+- 覆盖本次发布所有用户可感知的更改
+- 使用中英逐行对照格式，中文条目的下一行必须是对应英文条目
+- 中文条目前缀使用：`新增`、`优化`、`修复`、`移除`、`兼容性`、`说明`
+- 英文条目前缀对应使用：`Added`、`Improved`、`Fixed`、`Removed`、`Compatibility`、`Note`
+- 不写 commit hash、PR 编号、源码路径、内部文件名
+
+发布消息模板、AI 拟稿提示词和示例见：
+
+- `docs/releases/README.md`
+
+保存发布消息后执行：
+
+```bash
+npm run release:check -- <version>
+```
+
+只有校验通过后才创建并推送发布 tag。
+
 ### 自动发布工作流
 
 仓库内使用以下工作流生成 GitHub Release：
@@ -134,9 +167,10 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
 工作流行为：
 
 1. 安装依赖
-2. 执行 `npm run build`
-3. 为 `manifest.json`、`main.js`、`styles.css` 生成 GitHub artifact attestation
-4. 创建对应的 GitHub Release 并上传以上三个文件
+2. 执行 `npm run release:check -- <tag>`，校验 `docs/releases/<tag>.md`
+3. 执行 `npm run build`
+4. 为 `manifest.json`、`main.js`、`styles.css` 生成 GitHub artifact attestation
+5. 使用 `docs/releases/<tag>.md` 创建对应的 GitHub Release，并上传以上三个文件
 
 ## 提审前检查清单
 
@@ -148,9 +182,10 @@ PLUGIN_DEST_PATH=/path/to/vault/.obsidian/plugins/canvas-loom
 4. 本地执行静态检查后，不存在明显的官方规范风险项，例如运行时注入样式、裸 `any`、未处理 Promise、直接写 `innerHTML`
    建议额外使用 `eslint-plugin-obsidianmd` 复查一次，重点关注样式加载方式、`activeWindow` 兼容、Promise 处理和废弃 API 使用
 5. `README.md` 和 `README-ZH.md` 已包含功能说明、安装方式和权限与隐私说明
-6. 仓库中不存在明显无意义的调试日志或演示性质的提交内容
-7. GitHub Release 已包含 `manifest.json`、`main.js`、`styles.css`
-8. GitHub Release 的 tag 与当前仓库约定一致，例如 `1.4.1`
+6. `docs/releases/<version>.md` 已通过 `npm run release:check -- <version>` 校验
+7. 仓库中不存在明显无意义的调试日志或演示性质的提交内容
+8. GitHub Release 已包含 `manifest.json`、`main.js`、`styles.css`
+9. GitHub Release 的 tag 与当前仓库约定一致，例如 `1.4.1`
 
 ## 提交到官方插件市场
 

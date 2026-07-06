@@ -16,6 +16,7 @@
 - [技术方案-网格排列.md](./技术方案-网格排列.md)：后续完整网格排列能力的设计方案
 - [技术方案-Canvas性能优化.md](./技术方案-Canvas性能优化.md)：大型 Canvas 卡顿问题的优化边界、已落地状态和后续路线
 - [技术实现-Obsidian官方上架与发布流程.md](./技术实现-Obsidian官方上架与发布流程.md)：官方插件市场提交流程、GitHub Release、本地构建同步和仓库提审清单
+- [releases/README.md](./releases/README.md)：中英逐行对照发布说明的模板、AI 拟稿提示词和校验方式
 
 ## 历史资料
 
