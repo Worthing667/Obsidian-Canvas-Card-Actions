@@ -77,7 +77,7 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	},
 	enableZoomControl: {
 		name: "在画布内显示缩放控件",
-		desc: "在画布底部显示缩放倍率控制条，包含滑块、百分比输入框和微调按钮。"
+		desc: "在画布底部显示 10%-200% 缩放倍率控制条，包含滑块、百分比输入框和微调按钮。"
 	}
 };
 

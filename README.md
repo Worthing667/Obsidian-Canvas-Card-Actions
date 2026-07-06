@@ -97,7 +97,7 @@ Search and replace text across all text cards on the current canvas or within a 
 - `Enable badges`: controls whether card badges are shown.
 - `Show edges above cards`: places Canvas connections above regular cards while keeping selected or edited cards above connections.
 - `Canvas label readability compensation`: controls how strongly edge labels and group titles resist Canvas zoom changes, with 100% keeping them near the default readable size.
-- `Show zoom control on canvas`: shows a slider, percentage input, and fine adjustment buttons inside Canvas.
+- `Show zoom control on canvas`: shows a 10%-200% zoom control inside Canvas, with a slider, percentage input, and fine adjustment buttons.
 - `Merge cleanup mode`: controls whether source cards are kept or deleted after creating a merged card.
 - `Canvas performance mode`: reduces Canvas Loom's additional rendering cost on large canvases and switches badges to compact dots at low zoom.
 - `Performance diagnostics`: logs Canvas Loom operation timing and Canvas statistics to the developer console.
@@ -145,6 +145,7 @@ Suggested reading:
 - `docs/功能-拆分Canvas卡片.md`
 - `docs/功能-卡片内容复制与排序.md`
 - `docs/功能-卡片标记.md`
+- `docs/功能-Canvas缩放控件.md`
 - `docs/功能-查看和编辑卡片属性.md`
 - `docs/功能-Canvas卡片查找替换.md`
 - `docs/技术实现细节.md`

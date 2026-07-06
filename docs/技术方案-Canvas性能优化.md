@@ -368,17 +368,18 @@ contain: strict;
 
 ### 2.3 缩放级别 LOD
 
-插件可以尝试读取 Canvas 缩放状态，但这很可能是私有字段。建议采用渐进策略：
+插件可以尝试读取 Canvas 缩放状态，但这很可能是私有字段。Obsidian Canvas 中 `scale` 才是实际倍率；`zoom` / `tZoom` 是内部对数值，语义为 `log2(scale)`。建议采用渐进策略：
 
 1. 优先观察 DOM 上是否已有缩放相关 class 或 style。
-2. 如果 Canvas runtime 暴露 `zoom` 或类似字段，再通过类型守卫读取。
-3. 如果无法稳定读取，不做 LOD。
+2. 如果 Canvas runtime 暴露 `scale`，优先通过类型守卫读取。
+3. 如果只能读取 `zoom` / `tZoom`，先用 `2 ** zoom` 转换为实际倍率。
+4. 如果无法稳定读取，不做 LOD。
 
 LOD 分级建议：
 
-- zoom >= 0.7：完整显示。
-- 0.3 <= zoom < 0.7：保留 badge 和卡片外观，减少 Canvas-Loom 自定义装饰。
-- zoom < 0.3：只保留 badge 或极简标记，隐藏非必要阴影和动画。
+- scale >= 0.7：完整显示。
+- 0.3 <= scale < 0.7：保留 badge 和卡片外观，减少 Canvas-Loom 自定义装饰。
+- scale < 0.3：只保留 badge 或极简标记，隐藏非必要阴影和动画。
 
 注意：
 
@@ -523,8 +524,15 @@ function getCanvasZoom(canvas: unknown): number | null {
         return null;
     }
 
-    const candidate = canvas as { zoom?: unknown };
-    return typeof candidate.zoom === "number" ? candidate.zoom : null;
+    const candidate = canvas as { scale?: unknown; tZoom?: unknown; zoom?: unknown };
+    if (typeof candidate.scale === "number" && candidate.scale > 0) {
+        return candidate.scale;
+    }
+
+    const internalZoom = typeof candidate.tZoom === "number"
+        ? candidate.tZoom
+        : candidate.zoom;
+    return typeof internalZoom === "number" ? 2 ** internalZoom : null;
 }
 ```
 

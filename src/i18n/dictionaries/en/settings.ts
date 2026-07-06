@@ -74,7 +74,7 @@ const settings = {
 	},
 	enableZoomControl: {
 		name: "Show zoom control on canvas",
-		desc: "Display a zoom control bar inside the canvas with a slider, percentage input, and fine adjustment buttons."
+		desc: "Display a 10%-200% zoom control inside the canvas with a slider, percentage input, and fine adjustment buttons."
 	}
 } as const;
 

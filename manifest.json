@@ -1,11 +1,10 @@
 {
 	"id": "canvas-loom",
 	"name": "Canvas Loom",
-	"version": "1.8.2",
+	"version": "1.8.3",
 	"minAppVersion": "1.13.0",
 	"description": "Split, sort, merge, preview, and clean up Canvas cards. Supports English and Simplified Chinese.",
 	"author": "沃辛",
 	"authorUrl": "",
-	"isDesktopOnly": false,
-	"clipboard": true
+	"isDesktopOnly": false
 }

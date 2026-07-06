@@ -13,6 +13,26 @@ test("Obsidian API 最低版本覆盖菜单图标接口", () => {
     assert.equal(manifest.minAppVersion, "1.13.0");
 });
 
+test("manifest 只声明 Obsidian 官方支持的字段", () => {
+    const manifest = JSON.parse(read("manifest.json")) as Record<string, unknown>;
+    const allowedFields = new Set([
+        "id",
+        "name",
+        "version",
+        "minAppVersion",
+        "description",
+        "author",
+        "authorUrl",
+        "fundingUrl",
+        "isDesktopOnly",
+    ]);
+
+    assert.deepEqual(
+        Object.keys(manifest).filter((key) => !allowedFields.has(key)),
+        []
+    );
+});
+
 test("源码使用跨窗口安全的 Obsidian DOM API", () => {
     const sourceFiles = [
         "src/adapters/StorageAdapter.ts",
