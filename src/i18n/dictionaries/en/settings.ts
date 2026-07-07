@@ -76,6 +76,10 @@ const settings = {
 		name: "Show zoom control on canvas",
 		desc: "Display a 10%-200% zoom control inside the canvas with a slider, percentage input, and fine adjustment buttons."
 	},
+	compatibilityWarning: {
+		name: "Compatibility reminder",
+		desc: "You are using the legacy settings view for older Obsidian versions. Newer Canvas Loom versions may require a newer Obsidian release; upgrade cautiously if the settings page cannot open after updating."
+	},
 	support: {
 		name: "Contact",
 		desc: "For questions or feedback, contact the developer.",

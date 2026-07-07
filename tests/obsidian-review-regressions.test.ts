@@ -7,10 +7,10 @@ function read(path: string): string {
     return readFileSync(resolve(path), "utf8");
 }
 
-test("Obsidian API 最低版本覆盖菜单图标接口", () => {
+test("manifest 保持旧版 Obsidian 可加载", () => {
     const manifest = JSON.parse(read("manifest.json")) as { minAppVersion: string };
 
-    assert.equal(manifest.minAppVersion, "1.13.0");
+    assert.equal(manifest.minAppVersion, "0.16.2");
 });
 
 test("manifest 只声明 Obsidian 官方支持的字段", () => {
@@ -65,6 +65,27 @@ test("审核指出的静态样式通过 Obsidian 样式 API 或 CSS 声明", () 
     assert.doesNotMatch(toolbarSource, /\.style\.right\s*=\s*["']auto["']/);
     assert.match(styles, /\.canvas-loom-global-fr-panel\s*\{[^}]*\bright:\s*auto;/s);
     assert.match(labelScaleSource, /\.setCssProps\(\{\s*\[ZOOM_MULTIPLIER_PROPERTY\]:\s*target\s*\}\)/);
+});
+
+test("设置页提供旧版 Obsidian display fallback 和升级风险提示", () => {
+    const settingsSource = read("src/settings/CanvasLoomSettingTab.ts");
+    const enSettings = read("src/i18n/dictionaries/en/settings.ts");
+    const zhSettings = read("src/i18n/dictionaries/zh-CN/settings.ts");
+
+    assert.match(settingsSource, /\bdisplay\(\): void\s*\{/);
+    assert.match(settingsSource, /settings\.compatibilityWarning\.name/);
+    assert.match(settingsSource, /settings\.compatibilityWarning\.desc/);
+    assert.match(enSettings, /compatibilityWarning/);
+    assert.match(zhSettings, /compatibilityWarning/);
+});
+
+test("设置页 fallback 不直接调用新版滑块 API", () => {
+    const settingsSource = read("src/settings/CanvasLoomSettingTab.ts");
+
+    assert.doesNotMatch(settingsSource, /slider\.setInstant\(/);
+    assert.doesNotMatch(settingsSource, /slider\.setDisplayFormat\(/);
+    assert.match(settingsSource, /setInstant\?\./);
+    assert.match(settingsSource, /setDisplayFormat\?\./);
 });
 
 test("审核指出的不必要类型断言不再出现", () => {

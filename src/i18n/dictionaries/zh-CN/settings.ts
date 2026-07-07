@@ -79,6 +79,10 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 		name: "在画布内显示缩放控件",
 		desc: "在画布底部显示 10%-200% 缩放倍率控制条，包含滑块、百分比输入框和微调按钮。"
 	},
+	compatibilityWarning: {
+		name: "兼容性提醒",
+		desc: "你正在使用适配旧版 Obsidian 的设置界面。后续 Canvas Loom 新版本可能要求更新的 Obsidian；如果升级后设置页打不开，请谨慎升级或先保留当前版本。"
+	},
 	support: {
 		name: "支持开发",
 		desc: "如果 Canvas Loom 对你有帮助，可以扫码支持开发。感谢你的使用。",

@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, type Setting, type SettingDefinitionItem } from "obsidian";
+import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from "obsidian";
 import alipaySupportImage from "../../docs/support/alipay.jpg";
 import wechatSupportImage from "../../docs/support/wechat.png";
 import type CanvasLoomPlugin from "../main";
@@ -15,6 +15,42 @@ import {
 	getSupportImageSource,
 	shouldShowSupportQRCodes,
 } from "./supportResources";
+
+type LegacySettingControl =
+	| {
+			type: "dropdown";
+			key: string;
+			options: Record<string, string>;
+	  }
+	| {
+			type: "text";
+			key: string;
+			placeholder?: string;
+	  }
+	| {
+			type: "number";
+			key: string;
+			placeholder?: string;
+			min?: number;
+			max?: number;
+			step?: number | "any";
+	  }
+	| {
+			type: "toggle";
+			key: string;
+	  };
+
+type LegacySettingDefinition = {
+	name: string;
+	desc?: string | DocumentFragment;
+	control?: LegacySettingControl;
+	render?: (setting: Setting, group: never) => void | (() => void);
+};
+
+type CompatibleSliderComponent = import("obsidian").SliderComponent & {
+	setInstant?: (instant: boolean) => import("obsidian").SliderComponent;
+	setDisplayFormat?: (format: (value: number) => string) => import("obsidian").SliderComponent;
+};
 
 export default class CanvasLoomSettingTab extends PluginSettingTab {
 	plugin: CanvasLoomPlugin;
@@ -67,7 +103,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 			case "language": {
 				this.plugin.settings.language = normalizeLanguageSetting(value);
 				await this.plugin.saveSettings();
-				this.update();
+				this.refreshSettingsTab();
 				return;
 			}
 			case "enableBadges":
@@ -93,7 +129,139 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 		}
 	}
 
+	private refreshSettingsTab(): void {
+		if (typeof this.update === "function") {
+			this.update();
+			return;
+		}
+
+		this.display();
+	}
+
+	private translate(key: TranslationKey, params?: TranslationParams): string {
+		return t(key, params, { settings: this.plugin.settings, app: this.app });
+	}
+
+	private getLegacySettingDefinitions(): LegacySettingDefinition[] {
+		return [
+			{
+				name: this.translate("settings.compatibilityWarning.name"),
+				desc: this.translate("settings.compatibilityWarning.desc"),
+			},
+			...(this.getSettingDefinitions() as LegacySettingDefinition[]),
+		];
+	}
+
+	private renderLegacySettingDefinition(containerEl: HTMLElement, definition: LegacySettingDefinition): void {
+		const setting = new Setting(containerEl)
+			.setName(definition.name)
+			.setDesc(definition.desc ?? "");
+
+		if (definition.render) {
+			definition.render(setting, undefined as never);
+			return;
+		}
+
+		if (!definition.control) {
+			return;
+		}
+
+		switch (definition.control.type) {
+			case "dropdown":
+				this.renderLegacyDropdown(setting, definition.control);
+				return;
+			case "text":
+				this.renderLegacyText(setting, definition.control);
+				return;
+			case "number":
+				this.renderLegacyNumber(setting, definition.control);
+				return;
+			case "toggle":
+				this.renderLegacyToggle(setting, definition.control);
+				return;
+		}
+	}
+
+	private renderLegacyDropdown(setting: Setting, control: Extract<LegacySettingControl, { type: "dropdown" }>): void {
+		setting.addDropdown((dropdown) => {
+			Object.entries(control.options).forEach(([value, label]) => {
+				dropdown.addOption(value, label);
+			});
+			dropdown
+				.setValue(String(this.getControlValue(control.key) ?? ""))
+				.onChange((value) => {
+					void this.setControlValue(control.key, value);
+				});
+		});
+	}
+
+	private renderLegacyText(setting: Setting, control: Extract<LegacySettingControl, { type: "text" }>): void {
+		setting.addText((text) => {
+			text
+				.setPlaceholder(control.placeholder ?? "")
+				.setValue(String(this.getControlValue(control.key) ?? ""))
+				.onChange((value) => {
+					void this.setControlValue(control.key, value);
+				});
+		});
+	}
+
+	private renderLegacyNumber(setting: Setting, control: Extract<LegacySettingControl, { type: "number" }>): void {
+		setting.addText((text) => {
+			text.inputEl.type = "number";
+			if (control.min !== undefined) {
+				text.inputEl.min = String(control.min);
+			}
+			if (control.max !== undefined) {
+				text.inputEl.max = String(control.max);
+			}
+			if (control.step !== undefined) {
+				text.inputEl.step = String(control.step);
+			}
+
+			text
+				.setPlaceholder(control.placeholder ?? "")
+				.setValue(String(this.getControlValue(control.key) ?? ""))
+				.onChange((value) => {
+					const parsed = Number(value);
+					if (!Number.isFinite(parsed)) {
+						return;
+					}
+					if (control.min !== undefined && parsed < control.min) {
+						return;
+					}
+					if (control.max !== undefined && parsed > control.max) {
+						return;
+					}
+
+					const nextValue = control.step === "any" ? parsed : Math.round(parsed);
+					void this.setControlValue(control.key, nextValue);
+				});
+		});
+	}
+
+	private renderLegacyToggle(setting: Setting, control: Extract<LegacySettingControl, { type: "toggle" }>): void {
+		setting.addToggle((toggle) => {
+			toggle
+				.setValue(Boolean(this.getControlValue(control.key)))
+				.onChange((value) => {
+					void this.setControlValue(control.key, value);
+				});
+		});
+	}
+
+	display(): void {
+		const { containerEl } = this;
+
+		containerEl.empty();
+		this.getLegacySettingDefinitions().forEach((definition) => {
+			this.renderLegacySettingDefinition(containerEl, definition);
+		});
+	}
+
 	private renderSupportSetting(setting: Setting): void {
+		setting.setClass("canvas-loom-support-setting");
+
 		const translate = (key: TranslationKey, params?: TranslationParams): string => {
 			return t(key, params, { settings: this.plugin.settings, app: this.app });
 		};
@@ -243,6 +411,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 					let updating = false;
 
 					setting.addSlider((slider) => {
+						const compatibleSlider = slider as CompatibleSliderComponent;
+
 						sliderComponent = slider;
 						slider.setLimits(
 							MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
@@ -250,8 +420,8 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 							1
 						);
 						slider.setValue(currentValue);
-						slider.setInstant(true);
-						slider.setDisplayFormat((value: number) => `${value}%`);
+						compatibleSlider.setInstant?.(true);
+						compatibleSlider.setDisplayFormat?.((value: number) => `${value}%`);
 						slider.onChange((value: number) => {
 							if (updating) return;
 							updating = true;
