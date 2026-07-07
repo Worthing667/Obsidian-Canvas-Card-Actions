@@ -27,12 +27,18 @@ test("设置页支持二维码尺寸足够扫码", () => {
 	const settingsSource = readFileSync("src/settings/CanvasLoomSettingTab.ts", "utf8");
 
 	assert.match(settingsSource, /setClass\("canvas-loom-support-setting"\)/);
+	assert.match(settingsSource, /itemEl\.createDiv\(\{ cls: "canvas-loom-support-qr-label"[\s\S]*?if \(imageSource\)/);
+	assert.match(settingsSource, /cls: "canvas-loom-support-qr-image-frame"/);
+	assert.match(settingsSource, /canvas-loom-support-qr-image-wechat/);
+	assert.match(settingsSource, /canvas-loom-support-qr-image-alipay/);
 	assert.match(styles, /\.canvas-loom-support-setting\s*\{[^}]*\bflex-direction:\s*column;[^}]*\balign-items:\s*stretch;/s);
 	assert.match(styles, /\.canvas-loom-support-setting\s+\.setting-item-info\s*\{[^}]*\bwidth:\s*100%;/s);
 	assert.match(styles, /\.canvas-loom-support-setting\s+\.setting-item-control\s*\{[^}]*\bwidth:\s*100%;/s);
-	assert.match(styles, /\.canvas-loom-support-qr-list\s*\{[^}]*\bgrid-template-columns:\s*repeat\(2,\s*240px\);/s);
+	assert.match(styles, /\.canvas-loom-support-qr-list\s*\{[^}]*\bgrid-template-columns:\s*repeat\(2,\s*minmax\(280px,\s*300px\)\);/s);
+	assert.match(styles, /\.canvas-loom-support-qr-list\s*\{[^}]*\bjustify-content:\s*start;/s);
 	assert.doesNotMatch(styles, /\.canvas-loom-support-qr-list\s*\{[^}]*\bflex-wrap:\s*wrap;/s);
-	assert.match(styles, /\.canvas-loom-support-qr\s*\{[^}]*\bwidth:\s*240px;/s);
-	assert.match(styles, /\.canvas-loom-support-qr-image\s*\{[^}]*\bwidth:\s*220px;[^}]*\bheight:\s*auto;/s);
-	assert.match(styles, /\.canvas-loom-support-qr-missing\s*\{[^}]*\bwidth:\s*220px;[^}]*\bheight:\s*220px;/s);
+	assert.match(styles, /\.canvas-loom-support-qr\s*\{[^}]*\bwidth:\s*300px;/s);
+	assert.match(styles, /\.canvas-loom-support-qr-image-frame\s*\{[^}]*\bwidth:\s*280px;[^}]*\bheight:\s*280px;/s);
+	assert.match(styles, /\.canvas-loom-support-qr-image\s*\{[^}]*\bposition:\s*absolute;/s);
+	assert.match(styles, /\.canvas-loom-support-qr-missing\s*\{[^}]*\bwidth:\s*280px;[^}]*\bheight:\s*280px;/s);
 });

@@ -47,6 +47,15 @@ type LegacySettingDefinition = {
 	render?: (setting: Setting, group: never) => void | (() => void);
 };
 
+type LegacySettingGroup = {
+	type: "group";
+	heading?: string;
+	cls?: string;
+	items?: LegacySettingDefinition[];
+};
+
+type LegacySettingItem = LegacySettingDefinition | LegacySettingGroup;
+
 type CompatibleSliderComponent = import("obsidian").SliderComponent & {
 	setInstant?: (instant: boolean) => import("obsidian").SliderComponent;
 	setDisplayFormat?: (format: (value: number) => string) => import("obsidian").SliderComponent;
@@ -142,14 +151,41 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 		return t(key, params, { settings: this.plugin.settings, app: this.app });
 	}
 
-	private getLegacySettingDefinitions(): LegacySettingDefinition[] {
+	private getLegacySettingDefinitions(): LegacySettingItem[] {
 		return [
 			{
 				name: this.translate("settings.compatibilityWarning.name"),
 				desc: this.translate("settings.compatibilityWarning.desc"),
 			},
-			...(this.getSettingDefinitions() as LegacySettingDefinition[]),
+			...(this.getSettingDefinitions() as LegacySettingItem[]),
 		];
+	}
+
+	private isLegacySettingGroup(definition: LegacySettingItem): definition is LegacySettingGroup {
+		return "type" in definition && definition.type === "group";
+	}
+
+	private renderLegacySettingGroup(containerEl: HTMLElement, group: LegacySettingGroup): void {
+		const groupEl = containerEl.createDiv({
+			cls: ["canvas-loom-setting-section", group.cls].filter(Boolean).join(" "),
+		});
+
+		if (group.heading) {
+			groupEl.createDiv({ cls: "canvas-loom-setting-section-heading", text: group.heading });
+		}
+
+		group.items?.forEach((definition) => {
+			this.renderLegacySettingDefinition(groupEl, definition);
+		});
+	}
+
+	private renderLegacySettingItem(containerEl: HTMLElement, definition: LegacySettingItem): void {
+		if (this.isLegacySettingGroup(definition)) {
+			this.renderLegacySettingGroup(containerEl, definition);
+			return;
+		}
+
+		this.renderLegacySettingDefinition(containerEl, definition);
 	}
 
 	private renderLegacySettingDefinition(containerEl: HTMLElement, definition: LegacySettingDefinition): void {
@@ -254,8 +290,9 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 
 		containerEl.empty();
+		containerEl.addClass("canvas-loom-settings-tab");
 		this.getLegacySettingDefinitions().forEach((definition) => {
-			this.renderLegacySettingDefinition(containerEl, definition);
+			this.renderLegacySettingItem(containerEl, definition);
 		});
 	}
 
@@ -289,21 +326,25 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 				label: translate("settings.support.wechat"),
 				alt: translate("settings.support.wechatAlt"),
 				source: wechatSupportImage,
+				imageClass: "canvas-loom-support-qr-image-wechat",
 			},
 			{
 				label: translate("settings.support.alipay"),
 				alt: translate("settings.support.alipayAlt"),
 				source: alipaySupportImage,
+				imageClass: "canvas-loom-support-qr-image-alipay",
 			},
 		];
 
 		assets.forEach((asset) => {
 			const itemEl = qrListEl.createDiv({ cls: "canvas-loom-support-qr" });
 			const imageSource = getSupportImageSource(asset.source);
+			itemEl.createDiv({ cls: "canvas-loom-support-qr-label", text: asset.label });
 
 			if (imageSource) {
-				itemEl.createEl("img", {
-					cls: "canvas-loom-support-qr-image",
+				const imageFrameEl = itemEl.createDiv({ cls: "canvas-loom-support-qr-image-frame" });
+				imageFrameEl.createEl("img", {
+					cls: `canvas-loom-support-qr-image ${asset.imageClass}`,
 					attr: {
 						src: imageSource,
 						alt: asset.alt,
@@ -316,8 +357,6 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 					text: translate("settings.support.assetMissing"),
 				});
 			}
-
-			itemEl.createDiv({ cls: "canvas-loom-support-qr-label", text: asset.label });
 		});
 	}
 
@@ -328,210 +367,245 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 
 		return [
 			{
-				name: translate("settings.language.name"),
-				desc: translate("settings.language.desc"),
-				control: {
-					type: "dropdown",
-					key: "language",
-					options: {
-						auto: translate("settings.language.option.auto"),
-						en: translate("settings.language.option.en"),
-						"zh-CN": translate("settings.language.option.zhCN"),
+				type: "group",
+				heading: translate("settings.sections.basic"),
+				cls: "canvas-loom-setting-section-basic",
+				items: [
+					{
+						name: translate("settings.language.name"),
+						desc: translate("settings.language.desc"),
+						control: {
+							type: "dropdown",
+							key: "language",
+							options: {
+								auto: translate("settings.language.option.auto"),
+								en: translate("settings.language.option.en"),
+								"zh-CN": translate("settings.language.option.zhCN"),
+							},
+						},
 					},
-				},
-			},
-			{
-				name: translate("settings.canvasCardDelimiter.name"),
-				desc: translate("settings.canvasCardDelimiter.desc"),
-				control: {
-					type: "text",
-					key: "canvasCardDelimiter",
-					placeholder: "---",
-				},
-			},
-			{
-				name: translate("settings.insertDelimiterOnMerge.name"),
-				desc: translate("settings.insertDelimiterOnMerge.desc"),
-				control: {
-					type: "toggle",
-					key: "insertDelimiterOnMerge",
-				},
-			},
-			{
-				name: translate("settings.splitCardsPerRow.name"),
-				desc: translate("settings.splitCardsPerRow.desc", {
-					min: MIN_SPLIT_CARDS_PER_ROW,
-					max: MAX_SPLIT_CARDS_PER_ROW,
-				}),
-				control: {
-					type: "number",
-					key: "splitCardsPerRow",
-					placeholder: "5",
-					min: MIN_SPLIT_CARDS_PER_ROW,
-					max: MAX_SPLIT_CARDS_PER_ROW,
-					step: 1,
-				},
-			},
-			{
-				name: translate("settings.sortPriority.name"),
-				desc: translate("settings.sortPriority.desc"),
-				control: {
-					type: "dropdown",
-					key: "sortPriority",
-					options: {
-						yx: translate("settings.sortPriority.option.yx"),
-						xy: translate("settings.sortPriority.option.xy"),
+					{
+						name: translate("settings.canvasCardDelimiter.name"),
+						desc: translate("settings.canvasCardDelimiter.desc"),
+						control: {
+							type: "text",
+							key: "canvasCardDelimiter",
+							placeholder: "---",
+						},
 					},
-				},
-			},
-			{
-				name: translate("settings.enableBadges.name"),
-				desc: translate("settings.enableBadges.desc"),
-				control: {
-					type: "toggle",
-					key: "enableBadges",
-				},
-			},
-			{
-				name: translate("settings.showEdgesAboveCards.name"),
-				desc: translate("settings.showEdgesAboveCards.desc"),
-				control: {
-					type: "toggle",
-					key: "showEdgesAboveCards",
-				},
-			},
-			{
-				name: translate("settings.canvasLabelZoomCompensation.name"),
-				desc: translate("settings.canvasLabelZoomCompensation.desc"),
-				render: (setting) => {
-					const currentValue = this.plugin.settings.canvasLabelZoomCompensation;
-
-					let sliderComponent: import("obsidian").SliderComponent;
-					let textComponent: import("obsidian").TextComponent;
-					let updating = false;
-
-					setting.addSlider((slider) => {
-						const compatibleSlider = slider as CompatibleSliderComponent;
-
-						sliderComponent = slider;
-						slider.setLimits(
-							MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
-							MAX_CANVAS_LABEL_ZOOM_COMPENSATION,
-							1
-						);
-						slider.setValue(currentValue);
-						compatibleSlider.setInstant?.(true);
-						compatibleSlider.setDisplayFormat?.((value: number) => `${value}%`);
-						slider.onChange((value: number) => {
-							if (updating) return;
-							updating = true;
-							textComponent.setValue(String(value));
-							updating = false;
-							void this.setControlValue("canvasLabelZoomCompensation", value);
-						});
-					});
-
-					setting.addText((text) => {
-						textComponent = text;
-						text.setValue(String(currentValue));
-						text.setPlaceholder("0-100");
-						text.inputEl.type = "number";
-						text.inputEl.min = String(MIN_CANVAS_LABEL_ZOOM_COMPENSATION);
-						text.inputEl.max = String(MAX_CANVAS_LABEL_ZOOM_COMPENSATION);
-						text.inputEl.step = "1";
-						text.inputEl.addClass("canvas-loom-setting-number-input");
-						text.onChange((value: string) => {
-							if (updating) return;
-							const parsed = parseInt(value, 10);
-							if (isNaN(parsed)) return;
-							const clamped = Math.max(
-								MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
-								Math.min(MAX_CANVAS_LABEL_ZOOM_COMPENSATION, parsed)
-							);
-							updating = true;
-							sliderComponent.setValue(clamped);
-							updating = false;
-							void this.setControlValue("canvasLabelZoomCompensation", clamped);
-						});
-					});
-				},
-			},
-			{
-				name: translate("settings.defaultSortMode.name"),
-				desc: translate("settings.defaultSortMode.desc"),
-				control: {
-					type: "dropdown",
-					key: "defaultSortMode",
-					options: {
-						position: translate("settings.defaultSortMode.option.position"),
-						badge: translate("settings.defaultSortMode.option.badge"),
+					{
+						name: translate("settings.insertDelimiterOnMerge.name"),
+						desc: translate("settings.insertDelimiterOnMerge.desc"),
+						control: {
+							type: "toggle",
+							key: "insertDelimiterOnMerge",
+						},
 					},
-				},
+				],
 			},
 			{
-				name: translate("settings.mergeCleanupMode.name"),
-				desc: translate("settings.mergeCleanupMode.desc"),
-				control: {
-					type: "dropdown",
-					key: "mergeCleanupMode",
-					options: {
-						"keep-source": translate("settings.mergeCleanupMode.option.keepSource"),
-						"delete-source": translate("settings.mergeCleanupMode.option.deleteSource"),
+				type: "group",
+				heading: translate("settings.sections.cardProcessing"),
+				cls: "canvas-loom-setting-section-card-processing",
+				items: [
+					{
+						name: translate("settings.splitCardsPerRow.name"),
+						desc: translate("settings.splitCardsPerRow.desc", {
+							min: MIN_SPLIT_CARDS_PER_ROW,
+							max: MAX_SPLIT_CARDS_PER_ROW,
+						}),
+						control: {
+							type: "number",
+							key: "splitCardsPerRow",
+							placeholder: "5",
+							min: MIN_SPLIT_CARDS_PER_ROW,
+							max: MAX_SPLIT_CARDS_PER_ROW,
+							step: 1,
+						},
 					},
-				},
+					{
+						name: translate("settings.sortPriority.name"),
+						desc: translate("settings.sortPriority.desc"),
+						control: {
+							type: "dropdown",
+							key: "sortPriority",
+							options: {
+								yx: translate("settings.sortPriority.option.yx"),
+								xy: translate("settings.sortPriority.option.xy"),
+							},
+						},
+					},
+					{
+						name: translate("settings.defaultSortMode.name"),
+						desc: translate("settings.defaultSortMode.desc"),
+						control: {
+							type: "dropdown",
+							key: "defaultSortMode",
+							options: {
+								position: translate("settings.defaultSortMode.option.position"),
+								badge: translate("settings.defaultSortMode.option.badge"),
+							},
+						},
+					},
+					{
+						name: translate("settings.mergeCleanupMode.name"),
+						desc: translate("settings.mergeCleanupMode.desc"),
+						control: {
+							type: "dropdown",
+							key: "mergeCleanupMode",
+							options: {
+								"keep-source": translate("settings.mergeCleanupMode.option.keepSource"),
+								"delete-source": translate("settings.mergeCleanupMode.option.deleteSource"),
+							},
+						},
+					},
+				],
 			},
 			{
-				name: translate("settings.enablePerformanceMode.name"),
-				desc: translate("settings.enablePerformanceMode.desc"),
-				control: {
-					type: "toggle",
-					key: "enablePerformanceMode",
-				},
+				type: "group",
+				heading: translate("settings.sections.canvasDisplay"),
+				cls: "canvas-loom-setting-section-canvas-display",
+				items: [
+					{
+						name: translate("settings.enableBadges.name"),
+						desc: translate("settings.enableBadges.desc"),
+						control: {
+							type: "toggle",
+							key: "enableBadges",
+						},
+					},
+					{
+						name: translate("settings.showEdgesAboveCards.name"),
+						desc: translate("settings.showEdgesAboveCards.desc"),
+						control: {
+							type: "toggle",
+							key: "showEdgesAboveCards",
+						},
+					},
+					{
+						name: translate("settings.canvasLabelZoomCompensation.name"),
+						desc: translate("settings.canvasLabelZoomCompensation.desc"),
+						render: (setting) => {
+							const currentValue = this.plugin.settings.canvasLabelZoomCompensation;
+
+							let sliderComponent: import("obsidian").SliderComponent;
+							let textComponent: import("obsidian").TextComponent;
+							let updating = false;
+
+							setting.addSlider((slider) => {
+								const compatibleSlider = slider as CompatibleSliderComponent;
+
+								sliderComponent = slider;
+								slider.setLimits(
+									MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
+									MAX_CANVAS_LABEL_ZOOM_COMPENSATION,
+									1
+								);
+								slider.setValue(currentValue);
+								compatibleSlider.setInstant?.(true);
+								compatibleSlider.setDisplayFormat?.((value: number) => `${value}%`);
+								slider.onChange((value: number) => {
+									if (updating) return;
+									updating = true;
+									textComponent.setValue(String(value));
+									updating = false;
+									void this.setControlValue("canvasLabelZoomCompensation", value);
+								});
+							});
+
+							setting.addText((text) => {
+								textComponent = text;
+								text.setValue(String(currentValue));
+								text.setPlaceholder("0-100");
+								text.inputEl.type = "number";
+								text.inputEl.min = String(MIN_CANVAS_LABEL_ZOOM_COMPENSATION);
+								text.inputEl.max = String(MAX_CANVAS_LABEL_ZOOM_COMPENSATION);
+								text.inputEl.step = "1";
+								text.inputEl.addClass("canvas-loom-setting-number-input");
+								text.onChange((value: string) => {
+									if (updating) return;
+									const parsed = parseInt(value, 10);
+									if (isNaN(parsed)) return;
+									const clamped = Math.max(
+										MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
+										Math.min(MAX_CANVAS_LABEL_ZOOM_COMPENSATION, parsed)
+									);
+									updating = true;
+									sliderComponent.setValue(clamped);
+									updating = false;
+									void this.setControlValue("canvasLabelZoomCompensation", clamped);
+								});
+							});
+						},
+					},
+					{
+						name: translate("settings.enableZoomControl.name"),
+						desc: translate("settings.enableZoomControl.desc"),
+						control: {
+							type: "toggle",
+							key: "enableZoomControl",
+						},
+					},
+				],
 			},
 			{
-				name: translate("settings.enablePerformanceDiagnostics.name"),
-				desc: translate("settings.enablePerformanceDiagnostics.desc"),
-				control: {
-					type: "toggle",
-					key: "enablePerformanceDiagnostics",
-				},
+				type: "group",
+				heading: translate("settings.sections.performance"),
+				cls: "canvas-loom-setting-section-performance",
+				items: [
+					{
+						name: translate("settings.enablePerformanceMode.name"),
+						desc: translate("settings.enablePerformanceMode.desc"),
+						control: {
+							type: "toggle",
+							key: "enablePerformanceMode",
+						},
+					},
+					{
+						name: translate("settings.largeCanvasNodeThreshold.name"),
+						desc: translate("settings.largeCanvasNodeThreshold.desc"),
+						control: {
+							type: "number",
+							key: "largeCanvasNodeThreshold",
+							placeholder: "80",
+							min: 1,
+							step: 1,
+						},
+					},
+					{
+						name: translate("settings.badgeUpdateDebounceMs.name"),
+						desc: translate("settings.badgeUpdateDebounceMs.desc"),
+						control: {
+							type: "number",
+							key: "badgeUpdateDebounceMs",
+							placeholder: "150",
+							min: 0,
+							step: 1,
+						},
+					},
+					{
+						name: translate("settings.enablePerformanceDiagnostics.name"),
+						desc: translate("settings.enablePerformanceDiagnostics.desc"),
+						control: {
+							type: "toggle",
+							key: "enablePerformanceDiagnostics",
+						},
+					},
+				],
 			},
 			{
-				name: translate("settings.largeCanvasNodeThreshold.name"),
-				desc: translate("settings.largeCanvasNodeThreshold.desc"),
-				control: {
-					type: "number",
-					key: "largeCanvasNodeThreshold",
-					placeholder: "80",
-					min: 1,
-					step: 1,
-				},
-			},
-			{
-				name: translate("settings.badgeUpdateDebounceMs.name"),
-				desc: translate("settings.badgeUpdateDebounceMs.desc"),
-				control: {
-					type: "number",
-					key: "badgeUpdateDebounceMs",
-					placeholder: "150",
-					min: 0,
-					step: 1,
-				},
-			},
-			{
-				name: translate("settings.enableZoomControl.name"),
-				desc: translate("settings.enableZoomControl.desc"),
-				control: {
-					type: "toggle",
-					key: "enableZoomControl",
-				},
-			},
-			{
-				name: translate("settings.support.name"),
-				desc: translate("settings.support.desc"),
-				render: (setting) => {
-					this.renderSupportSetting(setting);
-				},
+				type: "group",
+				heading: translate("settings.sections.support"),
+				cls: "canvas-loom-setting-section-support",
+				items: [
+					{
+						name: translate("settings.support.name"),
+						desc: translate("settings.support.desc"),
+						render: (setting) => {
+							this.renderSupportSetting(setting);
+						},
+					},
+				],
 			},
 		];
 	}

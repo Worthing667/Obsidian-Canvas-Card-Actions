@@ -2,6 +2,13 @@ import enSettings from "../en/settings";
 import type { WidenTranslationValues } from "../../types";
 
 const settings: WidenTranslationValues<typeof enSettings> = {
+	sections: {
+		basic: "基础设置",
+		cardProcessing: "卡片处理",
+		canvasDisplay: "画布显示",
+		performance: "性能与诊断",
+		support: "支持开发"
+	},
 	language: {
 		name: "语言",
 		desc: "选择 Canvas-Loom 的界面语言。",

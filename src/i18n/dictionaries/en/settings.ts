@@ -1,4 +1,11 @@
 const settings = {
+	sections: {
+		basic: "Basic settings",
+		cardProcessing: "Card processing",
+		canvasDisplay: "Canvas display",
+		performance: "Performance and diagnostics",
+		support: "Support"
+	},
 	language: {
 		name: "Language",
 		desc: "Choose the Canvas-Loom interface language.",
