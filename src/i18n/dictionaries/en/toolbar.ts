@@ -37,6 +37,11 @@ const toolbar = {
 			batchNumber: "Number cards...",
 			remove: "Remove {count} badges"
 		}
+	},
+	zoomControl: {
+		decrease: "Zoom out",
+		increase: "Zoom in",
+		percentage: "Zoom percentage"
 	}
 } as const;
 

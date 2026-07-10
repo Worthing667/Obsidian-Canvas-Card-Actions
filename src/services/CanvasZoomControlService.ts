@@ -1,4 +1,5 @@
 import { setIcon, View, type App, type EventRef } from "obsidian";
+import { t } from "../i18n";
 import type { Canvas } from "../types/canvas";
 
 type CanvasViewLike = {
@@ -34,12 +35,14 @@ export class CanvasZoomControlService {
 	private boundOnSliderInput: (e: Event) => void;
 	private boundOnInputChange: (e: Event) => void;
 	private boundOnInputBlur: (e: Event) => void;
+	private boundStopCanvasEvent: (e: Event) => void;
 
 	constructor(private app: Pick<App, "workspace">) {
 		this.boundOnStepClick = this.onStepClick.bind(this);
 		this.boundOnSliderInput = this.onSliderInput.bind(this);
 		this.boundOnInputChange = this.onInputChange.bind(this);
 		this.boundOnInputBlur = this.onInputBlur.bind(this);
+		this.boundStopCanvasEvent = (event) => event.stopPropagation();
 	}
 
 	// ============================================================
@@ -119,6 +122,10 @@ export class CanvasZoomControlService {
 		const doc = wrapperEl.ownerDocument;
 		this.controlEl = doc.createElement("div");
 		this.controlEl.className = "canvas-loom-zoom-control";
+		this.controlEl.addEventListener("mousedown", this.boundStopCanvasEvent);
+		this.controlEl.addEventListener("pointerdown", this.boundStopCanvasEvent);
+		this.controlEl.addEventListener("click", this.boundStopCanvasEvent);
+		this.controlEl.addEventListener("wheel", this.boundStopCanvasEvent);
 
 		const adjustGroup = doc.createElement("div");
 		adjustGroup.className = "canvas-loom-zoom-adjust";
@@ -127,8 +134,8 @@ export class CanvasZoomControlService {
 		const decBtn = doc.createElement("button");
 		decBtn.className = "canvas-loom-zoom-step";
 		decBtn.dataset.action = "decrease";
-		decBtn.ariaLabel = "Zoom out";
-		decBtn.title = "Zoom out";
+		decBtn.ariaLabel = t("toolbar.zoomControl.decrease");
+		decBtn.title = t("toolbar.zoomControl.decrease");
 		setIcon(decBtn, "minus");
 		decBtn.addEventListener("click", this.boundOnStepClick);
 		adjustGroup.appendChild(decBtn);
@@ -139,7 +146,7 @@ export class CanvasZoomControlService {
 		sliderEl.min = String(MIN_ZOOM_PERCENT);
 		sliderEl.max = String(MAX_ZOOM_PERCENT);
 		sliderEl.step = String(ZOOM_SLIDER_STEP_PERCENT);
-		sliderEl.ariaLabel = "Zoom percentage";
+		sliderEl.ariaLabel = t("toolbar.zoomControl.percentage");
 		sliderEl.addEventListener("input", this.boundOnSliderInput);
 		adjustGroup.appendChild(sliderEl);
 
@@ -153,7 +160,7 @@ export class CanvasZoomControlService {
 		inputEl.max = String(MAX_ZOOM_PERCENT);
 		inputEl.step = String(ZOOM_SLIDER_STEP_PERCENT);
 		inputEl.placeholder = `${MIN_ZOOM_PERCENT}-${MAX_ZOOM_PERCENT}`;
-		inputEl.ariaLabel = "Zoom percentage";
+		inputEl.ariaLabel = t("toolbar.zoomControl.percentage");
 		inputEl.addEventListener("change", this.boundOnInputChange);
 		inputEl.addEventListener("blur", this.boundOnInputBlur);
 		inputWrapEl.appendChild(inputEl);
@@ -168,8 +175,8 @@ export class CanvasZoomControlService {
 		const incBtn = doc.createElement("button");
 		incBtn.className = "canvas-loom-zoom-step";
 		incBtn.dataset.action = "increase";
-		incBtn.ariaLabel = "Zoom in";
-		incBtn.title = "Zoom in";
+		incBtn.ariaLabel = t("toolbar.zoomControl.increase");
+		incBtn.title = t("toolbar.zoomControl.increase");
 		setIcon(incBtn, "plus");
 		incBtn.addEventListener("click", this.boundOnStepClick);
 		adjustGroup.appendChild(incBtn);
@@ -189,6 +196,7 @@ export class CanvasZoomControlService {
 		}
 		this.currentWrapperEl = null;
 		this.currentCanvas = null;
+		this.clearRequestedZoom();
 	}
 
 	// ============================================================
@@ -480,7 +488,13 @@ export class CanvasZoomControlService {
 			return this.lastRequestedZoom;
 		}
 
-		return this.readZoomFromDOM(wrapperEl) ?? this.lastRequestedZoom ?? this.resolveZoom(canvas);
+		this.clearRequestedZoom();
+		return this.readZoomFromDOM(wrapperEl) ?? this.resolveZoom(canvas);
+	}
+
+	private clearRequestedZoom(): void {
+		this.lastRequestedZoom = null;
+		this.internalZoomDisplayLockUntil = 0;
 	}
 
 	private parsePercentZoom(value: string): number | null {

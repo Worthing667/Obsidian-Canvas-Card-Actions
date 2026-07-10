@@ -340,10 +340,10 @@ contain: strict;
 
 触发阈值：
 
-- 普通 Canvas：`zoom <= 0.6`
-- 大 Canvas：`zoom <= 0.8`
+- 普通 Canvas：实际倍率 `scale <= 0.6`
+- 大 Canvas：实际倍率 `scale <= 0.8`
 
-大 Canvas 判定复用 `largeCanvasNodeThreshold`。服务优先读取运行时 `canvas.nodes.size`，只有缺失时才兜底读取 `canvas.getData().nodes.length`，避免为持续缩放同步引入额外 Canvas 数据读取成本。
+缩放值优先读取运行时 `canvas.scale`；缺失时将内部对数值 `zoom` / `tZoom` 按 `2 ** value` 转换为实际倍率。大 Canvas 判定复用 `largeCanvasNodeThreshold`。服务优先读取运行时 `canvas.nodes.size`，只有缺失时才兜底读取 `canvas.getData().nodes.length`，避免为持续缩放同步引入额外 Canvas 数据读取成本。
 
 ### 2.3 content-visibility 实验
 

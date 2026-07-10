@@ -95,8 +95,22 @@ export class CanvasPerformanceModeService {
     }
 
     private resolveZoom(canvas: Canvas | undefined): number {
-        const zoom = canvas?.tZoom ?? canvas?.zoom ?? 1;
-        return Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+        const canvasScale = canvas?.scale;
+        if (
+            typeof canvasScale === "number"
+            && Number.isFinite(canvasScale)
+            && canvasScale > 0
+        ) {
+            return canvasScale;
+        }
+
+        const internalZoom = canvas?.tZoom ?? canvas?.zoom;
+        if (typeof internalZoom !== "number" || !Number.isFinite(internalZoom)) {
+            return 1;
+        }
+
+        const scale = 2 ** internalZoom;
+        return Number.isFinite(scale) && scale > 0 ? scale : 1;
     }
 
     private isLargeCanvas(canvas: Canvas | undefined): boolean {

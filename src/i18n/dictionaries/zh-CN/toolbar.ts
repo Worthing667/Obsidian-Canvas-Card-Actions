@@ -40,6 +40,11 @@ const toolbar: WidenTranslationValues<typeof enToolbar> = {
 			batchNumber: "批量编号...",
 			remove: "移除 {count} 个标记"
 		}
+	},
+	zoomControl: {
+		decrease: "缩小",
+		increase: "放大",
+		percentage: "缩放百分比"
 	}
 };
 

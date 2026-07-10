@@ -25,7 +25,13 @@ moduleLoader._resolveFilename = function (
 	return resolveFilename.call(this, request, parent, isMain, options);
 };
 
-type Listener = (event: { currentTarget: MockElement }) => void;
+type MockEvent = {
+	currentTarget: MockElement;
+	preventDefault(): void;
+	stopPropagation(): void;
+};
+
+type Listener = (event: MockEvent) => void;
 
 function assertApproxEqual(actual: number | undefined, expected: number): void {
 	assert.ok(actual !== undefined);
@@ -120,10 +126,20 @@ class MockElement {
 		this.listeners.set(type, listeners);
 	}
 
-	dispatch(type: string): void {
-		(this.listeners.get(type) || []).forEach((listener) => {
-			listener({ currentTarget: this });
-		});
+	dispatch(type: string): { defaultPrevented: boolean; propagationStopped: boolean } {
+		let defaultPrevented = false;
+		let propagationStopped = false;
+		const event: MockEvent = {
+			currentTarget: this,
+			preventDefault: () => {
+				defaultPrevented = true;
+			},
+			stopPropagation: () => {
+				propagationStopped = true;
+			},
+		};
+		(this.listeners.get(type) || []).forEach((listener) => listener(event));
+		return { defaultPrevented, propagationStopped };
 	}
 
 	querySelector(selector: string): MockElement | null {
@@ -224,10 +240,16 @@ function createHarness(options: {
 			viewportCalls.push({ tx, ty, zoom, scale: canvas.scale });
 		},
 	};
-	const activeView = { canvas };
+	let activeView: { canvas: typeof canvas } = { canvas };
+	let activeLeafChangeHandler: (() => void) | undefined;
 	const app = {
 		workspace: {
-			on: () => ({}),
+			on: (eventName: string, callback: () => void) => {
+				if (eventName === "active-leaf-change") {
+					activeLeafChangeHandler = callback;
+				}
+				return {};
+			},
 			offref: () => undefined,
 			getActiveViewOfType: () => activeView,
 		},
@@ -253,9 +275,16 @@ function createHarness(options: {
 
 	return {
 		control,
+		doc,
+		canvas,
+		service,
 		viewport,
 		viewportCalls,
 		getMarkViewportChangedCalls: () => markViewportChangedCalls,
+		activateCanvas: (nextCanvas: typeof canvas) => {
+			activeView = { canvas: nextCanvas };
+			activeLeafChangeHandler?.();
+		},
 		runNextTimer: () => timers.shift()?.(),
 	};
 }
@@ -357,4 +386,100 @@ test("内部拖动缩放期间不被 DOM 动画中间值写回", () => {
 
 	assert.equal(slider.value, "10");
 	assert.equal(input.value, "10");
+});
+
+test("切换 Canvas 后步进按钮以新画布的倍率为基准", () => {
+	const { control, doc, activateCanvas } = createHarness({ initialZoom: 1 });
+	const input = control.querySelector(".canvas-loom-zoom-input");
+	assert.ok(input);
+
+	input.value = "150";
+	input.dispatch("change");
+
+	const secondWrapper = new MockElement(doc);
+	const secondViewportCalls: Array<{ tx: number; ty: number; zoom: number; scale: number }> = [];
+	const secondCanvas = {
+		tx: 0,
+		ty: 0,
+		zoom: Math.log2(0.8),
+		tZoom: Math.log2(0.8),
+		scale: 0.8,
+		wrapperEl: secondWrapper,
+		getData: () => ({ nodes: [], edges: [] }),
+		setData: () => undefined,
+		requestSave: () => undefined,
+		requestFrame: () => undefined,
+		markViewportChanged: () => undefined,
+		setViewport: (tx: number, ty: number, zoom: number) => {
+			secondCanvas.tx = tx;
+			secondCanvas.ty = ty;
+			secondCanvas.zoom = zoom;
+			secondCanvas.tZoom = zoom;
+			secondCanvas.scale = 2 ** zoom;
+			secondViewportCalls.push({ tx, ty, zoom, scale: secondCanvas.scale });
+		},
+	};
+
+	activateCanvas(secondCanvas);
+	const increaseButton = secondWrapper.querySelectorAll(".canvas-loom-zoom-step")
+		.find((button) => button.dataset.action === "increase");
+	assert.ok(increaseButton);
+
+	increaseButton.dispatch("click");
+
+	assertApproxEqual(secondViewportCalls.at(-1)?.scale, 0.9);
+});
+
+test("内部缩放锁结束后会采用 Canvas 的最新原生倍率", () => {
+	const { control, canvas, service, runNextTimer } = createHarness({ initialZoom: 1 });
+	const input = control.querySelector(".canvas-loom-zoom-input");
+	const slider = control.querySelector(".canvas-loom-zoom-slider");
+	assert.ok(input);
+	assert.ok(slider);
+
+	input.value = "150";
+	input.dispatch("change");
+	canvas.scale = 0.8;
+	canvas.zoom = Math.log2(0.8);
+	canvas.tZoom = Math.log2(0.8);
+
+	// 让下一次轮询模拟内部缩放动画已经结束。
+	(service as any).internalZoomDisplayLockUntil = 0;
+	runNextTimer();
+
+	assert.equal(slider.value, "80");
+});
+
+test("缩放控件隔离会被 Canvas 处理的鼠标事件", () => {
+	const { control } = createHarness({ initialZoom: 1 });
+
+	assert.equal(control.dispatch("mousedown").propagationStopped, true);
+	assert.equal(control.dispatch("pointerdown").propagationStopped, true);
+	assert.equal(control.dispatch("click").propagationStopped, true);
+});
+
+test("缩放控件在中文界面使用本地化无障碍文案", () => {
+	const { clearTranslationRuntimeContext, configureTranslationRuntimeContext } =
+		require("../src/i18n");
+	configureTranslationRuntimeContext({
+		getSettings: () => ({ language: "zh-CN" }),
+	});
+
+	try {
+		const { control } = createHarness({ initialZoom: 1 });
+		const decreaseButton = control.querySelectorAll(".canvas-loom-zoom-step")
+			.find((button) => button.dataset.action === "decrease");
+		const increaseButton = control.querySelectorAll(".canvas-loom-zoom-step")
+			.find((button) => button.dataset.action === "increase");
+		const slider = control.querySelector(".canvas-loom-zoom-slider");
+		assert.ok(decreaseButton);
+		assert.ok(increaseButton);
+		assert.ok(slider);
+
+		assert.equal((decreaseButton as any).ariaLabel, "缩小");
+		assert.equal((increaseButton as any).title, "放大");
+		assert.equal((slider as any).ariaLabel, "缩放百分比");
+	} finally {
+		clearTranslationRuntimeContext();
+	}
 });
