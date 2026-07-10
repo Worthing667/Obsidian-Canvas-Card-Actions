@@ -8,6 +8,7 @@ import type { FindReplaceWorkbenchContext, MergeWorkbenchContext, WorkbenchPanel
 import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
 import { PerformanceService } from "./PerformanceService";
 import { SearchReplaceScope, SearchReplaceService } from "./SearchReplaceService";
+import { fitTextCardsToHeight } from "./CanvasAutoFitService";
 import { t } from "../i18n";
 import type { MergeCleanupMode } from "../settings/ICanvasLoomSettings";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
@@ -78,6 +79,7 @@ export class MergeService implements IMergeService {
             selection.length,
             cleanupMode
         );
+        this.autoFitMergedNodeHeight(this.canvasAdapter, nodeData.id);
         await this.canvasAdapter.requestSave();
         new Notice(t("notice.mergedToCanvasCard", { count: result.count }));
         return true;
@@ -346,6 +348,7 @@ export class MergeService implements IMergeService {
             cleanupMode,
             { canvasFilePath: canvasFilePath || 'active' }
         );
+        this.autoFitMergedNodeHeight(adapter, nodeData.id);
         await adapter.requestSave();
         new Notice(t("notice.mergedToCanvasCard", { count: result.count }));
         return true;
@@ -440,6 +443,23 @@ export class MergeService implements IMergeService {
                 : canvasData.edges;
             canvasData.nodes.push(nodeData);
         }));
+    }
+
+    private autoFitMergedNodeHeight(adapter: ICanvasAdapter, nodeId: string): void {
+        if (typeof adapter.findNodeById !== "function") {
+            return;
+        }
+
+        const node = adapter.findNodeById(nodeId);
+        if (!node) {
+            return;
+        }
+
+        try {
+            fitTextCardsToHeight([node]);
+        } catch (error) {
+            console.warn("Failed to auto-fit merged card height:", error);
+        }
     }
 
     private async getOrderedSnapshots(snapshots: CardSnapshot[], options?: MergeExecutionOptions): Promise<CardSnapshot[]> {

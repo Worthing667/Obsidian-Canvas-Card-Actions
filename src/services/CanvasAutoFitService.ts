@@ -19,7 +19,13 @@ export async function fitSelectedTextCardsToHeight(canvas: Canvas): Promise<FitS
         throw new Error(t("errors.autoHeightEditing"));
     }
 
-    const autoHeightNodes = getSelectedAutoHeightNodes(canvas.selection);
+    const result = fitTextCardsToHeight(getSelectedAutoHeightNodes(canvas.selection));
+    await canvas.requestSave();
+    return result;
+}
+
+export function fitTextCardsToHeight(nodes: CanvasNode[]): FitSelectedTextCardsResult {
+    const autoHeightNodes = nodes.filter((node) => isAutoHeightNode(node) && !isCanvasNodeEditing(node));
     if (autoHeightNodes.length === 0) {
         throw new Error(t("errors.autoHeightNoCards"));
     }
@@ -40,7 +46,6 @@ export async function fitSelectedTextCardsToHeight(canvas: Canvas): Promise<FitS
         throw new Error(t("errors.autoHeightUnsupported"));
     }
 
-    await canvas.requestSave();
     return { count: fittedCount };
 }
 
