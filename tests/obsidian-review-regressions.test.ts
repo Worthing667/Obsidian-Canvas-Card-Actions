@@ -8,8 +8,9 @@ function read(path: string): string {
 }
 
 test("manifest 保持旧版 Obsidian 可加载", () => {
-    const manifest = JSON.parse(read("manifest.json")) as { minAppVersion: string };
+    const manifest = JSON.parse(read("manifest.json")) as { minAppVersion: string; version: string };
 
+    assert.equal(manifest.version, "1.8.6");
     assert.equal(manifest.minAppVersion, "0.16.2");
 });
 
@@ -77,15 +78,19 @@ test("设置页提供旧版 Obsidian display fallback 和升级风险提示", ()
     assert.match(settingsSource, /settings\.compatibilityWarning\.desc/);
     assert.match(enSettings, /compatibilityWarning/);
     assert.match(zhSettings, /compatibilityWarning/);
+    assert.match(
+        zhSettings,
+        /Canvas Loom 当前正在兼容旧版 Obsidian。Obsidian 1\.13\.0 起设置界面相关 API 有变化，更新 Obsidian 到 1\.13\.0 或更高版本后，Canvas Loom 的设置界面可能无法正常显示。若当前使用正常，请谨慎更新 Obsidian。Canvas Loom 将在一个月后评估并适配新版 Obsidian。/
+    );
 });
 
-test("设置页 fallback 不直接调用新版滑块 API", () => {
+test("设置页源码不静态引用高于 minAppVersion 的设置 API", () => {
     const settingsSource = read("src/settings/CanvasLoomSettingTab.ts");
 
-    assert.doesNotMatch(settingsSource, /slider\.setInstant\(/);
-    assert.doesNotMatch(settingsSource, /slider\.setDisplayFormat\(/);
-    assert.match(settingsSource, /setInstant\?\./);
-    assert.match(settingsSource, /setDisplayFormat\?\./);
+    assert.doesNotMatch(settingsSource, /\bgetSettingDefinitions\b/);
+    assert.doesNotMatch(settingsSource, /\bthis\.update\b/);
+    assert.doesNotMatch(settingsSource, /\bsetInstant\b/);
+    assert.doesNotMatch(settingsSource, /\bsetDisplayFormat\b/);
 });
 
 test("审核指出的不必要类型断言不再出现", () => {

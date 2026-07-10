@@ -85,7 +85,7 @@ const settings = {
 	},
 	compatibilityWarning: {
 		name: "Compatibility reminder",
-		desc: "You are using the legacy settings view for older Obsidian versions. Newer Canvas Loom versions may require a newer Obsidian release; upgrade cautiously if the settings page cannot open after updating."
+		desc: "Canvas Loom is currently maintaining compatibility with older Obsidian versions. Obsidian 1.13.0 introduced changes to settings-related APIs, so after updating Obsidian to 1.13.0 or later, the Canvas Loom settings page may not display correctly. If Canvas Loom currently works for you, update Obsidian cautiously. Canvas Loom will evaluate and adapt to newer Obsidian versions in one month."
 	},
 	support: {
 		name: "Contact",

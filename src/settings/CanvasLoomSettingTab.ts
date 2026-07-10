@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import alipaySupportImage from "../../docs/support/alipay.jpg";
 import wechatSupportImage from "../../docs/support/wechat.png";
 import type CanvasLoomPlugin from "../main";
@@ -55,11 +55,6 @@ type LegacySettingGroup = {
 };
 
 type LegacySettingItem = LegacySettingDefinition | LegacySettingGroup;
-
-type CompatibleSliderComponent = import("obsidian").SliderComponent & {
-	setInstant?: (instant: boolean) => import("obsidian").SliderComponent;
-	setDisplayFormat?: (format: (value: number) => string) => import("obsidian").SliderComponent;
-};
 
 export default class CanvasLoomSettingTab extends PluginSettingTab {
 	plugin: CanvasLoomPlugin;
@@ -139,11 +134,6 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 	}
 
 	private refreshSettingsTab(): void {
-		if (typeof this.update === "function") {
-			this.update();
-			return;
-		}
-
 		this.display();
 	}
 
@@ -152,13 +142,7 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 	}
 
 	private getLegacySettingDefinitions(): LegacySettingItem[] {
-		return [
-			{
-				name: this.translate("settings.compatibilityWarning.name"),
-				desc: this.translate("settings.compatibilityWarning.desc"),
-			},
-			...(this.getSettingDefinitions() as LegacySettingItem[]),
-		];
+		return this.getLegacySettingItems();
 	}
 
 	private isLegacySettingGroup(definition: LegacySettingItem): definition is LegacySettingGroup {
@@ -360,12 +344,16 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 		});
 	}
 
-	getSettingDefinitions(): SettingDefinitionItem[] {
+	private getLegacySettingItems(): LegacySettingItem[] {
 		const translate = (key: TranslationKey, params?: TranslationParams): string => {
 			return t(key, params, { settings: this.plugin.settings, app: this.app });
 		};
 
 		return [
+			{
+				name: translate("settings.compatibilityWarning.name"),
+				desc: translate("settings.compatibilityWarning.desc"),
+			},
 			{
 				type: "group",
 				heading: translate("settings.sections.basic"),
@@ -493,8 +481,6 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 							let updating = false;
 
 							setting.addSlider((slider) => {
-								const compatibleSlider = slider as CompatibleSliderComponent;
-
 								sliderComponent = slider;
 								slider.setLimits(
 									MIN_CANVAS_LABEL_ZOOM_COMPENSATION,
@@ -502,8 +488,6 @@ export default class CanvasLoomSettingTab extends PluginSettingTab {
 									1
 								);
 								slider.setValue(currentValue);
-								compatibleSlider.setInstant?.(true);
-								compatibleSlider.setDisplayFormat?.((value: number) => `${value}%`);
 								slider.onChange((value: number) => {
 									if (updating) return;
 									updating = true;

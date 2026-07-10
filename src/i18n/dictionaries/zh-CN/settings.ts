@@ -88,7 +88,7 @@ const settings: WidenTranslationValues<typeof enSettings> = {
 	},
 	compatibilityWarning: {
 		name: "兼容性提醒",
-		desc: "你正在使用适配旧版 Obsidian 的设置界面。后续 Canvas Loom 新版本可能要求更新的 Obsidian；如果升级后设置页打不开，请谨慎升级或先保留当前版本。"
+		desc: "Canvas Loom 当前正在兼容旧版 Obsidian。Obsidian 1.13.0 起设置界面相关 API 有变化，更新 Obsidian 到 1.13.0 或更高版本后，Canvas Loom 的设置界面可能无法正常显示。若当前使用正常，请谨慎更新 Obsidian。Canvas Loom 将在一个月后评估并适配新版 Obsidian。"
 	},
 	support: {
 		name: "支持开发",
