@@ -52,13 +52,40 @@ function getPreviewBackgroundColor(previewElement: HTMLElement): string | undefi
     return view.getComputedStyle(previewElement).backgroundColor || undefined;
 }
 
+function parsePixelValue(value: string | undefined): number {
+    const parsed = Number.parseFloat(value || "0");
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getFullPreviewSize(previewElement: HTMLElement): { width: number; height: number } {
+    const view = previewElement.ownerDocument?.defaultView;
+    const style = view?.getComputedStyle(previewElement);
+    const horizontalBorder = parsePixelValue(style?.borderLeftWidth)
+        + parsePixelValue(style?.borderRightWidth);
+    const verticalBorder = parsePixelValue(style?.borderTopWidth)
+        + parsePixelValue(style?.borderBottomWidth);
+
+    return {
+        width: Math.max(previewElement.clientWidth, previewElement.scrollWidth) + horizontalBorder,
+        height: Math.max(previewElement.clientHeight, previewElement.scrollHeight) + verticalBorder,
+    };
+}
+
 export class HtmlToImageWorkbenchRenderer implements IWorkbenchImageRenderer {
     constructor(private renderToBlob: RenderToBlob = toBlob) {}
 
     async render(previewElement: HTMLElement): Promise<ArrayBuffer> {
+        const { width, height } = getFullPreviewSize(previewElement);
         const blob = await this.renderToBlob(previewElement, {
             backgroundColor: getPreviewBackgroundColor(previewElement),
             filter: shouldIncludePreviewNode,
+            width,
+            height,
+            style: {
+                flex: "none",
+                maxHeight: "none",
+                overflow: "visible",
+            },
             pixelRatio: 2,
             skipFonts: true,
             cacheBust: false,

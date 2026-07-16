@@ -56,6 +56,48 @@ test("工作台图片渲染器允许 html-to-image 过滤文本节点", async ()
   assert.equal(imageData.byteLength, 3);
 });
 
+test("工作台图片渲染器展开完整预览内容且不导出滚动条", async () => {
+  const { HtmlToImageWorkbenchRenderer } = await import(
+    "../src/services/WorkbenchImageExportService"
+  );
+  const previewElement = {
+    clientWidth: 300,
+    clientHeight: 200,
+    scrollWidth: 300,
+    scrollHeight: 800,
+    ownerDocument: {
+      defaultView: {
+        getComputedStyle: () => ({
+          backgroundColor: "#ffffff",
+          borderLeftWidth: "1px",
+          borderRightWidth: "1px",
+          borderTopWidth: "1px",
+          borderBottomWidth: "1px",
+        }),
+      },
+    },
+  } as unknown as HTMLElement;
+  let receivedOptions:
+    | {
+        width?: number;
+        height?: number;
+        style?: Partial<CSSStyleDeclaration>;
+      }
+    | undefined;
+  const renderer = new HtmlToImageWorkbenchRenderer(async (_node, options) => {
+    receivedOptions = options;
+    return new Blob([new Uint8Array([1])], { type: "image/png" });
+  });
+
+  await renderer.render(previewElement);
+
+  assert.equal(receivedOptions?.width, 302);
+  assert.equal(receivedOptions?.height, 802);
+  assert.equal(receivedOptions?.style?.overflow, "visible");
+  assert.equal(receivedOptions?.style?.maxHeight, "none");
+  assert.equal(receivedOptions?.style?.flex, "none");
+});
+
 test("图片导出只作为工作台预览的输出动作", () => {
   const mainSource = read("src/main.ts");
   const workbenchSource = read("src/presentation/views/MergeWorkbenchView.ts");
