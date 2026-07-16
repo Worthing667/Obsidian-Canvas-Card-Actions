@@ -38,6 +38,8 @@ export interface OpenWorkbenchOptions {
     cardSeparator?: string | null;
 }
 
+export type ImageExportFolderPicker = (canvasFile: TFile) => Promise<string | null>;
+
 export interface IMergeService {
     mergeToCanvasCard(selection: CanvasNode[], options?: MergeExecutionOptions): Promise<boolean>;
     mergeToSidebar(selection: CanvasNode[], canvasFile: TFile | null, options?: MergeExecutionOptions): Promise<boolean>;
@@ -63,12 +65,16 @@ export class MergeService implements IMergeService {
         private getMergeCleanupMode?: () => MergeCleanupMode,
         private getMergeCardSeparator?: () => string | null,
         workbenchImageExportService?: IWorkbenchImageExportService,
+        imageExportFolderPicker?: ImageExportFolderPicker,
     ) {
         this.workbenchImageExportService = workbenchImageExportService || new WorkbenchImageExportService(
             new HtmlToImageWorkbenchRenderer(),
             this.vaultAdapter,
         );
+        this.imageExportFolderPicker = imageExportFolderPicker || (async (canvasFile) => canvasFile.parent?.path || "");
     }
+
+    private readonly imageExportFolderPicker: ImageExportFolderPicker;
 
     async mergeToCanvasCard(selection: CanvasNode[], options?: MergeExecutionOptions): Promise<boolean> {
         const result = await this.buildMergeContent("canvas-card", { selection }, options);
@@ -302,11 +308,17 @@ export class MergeService implements IMergeService {
                     return;
                 }
 
+                const outputFolderPath = await this.imageExportFolderPicker(canvasFile);
+                if (outputFolderPath === null) {
+                    return;
+                }
+
                 try {
                     const file = await this.workbenchImageExportService.exportPreview(
                         previewElement,
                         canvasFile,
                         currentState.selectionSnapshot.length,
+                        outputFolderPath,
                     );
                     new Notice(t("notice.workbenchPreviewImageExported", {
                         count: currentState.selectionSnapshot.length,

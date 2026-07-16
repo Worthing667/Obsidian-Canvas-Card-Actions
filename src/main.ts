@@ -1,4 +1,4 @@
-import { Menu, Plugin, TFile, View, WorkspaceLeaf } from 'obsidian';
+import { Menu, Plugin, TFile, TFolder, View, WorkspaceLeaf } from 'obsidian';
 import CanvasLoomSettings, {
     DEFAULT_LANGUAGE,
     DEFAULT_SPLIT_CARDS_PER_ROW,
@@ -21,7 +21,10 @@ import {
     CanvasLabelScaleService,
     CanvasPerformanceModeService,
     CanvasZoomControlService,
-    SearchReplaceService
+    SearchReplaceService,
+    HtmlToImageWorkbenchRenderer,
+    WorkbenchImageExportService,
+    type IWorkbenchImageExportService
 } from './services';
 import {
     CommandRegistry,
@@ -39,9 +42,10 @@ import {
     QuickCopyCommand,
     QuickMergeCommand,
     OpenFindReplaceWorkbenchCommand,
+    ExportSingleCardAsImageCommand,
     ICommand
 } from './presentation/commands';
-import { BadgeModal, BatchBadgeModal } from './presentation/modals';
+import { BadgeModal, BatchBadgeModal, pickImageExportFolder } from './presentation/modals';
 import { MergeWorkbenchView, MERGE_PREVIEW_VIEW_TYPE } from './presentation/views';
 import { OpenCardPropertiesCommand, CopyCardDimensionsCommand } from "./presentation/commands/PropertiesCommands";
 import type { Canvas, CanvasNode } from "./types/canvas";
@@ -97,6 +101,7 @@ export default class CanvasLoomPlugin extends Plugin {
     private canvasZoomControlService: CanvasZoomControlService;
     private commandRegistry: CommandRegistry;
     private vaultAdapter: VaultAdapter;
+    private workbenchImageExportService: IWorkbenchImageExportService;
     private canvasEdgeLayerRefreshTimeout: number | null = null;
     private canvasEdgeLayerInteractionObserver: MutationObserver | null = null;
     private canvasEdgeLayerObservedRootEl: HTMLElement | null = null;
@@ -116,6 +121,10 @@ export default class CanvasLoomPlugin extends Plugin {
         this.clipboardAdapter = new ClipboardAdapter();
         this.storageAdapter = new StorageAdapter(this, DEFAULT_SETTINGS);
         this.vaultAdapter = new VaultAdapter(this.app);
+        this.workbenchImageExportService = new WorkbenchImageExportService(
+            new HtmlToImageWorkbenchRenderer(),
+            this.vaultAdapter,
+        );
 
         await this.loadSettings();
         configureTranslationRuntimeContext({
@@ -271,7 +280,9 @@ export default class CanvasLoomPlugin extends Plugin {
                 searchReplaceService,
                 this.performanceService,
                 () => this.settings.mergeCleanupMode,
-                () => resolveMergeCardSeparator(this.settings)
+                () => resolveMergeCardSeparator(this.settings),
+                this.workbenchImageExportService,
+                (canvasFile) => this.selectImageExportFolder(canvasFile),
             )
         };
 
@@ -314,6 +325,22 @@ export default class CanvasLoomPlugin extends Plugin {
             const copyCommand = new CopySingleCardCommand(this.contentService, node, this.settings);
             this.commandRegistry.registerCommand('copy-single-card', copyCommand);
             this.commandRegistry.addCommandToMenu(menu, 'copy-single-card', this.translate("menu.copyCardContent"), 'copy');
+        }
+
+        if (isTextNodeData(node.getData?.())) {
+            const exportCommand = new ExportSingleCardAsImageCommand(
+                this.workbenchImageExportService,
+                node,
+                node.canvas ? this.resolveCanvasFileForCanvas(node.canvas) : null,
+                (canvasFile) => this.selectImageExportFolder(canvasFile),
+            );
+            this.commandRegistry.registerCommand("export-single-card-as-image", exportCommand);
+            this.commandRegistry.addCommandToMenu(
+                menu,
+                "export-single-card-as-image",
+                this.translate("menu.exportCardAsImage"),
+                "image",
+            );
         }
 
         if (isTextNodeData(node.getData?.()) && this.colorGroupService) {
@@ -416,6 +443,22 @@ export default class CanvasLoomPlugin extends Plugin {
 
         const file = leaf?.view?.file || this.app.workspace.getActiveFile();
         return file instanceof TFile && file.extension === "canvas" ? file : null;
+    }
+
+    private selectImageExportFolder(canvasFile: TFile): Promise<string | null> {
+        const foldersByPath = new Map<string, TFolder>();
+        foldersByPath.set("", this.app.vault.getRoot());
+        for (const file of this.app.vault.getAllLoadedFiles()) {
+            if (file instanceof TFolder) {
+                foldersByPath.set(file.path, file);
+            }
+        }
+
+        return pickImageExportFolder(
+            this.app,
+            Array.from(foldersByPath.values()),
+            canvasFile.parent?.path || "",
+        );
     }
 
     registerCanvasEvents() {

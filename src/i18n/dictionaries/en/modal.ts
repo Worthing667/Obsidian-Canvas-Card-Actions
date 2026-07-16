@@ -11,6 +11,11 @@ const modal = {
 		emptyCard: "[Empty]",
 		emptyCardTitle: "Empty card"
 	},
+	folderPicker: {
+		placeholder: "Choose an export folder",
+		empty: "No matching folders",
+		root: "Vault root"
+	},
 	badge: {
 		title: "Set number",
 		label: "Number:",

@@ -64,7 +64,7 @@ Demo video: [Auto-fit card height and arrange spacing](Demo/自适应高度_调�
 
 ### Export Card Images
 
-In the Loom workspace Preview panel, select **Export image** to save the current preview as a PNG. The image uses the workspace's current card order, separator, and preview text rather than a screenshot of Canvas positions, and is saved beside the current `.canvas` file.
+Right-click a single text card and choose **Export card as image** to export it as a PNG. In the Loom workspace Preview panel, **Export image** exports the current preview after you choose a folder in the current vault. Preview exports use the workspace's current card order, separator, and preview text rather than a screenshot of Canvas positions.
 
 ### Find & Replace in Canvas
 
@@ -81,7 +81,9 @@ Search and replace text across all text cards on the current canvas or within a 
 - `Quick copy` / `Quick merge`
   Process selected cards with the default sorting mode from settings.
 - `Export image`
-  Export the current Loom workspace preview as a PNG from the Preview panel.
+  Export the current Loom workspace preview as a PNG from the Preview panel and choose the destination folder.
+- `Export card as image`
+  Export a single text card as a PNG from its Canvas context menu and choose the destination folder.
 - `Add/Edit badge`
   Add numeric outline-style badges such as `1`, `2.1`, or `10.3.2`.
 - `Number tools`

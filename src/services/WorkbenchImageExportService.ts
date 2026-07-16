@@ -17,11 +17,17 @@ export interface IWorkbenchImageExportService {
         previewElement: HTMLElement,
         canvasFile: TFile,
         nodeCount: number,
+        outputFolderPath?: string,
     ): Promise<TFile>;
 }
 
 export interface IWorkbenchImageWriter {
-    createWorkbenchPreviewImage(data: ArrayBuffer, canvasFile: TFile, nodeCount: number): Promise<TFile>;
+    createWorkbenchPreviewImage(
+        data: ArrayBuffer,
+        canvasFile: TFile,
+        nodeCount: number,
+        outputFolderPath?: string,
+    ): Promise<TFile>;
 }
 
 const UNSUPPORTED_MEDIA_TAGS = new Set([
@@ -110,8 +116,9 @@ export class WorkbenchImageExportService implements IWorkbenchImageExportService
         previewElement: HTMLElement,
         canvasFile: TFile,
         nodeCount: number,
+        outputFolderPath?: string,
     ): Promise<TFile> {
         const imageData = await this.renderer.render(previewElement);
-        return this.writer.createWorkbenchPreviewImage(imageData, canvasFile, nodeCount);
+        return this.writer.createWorkbenchPreviewImage(imageData, canvasFile, nodeCount, outputFolderPath);
     }
 }

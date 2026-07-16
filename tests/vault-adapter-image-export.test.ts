@@ -51,11 +51,12 @@ test("工作台预览图片保存在当前 Canvas 目录并避免覆盖同名文
       parent: { path: "folder" },
     } as never,
     2,
+    "exports",
   );
 
   assert.match(
     createdPath,
-    /^folder\/Idea-board-preview-2-\d{8}-\d{6}-1\.png$/,
+    /^exports\/Idea-board-preview-2-\d{8}-\d{6}-1\.png$/,
   );
   assert.equal(createdData, data);
   assert.equal(result.path, createdPath);

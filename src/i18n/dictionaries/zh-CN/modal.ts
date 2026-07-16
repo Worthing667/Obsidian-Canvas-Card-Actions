@@ -14,6 +14,11 @@ const modal: WidenTranslationValues<typeof enModal> = {
 		emptyCard: "[空]",
 		emptyCardTitle: "空卡片"
 	},
+	folderPicker: {
+		placeholder: "选择导出文件夹",
+		empty: "没有匹配的文件夹",
+		root: "仓库根目录"
+	},
 	badge: {
 		title: "设置序号",
 		label: "序号（仅支持数字）：",

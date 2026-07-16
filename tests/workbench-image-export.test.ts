@@ -105,8 +105,69 @@ test("图片导出只作为工作台预览的输出动作", () => {
   assert.doesNotMatch(mainSource, /export-card-as-image/);
   assert.doesNotMatch(mainSource, /export-selection-as-image/);
   assert.doesNotMatch(mainSource, /export-selected-cards-as-image/);
+  assert.match(mainSource, /ExportSingleCardAsImageCommand/);
+  assert.match(mainSource, /menu\.exportCardAsImage/);
+  assert.match(mainSource, /selectImageExportFolder/);
   assert.match(workbenchSource, /onExportImage/);
   assert.match(workbenchSource, /workbench\.button\.exportImage/);
+});
+
+test("图片导出将用户选择的文件夹传给写入器", async () => {
+  const { WorkbenchImageExportService } = await import(
+    "../src/services/WorkbenchImageExportService"
+  );
+  const previewElement = {} as HTMLElement;
+  const canvasFile = { path: "Board.canvas" } as never;
+  let receivedFolder: string | undefined;
+  const service = new WorkbenchImageExportService(
+    {
+      async render() {
+        return new Uint8Array([1]).buffer;
+      },
+    },
+    {
+      async createWorkbenchPreviewImage(_data, _file, _count, folderPath) {
+        receivedFolder = folderPath;
+        return { path: "exports/Board-preview-1.png" } as never;
+      },
+    },
+  );
+
+  await service.exportPreview(previewElement, canvasFile, 1, "exports");
+
+  assert.equal(receivedFolder, "exports");
+});
+
+test("单张卡片右键导出使用卡片元素和所选文件夹", async () => {
+  const { ExportSingleCardAsImageCommand } = await import(
+    "../src/presentation/commands/ExportSingleCardAsImageCommand"
+  );
+  const nodeElement = {} as HTMLElement;
+  const canvasFile = { extension: "canvas", path: "Board.canvas" } as never;
+  const node = { text: "card", nodeEl: nodeElement } as never;
+  let received:
+    | { element: HTMLElement; file: unknown; count: number; folder: string | undefined }
+    | undefined;
+  const command = new ExportSingleCardAsImageCommand(
+    {
+      async exportPreview(element, file, count, folder) {
+        received = { element, file, count, folder };
+        return { path: "exports/Board-preview-1.png" } as never;
+      },
+    },
+    node,
+    canvasFile,
+    async () => "exports",
+  );
+
+  await command.execute();
+
+  assert.deepEqual(received, {
+    element: nodeElement,
+    file: canvasFile,
+    count: 1,
+    folder: "exports",
+  });
 });
 
 test("工作台图片导出使用当前预览和工作台快照", async () => {
