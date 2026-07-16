@@ -19,6 +19,8 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === "production");
 const outdir = "build";
+const htmlToImageLocalResourcesPath = path.resolve("src/utils/htmlToImageLocalResources.ts");
+const htmlToImageLocalFontsPath = path.resolve("src/utils/htmlToImageLocalFonts.ts");
 
 const copyFileLog = (source, destination) => {
     console.log(`Attempting to copy: ${source} -> ${destination}`);
@@ -102,6 +104,26 @@ const copyToPluginDir = () => {
                 ".png": "dataurl",
             },
             plugins: [{
+                name: "html-to-image-local-resources",
+                setup(build) {
+                    build.onResolve({ filter: /^\.\/dataurl$/ }, (args) => {
+                        const importer = args.importer.split(path.sep).join("/");
+                        if (!importer.includes("/node_modules/html-to-image/es/")) {
+                            return null;
+                        }
+
+                        return { path: htmlToImageLocalResourcesPath };
+                    });
+                    build.onResolve({ filter: /^\.\/embed-webfonts$/ }, (args) => {
+                        const importer = args.importer.split(path.sep).join("/");
+                        if (!importer.includes("/node_modules/html-to-image/es/")) {
+                            return null;
+                        }
+
+                        return { path: htmlToImageLocalFontsPath };
+                    });
+                }
+            }, {
                 name: 'copy-obsidian-files',
                 setup(build) {
                     build.onEnd(() => {

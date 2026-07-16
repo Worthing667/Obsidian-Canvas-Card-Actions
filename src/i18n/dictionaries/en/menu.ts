@@ -2,6 +2,8 @@ const menu = {
 	editBadge: "Edit badge",
 	splitCard: "Split card...",
 	copyCardContent: "Copy card content",
+	exportCardAsImage: "Export card as image",
+	exportSelectionAsImage: "Export selection as image",
 	selectSameColorCards: "Select cards with the same color",
 	manageCardProperties: "Manage card properties",
 	sequenceTools: "Edit numbers",

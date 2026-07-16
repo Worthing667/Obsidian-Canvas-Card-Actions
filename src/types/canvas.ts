@@ -46,13 +46,28 @@ export interface CanvasNode {
     isEditing?: boolean;
     nodeEl?: HTMLElement | null;
     canvas?: Canvas;
+    initialized?: boolean;
+    isContentMounted?: boolean;
     getData(): CanvasNodeData;
     onResizeDblclick?(event: MouseEvent, resizeHandle: CanvasResizeHandle): void;
+}
+
+export interface CanvasEdge {
+    id: string;
+    lineGroupEl?: Element | null;
+    lineEndGroupEl?: Element | null;
+    labelElement?: {
+        wrapperEl?: HTMLElement | null;
+    } | null;
+    getData(): CanvasEdgeData;
 }
 
 export interface Canvas {
     selection?: Set<CanvasNode>;
     nodes?: Map<string, CanvasNode>;
+    edges?: Map<string, CanvasEdge>;
+    canvasEl?: HTMLElement;
+    screenshotting?: boolean;
     tx?: number;
     ty?: number;
     tZoom?: number;
@@ -69,6 +84,7 @@ export interface Canvas {
     requestSave(): Promise<void> | void;
     updateSelection?(selectionUpdater: () => void): void;
     requestFrame?(): void;
+    virtualize?(): void;
     setViewport?(tx: number, ty: number, tZoom: number): void;
     markViewportChanged?(): void;
     zoomToBbox?(bbox: { minX: number; maxX: number; minY: number; maxY: number }): void;

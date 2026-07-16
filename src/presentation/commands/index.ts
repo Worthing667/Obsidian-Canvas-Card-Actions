@@ -7,3 +7,4 @@ export * from './ColorGroupCommands';
 export * from './MergeCommands';
 export * from './QuickActionCommands';
 export * from './FindReplaceCommands';
+export * from './ExportCardsAsImageCommand';

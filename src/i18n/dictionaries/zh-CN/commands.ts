@@ -5,6 +5,7 @@ const commands: WidenTranslationValues<typeof enCommands> = {
 	findReplaceCanvasCards: "查找替换当前画布卡片",
 	openCardProperties: "管理卡片属性",
 	copyCardDimensions: "复制选中卡片的尺寸",
+	exportSelectedCardsAsImage: "将选中卡片导出为图片",
 	quickCopySelectedCards: "将当前选区一键复制",
 	quickMergeSelectedCards: "将当前选区一键拼合",
 	openMergeWorkbench: "预览选中卡片组",

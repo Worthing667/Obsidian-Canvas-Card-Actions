@@ -4,6 +4,7 @@ const notice = {
 	selectAtLeastOneTextCard: "Select at least one text card",
 	openPropertiesFailed: "Failed to open properties viewer. Please try again.",
 	cardDimensionsCopied: "Copied dimension info for {count} cards",
+	cardImageExported: "Exported {count} cards as an image: {filePath}",
 	copyFailedRetry: "Copy failed. Please try again.",
 	quickCopyExecuted: "Quick copy complete",
 	clipboardContentCopied: "Content copied to clipboard",

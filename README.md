@@ -62,6 +62,10 @@ Resize cards to fit their text and arrange selected cards with cleaner horizonta
 
 Demo video: [Auto-fit card height and arrange spacing](Demo/自适应高度_调整间距.mp4)
 
+### Export Card Images
+
+Right-click one text card to export it as a PNG, or select multiple text cards to export the current selection as one PNG while preserving their relative Canvas positions. Multi-card exports include connections whose endpoints are both selected, use the current theme and Canvas background, and are saved beside the current `.canvas` file.
+
 ### Find & Replace in Canvas
 
 Search and replace text across all text cards on the current canvas or within a selection. Open the floating find-and-replace panel via the search button in the canvas top-right toolbar or assign a hotkey in Obsidian settings. For a side-by-side experience, open the Loom workspace and switch to the **Find** tab — results appear in a scrollable list with match previews, and you can jump to matched cards by selecting and locating them on the canvas. You can replace the current match, all matches in a card, or every match across the canvas. Supports case-sensitive and regex matching.
@@ -76,6 +80,8 @@ Search and replace text across all text cards on the current canvas or within a 
   Search across all canvas text cards or within the current selection, with case-sensitive and regex matching. Navigate matches one by one, jump to matched cards by selecting and locating them, replace the current match, all matches in a card, or all matches across the canvas.
 - `Quick copy` / `Quick merge`
   Process selected cards with the default sorting mode from settings.
+- `Export card as image` / `Export selection as image`
+  Export one text card or the current text-card selection as a PNG. The same action is available from the command palette.
 - `Add/Edit badge`
   Add numeric outline-style badges such as `1`, `2.1`, or `10.3.2`.
 - `Number tools`
@@ -152,6 +158,7 @@ Suggested reading:
 - `docs/功能-Canvas缩放控件.md`
 - `docs/功能-查看和编辑卡片属性.md`
 - `docs/功能-Canvas卡片查找替换.md`
+- `docs/功能-卡片图片导出.md`
 - `docs/技术实现细节.md`
 - `docs/技术实现-Obsidian官方上架与发布流程.md`
 

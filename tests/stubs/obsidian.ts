@@ -8,6 +8,8 @@ export class Notice {
 
 export class App {}
 
+export class TFile {}
+
 export class View {}
 
 export class ItemView {
@@ -28,3 +30,7 @@ export const moment = {
 };
 
 export function setIcon(_el: unknown, _icon: string): void {}
+
+export function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/\/{2,}/g, "/");
+}

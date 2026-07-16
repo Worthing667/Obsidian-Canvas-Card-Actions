@@ -4,6 +4,7 @@ import { t } from "../i18n";
 
 export interface IVaultAdapter {
     createMergedDocument(content: string, canvasFile: TFile, baseName: string): Promise<TFile>;
+    createCardImage(data: ArrayBuffer, canvasFile: TFile, nodeCount: number): Promise<TFile>;
 }
 
 export class VaultAdapter implements IVaultAdapter {
@@ -15,6 +16,16 @@ export class VaultAdapter implements IVaultAdapter {
         const targetPath = normalizePath(parentPath ? `${parentPath}/${fileName}` : fileName);
         const uniquePath = this.ensureUniquePath(targetPath);
         return this.app.vault.create(uniquePath, content);
+    }
+
+    async createCardImage(data: ArrayBuffer, canvasFile: TFile, nodeCount: number): Promise<TFile> {
+        const scope = nodeCount === 1 ? "card" : `selection-${nodeCount}`;
+        const baseName = this.sanitizeFileName(`${canvasFile.basename}-${scope}`);
+        const fileName = `${baseName}-${this.formatTimestamp(new Date())}.png`;
+        const parentPath = canvasFile.parent?.path || "";
+        const targetPath = normalizePath(parentPath ? `${parentPath}/${fileName}` : fileName);
+        const uniquePath = this.ensureUniquePath(targetPath);
+        return this.app.vault.createBinary(uniquePath, data);
     }
 
     private ensureUniquePath(path: string): string {
