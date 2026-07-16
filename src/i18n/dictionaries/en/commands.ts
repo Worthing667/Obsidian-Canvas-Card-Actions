@@ -2,7 +2,6 @@ const commands = {
 	findReplaceCanvasCards: "Find and replace cards in current Canvas",
 	openCardProperties: "Manage card properties",
 	copyCardDimensions: "Copy selected card dimensions",
-	exportSelectedCardsAsImage: "Export selected cards as image",
 	quickCopySelectedCards: "Quick copy current selection",
 	quickMergeSelectedCards: "Quick merge current selection",
 	openMergeWorkbench: "Preview selected card group",

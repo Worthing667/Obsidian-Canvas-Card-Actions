@@ -7,7 +7,7 @@ const notice: WidenTranslationValues<typeof enNotice> = {
 	selectAtLeastOneTextCard: "请选择至少一个文本卡片",
 	openPropertiesFailed: "打开属性查看器失败，请重试",
 	cardDimensionsCopied: "已复制 {count} 个卡片的尺寸信息",
-	cardImageExported: "已将 {count} 张卡片导出为图片：{filePath}",
+	workbenchPreviewImageExported: "已将 {count} 张卡片的预览导出为图片：{filePath}",
 	copyFailedRetry: "复制失败，请重试",
 	quickCopyExecuted: "已执行一键复制",
 	clipboardContentCopied: "内容已复制到剪贴板",

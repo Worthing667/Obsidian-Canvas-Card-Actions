@@ -25,6 +25,7 @@ const workbench = {
 		copy: "Copy",
 		addAsCard: "Merge into new card",
 		newDocument: "New document",
+		exportImage: "Export image",
 		replaceCurrent: "Replace current",
 		replaceCard: "Replace current card",
 		replaceAll: "Replace all"

@@ -35,6 +35,7 @@ export interface MergeWorkbenchContext {
     onCopy: (state: WorkbenchState) => Promise<void>;
     onCreateCard: (state: WorkbenchState) => Promise<void>;
     onCreateMarkdown: (state: WorkbenchState) => Promise<void>;
+    onExportImage: (state: WorkbenchState, previewElement: HTMLElement) => Promise<void>;
 }
 
 export interface SetWorkbenchContextOptions {
@@ -233,8 +234,8 @@ export class MergeWorkbenchView extends ItemView {
     private renderPreviewPanel(container: HTMLElement): void {
         const panel = container.createDiv({ cls: "canvas-loom-workbench-panel canvas-loom-workbench-preview-panel" });
         this.renderPreviewSummary(panel);
-        this.renderPreviewArea(panel);
-        this.renderOutputActions(panel);
+        const preview = this.renderPreviewArea(panel);
+        this.renderOutputActions(panel, preview);
     }
 
     private renderPreviewSummary(container: HTMLElement): void {
@@ -322,18 +323,18 @@ export class MergeWorkbenchView extends ItemView {
         });
     }
 
-    private renderPreviewArea(container: HTMLElement): void {
+    private renderPreviewArea(container: HTMLElement): HTMLPreElement {
         const section = container.createDiv({ cls: "canvas-loom-workbench-preview-section" });
 
         const preview = section.createEl("pre", { cls: "canvas-loom-workbench-preview-content" });
         if (this.context.state.lastComputedContent) {
             preview.setText(this.context.state.lastComputedContent);
-            return;
+            return preview;
         }
 
         preview.setText(this.translate("workbench.panel.renderingPreview"));
         this.schedulePreviewRender(preview);
-
+        return preview;
     }
 
     private renderPreviewAction(container: HTMLElement): void {
@@ -350,7 +351,7 @@ export class MergeWorkbenchView extends ItemView {
         button.addEventListener("click", () => this.renderSortPreview());
     }
 
-    private renderOutputActions(container: HTMLElement): void {
+    private renderOutputActions(container: HTMLElement, previewElement?: HTMLElement): void {
         const orderedCards = this.workbenchService.getOrderedCards(this.context.state, this.context.sortPriority);
         const actions = container.createDiv({ cls: "canvas-loom-workbench-actions canvas-loom-workbench-footer-actions" });
         const hasCards = orderedCards.length > 0;
@@ -363,6 +364,14 @@ export class MergeWorkbenchView extends ItemView {
         this.createActionButton(actions, this.translate("workbench.button.newDocument"), async () => {
             await this.context.onCreateMarkdown(this.context.state);
         }, !hasCards);
+        if (previewElement) {
+            this.createActionButton(actions, this.translate("workbench.button.exportImage"), async () => {
+                this.clearPreviewTimer();
+                const content = this.renderPreviewContentNow();
+                previewElement.setText(content || this.translate("workbench.panel.emptyPreview"));
+                await this.context.onExportImage(this.context.state, previewElement);
+            }, !hasCards);
+        }
     }
 
     private renderFindReplacePanel(container: HTMLElement): void {
@@ -1088,6 +1097,7 @@ export class MergeWorkbenchView extends ItemView {
             onCopy: () => this.notifyEmptyWorkbench(),
             onCreateCard: () => this.notifyEmptyWorkbench(),
             onCreateMarkdown: () => this.notifyEmptyWorkbench(),
+            onExportImage: () => this.notifyEmptyWorkbench(),
         };
     }
 

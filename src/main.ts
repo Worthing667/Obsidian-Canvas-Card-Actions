@@ -21,9 +21,7 @@ import {
     CanvasLabelScaleService,
     CanvasPerformanceModeService,
     CanvasZoomControlService,
-    SearchReplaceService,
-    CardImageExportService,
-    HtmlToImageCardRenderer
+    SearchReplaceService
 } from './services';
 import {
     CommandRegistry,
@@ -41,7 +39,6 @@ import {
     QuickCopyCommand,
     QuickMergeCommand,
     OpenFindReplaceWorkbenchCommand,
-    ExportCardsAsImageCommand,
     ICommand
 } from './presentation/commands';
 import { BadgeModal, BatchBadgeModal } from './presentation/modals';
@@ -51,7 +48,7 @@ import type { Canvas, CanvasNode } from "./types/canvas";
 import { clearTranslationRuntimeContext, configureTranslationRuntimeContext, t } from "./i18n";
 import type { TranslationKey, TranslationParams } from "./i18n";
 import { isTextNodeData } from "./utils/canvasNodeUtils";
-import { hasCanvasEditingNode, isCanvasNodeEditing } from "./utils/canvasEditingState";
+import { hasCanvasEditingNode } from "./utils/canvasEditingState";
 
 const DEFAULT_SETTINGS: CanvasLoomSettings = {
     language: DEFAULT_LANGUAGE,
@@ -78,7 +75,6 @@ interface CanvasServiceBundle {
     colorGroupService: ColorGroupService;
     searchReplaceService: SearchReplaceService;
     mergeService: MergeService;
-    cardImageExportService: CardImageExportService;
 }
 
 export default class CanvasLoomPlugin extends Plugin {
@@ -92,7 +88,6 @@ export default class CanvasLoomPlugin extends Plugin {
     private colorGroupService: ColorGroupService;
     private mergeService: MergeService;
     private searchReplaceService: SearchReplaceService;
-    private cardImageExportService: CardImageExportService;
     private performanceService: PerformanceService;
     private badgeRenderScheduler: BadgeRenderScheduler;
     private canvasSelectionToolbarService: CanvasSelectionToolbarService;
@@ -102,7 +97,6 @@ export default class CanvasLoomPlugin extends Plugin {
     private canvasZoomControlService: CanvasZoomControlService;
     private commandRegistry: CommandRegistry;
     private vaultAdapter: VaultAdapter;
-    private cardImageRenderer: HtmlToImageCardRenderer;
     private canvasEdgeLayerRefreshTimeout: number | null = null;
     private canvasEdgeLayerInteractionObserver: MutationObserver | null = null;
     private canvasEdgeLayerObservedRootEl: HTMLElement | null = null;
@@ -122,7 +116,6 @@ export default class CanvasLoomPlugin extends Plugin {
         this.clipboardAdapter = new ClipboardAdapter();
         this.storageAdapter = new StorageAdapter(this, DEFAULT_SETTINGS);
         this.vaultAdapter = new VaultAdapter(this.app);
-        this.cardImageRenderer = new HtmlToImageCardRenderer();
 
         await this.loadSettings();
         configureTranslationRuntimeContext({
@@ -245,7 +238,6 @@ export default class CanvasLoomPlugin extends Plugin {
         this.colorGroupService = services.colorGroupService;
         this.searchReplaceService = services.searchReplaceService;
         this.mergeService = services.mergeService;
-        this.cardImageExportService = services.cardImageExportService;
     }
 
     private getOrCreateCanvasServices(canvas: Canvas): CanvasServiceBundle {
@@ -280,11 +272,6 @@ export default class CanvasLoomPlugin extends Plugin {
                 this.performanceService,
                 () => this.settings.mergeCleanupMode,
                 () => resolveMergeCardSeparator(this.settings)
-            ),
-            cardImageExportService: new CardImageExportService(
-                canvas,
-                this.cardImageRenderer,
-                this.vaultAdapter
             )
         };
 
@@ -327,22 +314,6 @@ export default class CanvasLoomPlugin extends Plugin {
             const copyCommand = new CopySingleCardCommand(this.contentService, node, this.settings);
             this.commandRegistry.registerCommand('copy-single-card', copyCommand);
             this.commandRegistry.addCommandToMenu(menu, 'copy-single-card', this.translate("menu.copyCardContent"), 'copy');
-        }
-
-        if (isTextNodeData(node.getData?.()) && node.canvas && this.cardImageExportService) {
-            const exportCommand = new ExportCardsAsImageCommand(
-                this.cardImageExportService,
-                [node],
-                this.resolveCanvasFileForCanvas(node.canvas),
-                this.settings
-            );
-            this.commandRegistry.registerCommand("export-card-as-image", exportCommand);
-            this.commandRegistry.addCommandToMenu(
-                menu,
-                "export-card-as-image",
-                this.translate("menu.exportCardAsImage"),
-                "image"
-            );
         }
 
         if (isTextNodeData(node.getData?.()) && this.colorGroupService) {
@@ -411,22 +382,6 @@ export default class CanvasLoomPlugin extends Plugin {
         const quickCopyCommand = new QuickCopyCommand(this.contentService, selectionArray, this.settings);
         this.commandRegistry.registerCommand("quick-copy", quickCopyCommand);
         this.commandRegistry.addCommandToMenu(menu, "quick-copy", this.translate("menu.quickCopy"), "copy");
-
-        if (this.cardImageExportService && this.hasTextCardSelectionFast(selectionArray)) {
-            const exportCommand = new ExportCardsAsImageCommand(
-                this.cardImageExportService,
-                selectionArray,
-                canvasFile,
-                this.settings
-            );
-            this.commandRegistry.registerCommand("export-selection-as-image", exportCommand);
-            this.commandRegistry.addCommandToMenu(
-                menu,
-                "export-selection-as-image",
-                this.translate("menu.exportSelectionAsImage"),
-                "image"
-            );
-        }
 
         const quickMergeCommand = new QuickMergeCommand(this.mergeService, selectionArray, this.settings);
         this.commandRegistry.registerCommand("quick-merge", quickMergeCommand);
@@ -917,20 +872,6 @@ export default class CanvasLoomPlugin extends Plugin {
     }
 
     private registerSelectionCommands(): void {
-        this.registerCanvasSelectionCommand(
-            'export-selected-cards-as-image',
-            this.translate("commands.exportSelectedCardsAsImage"),
-            ({ canvas, selection, file }) => new ExportCardsAsImageCommand(
-                this.getOrCreateCanvasServices(canvas).cardImageExportService,
-                selection,
-                file,
-                this.settings
-            ),
-            ({ selection, file }) => !!file
-                && this.hasTextCardSelectionFast(selection)
-                && !selection.some((node) => isCanvasNodeEditing(node))
-        );
-
         this.registerCanvasSelectionCommand(
             'quick-copy-selected-cards',
             this.translate("commands.quickCopySelectedCards"),

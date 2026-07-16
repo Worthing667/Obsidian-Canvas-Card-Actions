@@ -31,12 +31,7 @@ const errors: WidenTranslationValues<typeof enErrors> = {
 	arrangementNeedTwoTextCards: "至少需要两张文本卡片才能整理间距",
 	arrangementInsufficientCards: "在画布数据中未找到足够的卡片信息",
 	invalidCardSize: "卡片尺寸无效（宽:{width}, 高:{height}），无法整理间距",
-	cardImageExportNoTextCards: "请至少选择一张文本卡片再导出",
-	cardImageExportEditing: "请先退出卡片编辑状态，再导出图片",
-	cardImageExportMissingCanvasFile: "请在打开 Canvas 文件时使用图片导出",
-	cardImageExportUnsupported: "当前 Obsidian 版本不支持卡片图片导出",
-	cardImageExportUnmountedCard: "部分选中卡片尚未完成渲染，请等待卡片显示后重试",
-	cardImageExportFailed: "导出卡片图片失败，请查看控制台了解详情"
+	workbenchPreviewImageExportFailed: "导出预览图片失败，请查看控制台了解详情"
 };
 
 export default errors;

@@ -4,7 +4,7 @@ import { t } from "../i18n";
 
 export interface IVaultAdapter {
     createMergedDocument(content: string, canvasFile: TFile, baseName: string): Promise<TFile>;
-    createCardImage(data: ArrayBuffer, canvasFile: TFile, nodeCount: number): Promise<TFile>;
+    createWorkbenchPreviewImage(data: ArrayBuffer, canvasFile: TFile, nodeCount: number): Promise<TFile>;
 }
 
 export class VaultAdapter implements IVaultAdapter {
@@ -18,8 +18,8 @@ export class VaultAdapter implements IVaultAdapter {
         return this.app.vault.create(uniquePath, content);
     }
 
-    async createCardImage(data: ArrayBuffer, canvasFile: TFile, nodeCount: number): Promise<TFile> {
-        const scope = nodeCount === 1 ? "card" : `selection-${nodeCount}`;
+    async createWorkbenchPreviewImage(data: ArrayBuffer, canvasFile: TFile, nodeCount: number): Promise<TFile> {
+        const scope = nodeCount === 1 ? "preview" : `preview-${nodeCount}`;
         const baseName = this.sanitizeFileName(`${canvasFile.basename}-${scope}`);
         const fileName = `${baseName}-${this.formatTimestamp(new Date())}.png`;
         const parentPath = canvasFile.parent?.path || "";

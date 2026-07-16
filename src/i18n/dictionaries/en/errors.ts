@@ -28,12 +28,7 @@ const errors = {
 	arrangementNeedTwoTextCards: "Select at least two text cards to arrange spacing",
 	arrangementInsufficientCards: "Not enough card data was found in the Canvas",
 	invalidCardSize: "Card size is invalid (width: {width}, height: {height}); spacing could not be arranged",
-	cardImageExportNoTextCards: "Select at least one text card to export",
-	cardImageExportEditing: "Exit card editing before exporting an image",
-	cardImageExportMissingCanvasFile: "Use image export while a Canvas file is open",
-	cardImageExportUnsupported: "This Obsidian version does not support card image export",
-	cardImageExportUnmountedCard: "Some selected cards are not ready to render. Try again after they appear.",
-	cardImageExportFailed: "Failed to export card image. See the console for details."
+	workbenchPreviewImageExportFailed: "Failed to export preview image. See the console for details."
 } as const;
 
 export default errors;

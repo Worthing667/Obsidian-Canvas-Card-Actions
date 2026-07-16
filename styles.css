@@ -2318,16 +2318,3 @@
     color: var(--text-muted);
     user-select: none;
 }
-
-.canvas-wrapper.canvas-loom-image-exporting .canvas-node,
-.canvas-wrapper.canvas-loom-image-exporting .canvas-node-content,
-.canvas-wrapper.canvas-loom-image-exporting .canvas-path {
-    animation: none !important;
-    transition: none !important;
-}
-
-.canvas-wrapper.canvas-loom-image-exporting .canvas-node-resizer,
-.canvas-wrapper.canvas-loom-image-exporting .canvas-node-connection-point,
-.canvas-wrapper.canvas-loom-image-exporting .canvas-selection {
-    display: none !important;
-}

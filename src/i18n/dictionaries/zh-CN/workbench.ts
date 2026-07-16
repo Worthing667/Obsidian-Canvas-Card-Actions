@@ -28,6 +28,7 @@ const workbench: WidenTranslationValues<typeof enWorkbench> = {
 		copy: "复制",
 		addAsCard: "拼合为新卡片",
 		newDocument: "新建文稿",
+		exportImage: "导出图片",
 		replaceCurrent: "替换当前",
 		replaceCard: "替换当前卡片",
 		replaceAll: "全部替换"

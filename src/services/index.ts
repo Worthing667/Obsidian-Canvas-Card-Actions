@@ -15,4 +15,4 @@ export * from './CanvasLabelScaleService';
 export * from './CanvasPerformanceModeService';
 export * from './SearchReplaceService';
 export * from './CanvasZoomControlService';
-export * from './CardImageExportService';
+export * from './WorkbenchImageExportService';

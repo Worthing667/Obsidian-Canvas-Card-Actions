@@ -9,6 +9,11 @@ import { PreviewWorkbenchService } from "./PreviewWorkbenchService";
 import { PerformanceService } from "./PerformanceService";
 import { SearchReplaceScope, SearchReplaceService } from "./SearchReplaceService";
 import { fitTextCardsToHeight } from "./CanvasAutoFitService";
+import {
+    HtmlToImageWorkbenchRenderer,
+    type IWorkbenchImageExportService,
+    WorkbenchImageExportService,
+} from "./WorkbenchImageExportService";
 import { t } from "../i18n";
 import type { MergeCleanupMode } from "../settings/ICanvasLoomSettings";
 import type { CardSnapshot, WorkbenchState } from "../types/WorkbenchState";
@@ -46,6 +51,7 @@ export interface IMergeService {
 
 export class MergeService implements IMergeService {
     private readonly workbenchService = new PreviewWorkbenchService();
+    private readonly workbenchImageExportService: IWorkbenchImageExportService;
 
     constructor(
         private app: App,
@@ -55,8 +61,14 @@ export class MergeService implements IMergeService {
         private searchReplaceService?: SearchReplaceService,
         private performanceService?: PerformanceService,
         private getMergeCleanupMode?: () => MergeCleanupMode,
-        private getMergeCardSeparator?: () => string | null
-    ) {}
+        private getMergeCardSeparator?: () => string | null,
+        workbenchImageExportService?: IWorkbenchImageExportService,
+    ) {
+        this.workbenchImageExportService = workbenchImageExportService || new WorkbenchImageExportService(
+            new HtmlToImageWorkbenchRenderer(),
+            this.vaultAdapter,
+        );
+    }
 
     async mergeToCanvasCard(selection: CanvasNode[], options?: MergeExecutionOptions): Promise<boolean> {
         const result = await this.buildMergeContent("canvas-card", { selection }, options);
@@ -282,6 +294,28 @@ export class MergeService implements IMergeService {
                     manualOrderIds: currentState.manualOrderIds,
                     cardSeparator: this.resolveCardSeparator(currentState.cardSeparator)
                 });
+            },
+            onExportImage: async (currentState: WorkbenchState, previewElement: HTMLElement) => {
+                const canvasFile = this.resolveCanvasFile(currentState.canvasFilePath);
+                if (!canvasFile) {
+                    new Notice(t("notice.originalCanvasFileNotFound"));
+                    return;
+                }
+
+                try {
+                    const file = await this.workbenchImageExportService.exportPreview(
+                        previewElement,
+                        canvasFile,
+                        currentState.selectionSnapshot.length,
+                    );
+                    new Notice(t("notice.workbenchPreviewImageExported", {
+                        count: currentState.selectionSnapshot.length,
+                        filePath: file.path,
+                    }));
+                } catch (error) {
+                    console.error("Failed to export workbench preview as an image:", error);
+                    new Notice(t("errors.workbenchPreviewImageExportFailed"));
+                }
             }
         };
     }
