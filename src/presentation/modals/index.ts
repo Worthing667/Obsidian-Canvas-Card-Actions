@@ -1,3 +1,3 @@
 export { BadgeModal } from './BadgeModal';
 export { BatchBadgeModal } from './BatchBadgeModal';
-export { FolderSuggestModal, pickImageExportFolder } from './FolderSuggestModal';
+export { ImageExportFolderModal, pickImageExportFolder } from './ImageExportFolderModal';

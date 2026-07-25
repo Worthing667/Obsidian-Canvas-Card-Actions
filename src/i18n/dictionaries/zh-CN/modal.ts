@@ -15,8 +15,10 @@ const modal: WidenTranslationValues<typeof enModal> = {
 		emptyCardTitle: "空卡片"
 	},
 	folderPicker: {
-		placeholder: "选择导出文件夹",
-		empty: "没有匹配的文件夹",
+		title: "导出图片",
+		description: "选择仓库内用于保存 PNG 图片的文件夹。",
+		label: "导出位置",
+		export: "导出",
 		root: "仓库根目录"
 	},
 	badge: {

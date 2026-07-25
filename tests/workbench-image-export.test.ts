@@ -101,6 +101,7 @@ test("工作台图片渲染器展开完整预览内容且不导出滚动条", as
 test("图片导出只作为工作台预览的输出动作", () => {
   const mainSource = read("src/main.ts");
   const workbenchSource = read("src/presentation/views/MergeWorkbenchView.ts");
+  const folderPickerSource = read("src/presentation/modals/ImageExportFolderModal.ts");
 
   assert.doesNotMatch(mainSource, /export-card-as-image/);
   assert.doesNotMatch(mainSource, /export-selection-as-image/);
@@ -110,6 +111,9 @@ test("图片导出只作为工作台预览的输出动作", () => {
   assert.match(mainSource, /selectImageExportFolder/);
   assert.match(workbenchSource, /onExportImage/);
   assert.match(workbenchSource, /workbench\.button\.exportImage/);
+  assert.match(folderPickerSource, /extends Modal/);
+  assert.doesNotMatch(folderPickerSource, /SuggestModal/);
+  assert.match(folderPickerSource, /modal\.folderPicker\.export/);
 });
 
 test("图片导出将用户选择的文件夹传给写入器", async () => {

@@ -12,8 +12,10 @@ const modal = {
 		emptyCardTitle: "Empty card"
 	},
 	folderPicker: {
-		placeholder: "Choose an export folder",
-		empty: "No matching folders",
+		title: "Export image",
+		description: "Choose a folder in this vault for the exported PNG.",
+		label: "Export folder",
+		export: "Export",
 		root: "Vault root"
 	},
 	badge: {
