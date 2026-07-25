@@ -142,14 +142,19 @@ test("图片导出将用户选择的文件夹传给写入器", async () => {
   assert.equal(receivedFolder, "exports");
 });
 
-test("单张卡片右键导出使用卡片元素和所选文件夹", async () => {
+test("单张卡片右键导出使用可见容器而不是 Canvas 定位外壳", async () => {
   const { ExportSingleCardAsImageCommand } = await import(
     "../src/presentation/commands/ExportSingleCardAsImageCommand"
   );
   const { CommandRegistry } = await import(
     "../src/presentation/commands/CommandRegistry"
   );
-  const nodeElement = {} as HTMLElement;
+  const cardContainer = {} as HTMLElement;
+  const nodeElement = {
+    querySelector(selector: string) {
+      return selector === ".canvas-node-container" ? cardContainer : null;
+    },
+  } as HTMLElement;
   const canvasFile = { extension: "canvas", path: "Board.canvas" } as never;
   const node = {
     nodeEl: nodeElement,
@@ -175,7 +180,7 @@ test("单张卡片右键导出使用卡片元素和所选文件夹", async () =>
   await registry.executeCommand("export-single-card-as-image");
 
   assert.deepEqual(received, {
-    element: nodeElement,
+    element: cardContainer,
     file: canvasFile,
     count: 1,
     folder: "exports",

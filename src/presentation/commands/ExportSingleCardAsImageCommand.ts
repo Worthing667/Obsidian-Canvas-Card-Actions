@@ -26,6 +26,12 @@ export class ExportSingleCardAsImageCommand implements ICommand {
             return;
         }
 
+        const cardContainer = nodeElement.querySelector<HTMLElement>(".canvas-node-container");
+        if (!cardContainer) {
+            new Notice(t("notice.cardImageExportFailed"));
+            return;
+        }
+
         try {
             const outputFolderPath = await this.selectImageExportFolder(this.canvasFile);
             if (outputFolderPath === null) {
@@ -33,7 +39,7 @@ export class ExportSingleCardAsImageCommand implements ICommand {
             }
 
             const file = await this.imageExportService.exportPreview(
-                nodeElement,
+                cardContainer,
                 this.canvasFile,
                 1,
                 outputFolderPath,
