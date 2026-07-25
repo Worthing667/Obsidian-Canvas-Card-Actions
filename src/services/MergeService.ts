@@ -308,12 +308,12 @@ export class MergeService implements IMergeService {
                     return;
                 }
 
-                const outputFolderPath = await this.imageExportFolderPicker(canvasFile);
-                if (outputFolderPath === null) {
-                    return;
-                }
-
                 try {
+                    const outputFolderPath = await this.imageExportFolderPicker(canvasFile);
+                    if (outputFolderPath === null) {
+                        return;
+                    }
+
                     const file = await this.workbenchImageExportService.exportPreview(
                         previewElement,
                         canvasFile,

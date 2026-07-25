@@ -142,9 +142,15 @@ test("单张卡片右键导出使用卡片元素和所选文件夹", async () =>
   const { ExportSingleCardAsImageCommand } = await import(
     "../src/presentation/commands/ExportSingleCardAsImageCommand"
   );
+  const { CommandRegistry } = await import(
+    "../src/presentation/commands/CommandRegistry"
+  );
   const nodeElement = {} as HTMLElement;
   const canvasFile = { extension: "canvas", path: "Board.canvas" } as never;
-  const node = { text: "card", nodeEl: nodeElement } as never;
+  const node = {
+    nodeEl: nodeElement,
+    getData: () => ({ type: "text", text: "card" }),
+  } as never;
   let received:
     | { element: HTMLElement; file: unknown; count: number; folder: string | undefined }
     | undefined;
@@ -160,7 +166,9 @@ test("单张卡片右键导出使用卡片元素和所选文件夹", async () =>
     async () => "exports",
   );
 
-  await command.execute();
+  const registry = new CommandRegistry();
+  registry.registerCommand("export-single-card-as-image", command);
+  await registry.executeCommand("export-single-card-as-image");
 
   assert.deepEqual(received, {
     element: nodeElement,

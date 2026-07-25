@@ -26,12 +26,12 @@ export class ExportSingleCardAsImageCommand implements ICommand {
             return;
         }
 
-        const outputFolderPath = await this.selectImageExportFolder(this.canvasFile);
-        if (outputFolderPath === null) {
-            return;
-        }
-
         try {
+            const outputFolderPath = await this.selectImageExportFolder(this.canvasFile);
+            if (outputFolderPath === null) {
+                return;
+            }
+
             const file = await this.imageExportService.exportPreview(
                 nodeElement,
                 this.canvasFile,
@@ -43,9 +43,5 @@ export class ExportSingleCardAsImageCommand implements ICommand {
             console.error("Failed to export single card as an image:", error);
             new Notice(t("notice.cardImageExportFailed"));
         }
-    }
-
-    canExecute(): boolean {
-        return !!this.node.nodeEl && !!this.node.text && !!this.canvasFile;
     }
 }
