@@ -102,6 +102,7 @@ test("图片导出只作为工作台预览的输出动作", () => {
   const mainSource = read("src/main.ts");
   const workbenchSource = read("src/presentation/views/MergeWorkbenchView.ts");
   const folderPickerSource = read("src/presentation/modals/ImageExportFolderModal.ts");
+  const stylesSource = read("styles.css");
 
   assert.doesNotMatch(mainSource, /export-card-as-image/);
   assert.doesNotMatch(mainSource, /export-selection-as-image/);
@@ -114,6 +115,8 @@ test("图片导出只作为工作台预览的输出动作", () => {
   assert.match(folderPickerSource, /extends Modal/);
   assert.doesNotMatch(folderPickerSource, /SuggestModal/);
   assert.match(folderPickerSource, /modal\.folderPicker\.export/);
+  assert.doesNotMatch(folderPickerSource, /\.style\.width/);
+  assert.match(stylesSource, /\.canvas-loom-folder-picker-modal select\s*\{/);
 });
 
 test("图片导出将用户选择的文件夹传给写入器", async () => {

@@ -90,6 +90,10 @@
     margin-top: 28px;
 }
 
+.canvas-loom-folder-picker-modal select {
+    width: 100%;
+}
+
 .cca-stats-section {
     background: var(--background-secondary-alt);
     border-radius: 6px;

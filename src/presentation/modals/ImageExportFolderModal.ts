@@ -40,7 +40,6 @@ export class ImageExportFolderModal extends Modal {
             text: modalT(this.app, "modal.folderPicker.label"),
         });
         const select = field.createEl("select");
-        select.style.width = "100%";
 
         for (const folder of this.folders) {
             select.createEl("option", {

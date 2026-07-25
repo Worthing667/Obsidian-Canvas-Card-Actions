@@ -10,7 +10,7 @@ function read(path: string): string {
 test("manifest 保持旧版 Obsidian 可加载", () => {
     const manifest = JSON.parse(read("manifest.json")) as { minAppVersion: string; version: string };
 
-    assert.equal(manifest.version, "1.8.6");
+    assert.equal(manifest.version, "1.8.7");
     assert.equal(manifest.minAppVersion, "0.16.2");
 });
 
